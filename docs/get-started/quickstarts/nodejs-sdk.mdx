@@ -1,0 +1,62 @@
+---
+sidebar_position: 3
+title: Node.js SDK Quickstart
+description: Get started with the TrustScope Node.js SDK
+---
+
+# Node.js SDK Quickstart
+
+Get started with the TrustScope Node.js SDK in 5 minutes.
+
+## Installation
+
+```bash
+npm install @trustscope/sdk
+# or
+yarn add @trustscope/sdk
+```
+
+**Requirements:** Node.js 18+
+
+---
+
+## Quick Start
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+import OpenAI from 'openai';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+const openai = new OpenAI();
+
+async function myAgent(prompt: string): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.choices[0].message.content ?? '';
+}
+
+// Wrap with observability
+const observedAgent = ts.observe(myAgent, { agentId: 'my-agent' });
+
+const result = await observedAgent('Hello!');
+// Automatically logged to TrustScope
+```
+
+---
+
+## What Gets Captured
+
+- Function inputs and outputs
+- Execution time
+- Errors and exceptions
+- Custom metadata
+
+---
+
+## Next Steps
+
+- [Full Node.js SDK Guide](/docs/sdks/nodejs) - Complete documentation
+- [Sessions](/docs/concepts/sessions) - Group related requests
+- [Policies](/docs/concepts/policies) - Enforce rules

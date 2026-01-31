@@ -1,0 +1,565 @@
+---
+sidebar_position: 2
+title: Node.js SDK
+description: TypeScript-first Node.js SDK for TrustScope with full type safety
+---
+
+# Node.js SDK
+
+The TrustScope Node.js SDK provides TypeScript-first integration with full type safety, async/await support, and framework integrations.
+
+## Installation
+
+```bash
+npm install @trustscope/sdk
+# or
+yarn add @trustscope/sdk
+# or
+pnpm add @trustscope/sdk
+```
+
+**Requirements:** Node.js 18+
+
+## Quick Start
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// Wrap a function
+const observedAgent = ts.observe(myAgentFunction, { agentId: 'my-agent' });
+const result = await observedAgent('Hello!');
+
+// Or use manually
+await ts.logAction({
+  agentId: 'my-agent',
+  actionType: 'llm_call',
+  provider: 'openai',
+  model: 'gpt-4o',
+  input: { messages: [...] },
+  output: { content: '...' }
+});
+```
+
+---
+
+## Configuration
+
+### Initialize Client
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+// Basic
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// Full configuration
+const ts = new TrustScope({
+  apiKey: 'ts_live_xxx',
+  baseUrl: 'https://api.trustscope.ai',
+  timeout: 30000,           // ms
+  maxRetries: 3,
+  asyncFlush: true,         // Non-blocking
+  flushInterval: 5000,      // ms
+  batchSize: 100,
+  debug: false
+});
+```
+
+### Environment Variables
+
+```bash
+export TRUSTSCOPE_API_KEY=ts_live_xxx
+```
+
+```typescript
+// Reads from environment automatically
+const ts = new TrustScope();
+```
+
+---
+
+## Observability
+
+### Function Wrapper
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+import OpenAI from 'openai';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+const openai = new OpenAI();
+
+// Define your agent function
+async function myAgent(prompt: string): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.choices[0].message.content ?? '';
+}
+
+// Wrap it
+const observedAgent = ts.observe(myAgent, {
+  agentId: 'my-agent',
+  sessionId: 'sess_123',       // Optional
+  userId: 'user_456',          // Optional
+  tags: ['production'],        // Optional
+  metadata: { version: '2.0' } // Optional
+});
+
+// Use it
+const result = await observedAgent('What is the weather?');
+```
+
+### Manual Logging
+
+```typescript
+// Log an LLM call
+await ts.logLLMCall({
+  agentId: 'my-agent',
+  provider: 'openai',
+  model: 'gpt-4o',
+  inputMessages: [{ role: 'user', content: 'Hello' }],
+  outputContent: 'Hi there!',
+  inputTokens: 5,
+  outputTokens: 10,
+  latencyMs: 234,
+  costUsd: 0.0001
+});
+
+// Log a custom action
+await ts.logAction({
+  agentId: 'my-agent',
+  actionType: 'tool_call',
+  actionName: 'web_search',
+  input: { query: 'weather in NYC' },
+  output: { results: [...] },
+  durationMs: 500
+});
+
+// Log a decision
+await ts.logDecision({
+  agentId: 'my-agent',
+  decisionType: 'approval',
+  input: { request: 'refund', amount: 500 },
+  output: { approved: true },
+  metadata: { policyVersion: '1.2' }
+});
+```
+
+---
+
+## Sessions
+
+### Using startSession
+
+```typescript
+const session = ts.startSession({
+  agentId: 'my-agent',
+  sessionId: 'user_123',  // Optional, auto-generated if not provided
+  userId: 'user_456',
+  metadata: { source: 'web' }
+});
+
+// Log actions within the session
+await session.logAction('step_1', { data: '...' });
+
+const llmResult = await callLLM(prompt);
+await session.logLLMCall({
+  provider: 'openai',
+  model: 'gpt-4o',
+  inputMessages: [...],
+  outputContent: llmResult
+});
+
+await session.logAction('step_2', { data: '...' });
+
+// End session
+await session.end({
+  status: 'completed',
+  summary: 'Processed user request successfully'
+});
+```
+
+### Session Context
+
+```typescript
+// Create session context that auto-tags all operations
+const sessionContext = ts.createSessionContext({
+  agentId: 'orchestrator',
+  sessionId: 'workflow_123'
+});
+
+// All calls within context are grouped
+await sessionContext.run(async () => {
+  const data = await researchAgent('AI trends');
+  const article = await writerAgent(data);
+  return article;
+});
+```
+
+---
+
+## Policy Enforcement
+
+### Enforce Wrapper
+
+```typescript
+// Wrap function with policy enforcement
+const enforcedRefund = ts.enforce(processRefund, {
+  agentId: 'refund-bot',
+  policies: ['max-refund-1000', 'no-pii', 'business-hours']
+});
+
+try {
+  const result = await enforcedRefund('cust_123', 500, 'Product damaged');
+} catch (error) {
+  if (error instanceof PolicyViolationError) {
+    console.log(`Blocked: ${error.policyName} - ${error.reason}`);
+  }
+}
+```
+
+### Manual Policy Check
+
+```typescript
+const result = await ts.checkPolicies({
+  agentId: 'my-agent',
+  actionType: 'llm_call',
+  input: { messages: [{ role: 'user', content: userInput }] },
+  policies: ['content-filter', 'cost-limit']
+});
+
+if (result.allowed) {
+  const response = await callLLM(userInput);
+} else {
+  console.log(`Blocked by: ${result.violatedPolicies.join(', ')}`);
+}
+```
+
+---
+
+## Framework Integrations
+
+### OpenAI
+
+```typescript
+import OpenAI from 'openai';
+import { wrapOpenAI } from '@trustscope/sdk/integrations/openai';
+
+const openai = wrapOpenAI(new OpenAI(), {
+  apiKey: 'ts_live_xxx',
+  agentId: 'openai-agent'
+});
+
+// All calls automatically logged
+const response = await openai.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [{ role: 'user', content: 'Hello' }]
+});
+```
+
+### Anthropic
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+import { wrapAnthropic } from '@trustscope/sdk/integrations/anthropic';
+
+const anthropic = wrapAnthropic(new Anthropic(), {
+  apiKey: 'ts_live_xxx',
+  agentId: 'claude-agent'
+});
+
+const response = await anthropic.messages.create({
+  model: 'claude-3-5-sonnet-20241022',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: 'Hello' }]
+});
+```
+
+### LangChain.js
+
+```typescript
+import { ChatOpenAI } from '@langchain/openai';
+import { TrustScopeCallbackHandler } from '@trustscope/sdk/integrations/langchain';
+
+const callback = new TrustScopeCallbackHandler({
+  apiKey: 'ts_live_xxx',
+  agentId: 'langchain-agent'
+});
+
+const llm = new ChatOpenAI({ model: 'gpt-4o' });
+
+const response = await llm.invoke('Hello', {
+  callbacks: [callback]
+});
+```
+
+### Vercel AI SDK
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { TrustScopeMiddleware } from '@trustscope/sdk/integrations/vercel-ai';
+
+const middleware = new TrustScopeMiddleware({
+  apiKey: 'ts_live_xxx',
+  agentId: 'vercel-ai-agent'
+});
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello',
+  experimental_telemetry: { middleware }
+});
+```
+
+---
+
+## TypeScript Types
+
+Full type definitions included:
+
+```typescript
+import type {
+  TrustScopeConfig,
+  ObserveOptions,
+  EnforceOptions,
+  SessionConfig,
+  LogLLMCallParams,
+  LogActionParams,
+  PolicyCheckResult,
+  PolicyViolationError
+} from '@trustscope/sdk';
+
+// All parameters are fully typed
+const config: TrustScopeConfig = {
+  apiKey: 'ts_live_xxx',
+  timeout: 30000
+};
+
+const observeOptions: ObserveOptions = {
+  agentId: 'my-agent',
+  captureInput: true,
+  captureOutput: true
+};
+```
+
+---
+
+## Error Handling
+
+```typescript
+import {
+  TrustScopeError,
+  PolicyViolationError,
+  AuthenticationError,
+  RateLimitError,
+  NetworkError
+} from '@trustscope/sdk';
+
+try {
+  const result = await ts.checkPolicies({ ... });
+} catch (error) {
+  if (error instanceof PolicyViolationError) {
+    console.log(`Policy '${error.policyName}' violated: ${error.reason}`);
+  } else if (error instanceof AuthenticationError) {
+    console.log('Invalid API key');
+  } else if (error instanceof RateLimitError) {
+    console.log(`Rate limited. Retry after ${error.retryAfter}ms`);
+  } else if (error instanceof NetworkError) {
+    console.log('Network error');
+  } else if (error instanceof TrustScopeError) {
+    console.log(`TrustScope error: ${error.message}`);
+  }
+}
+```
+
+---
+
+## Batching & Performance
+
+```typescript
+// Enable batching for high-throughput
+const ts = new TrustScope({
+  apiKey: 'ts_live_xxx',
+  asyncFlush: true,
+  flushInterval: 5000,  // 5 seconds
+  batchSize: 100
+});
+
+// Force flush
+await ts.flush();
+
+// Graceful shutdown
+await ts.shutdown();
+```
+
+### Using with Process Lifecycle
+
+```typescript
+// Flush on shutdown
+process.on('SIGTERM', async () => {
+  await ts.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await ts.shutdown();
+  process.exit(0);
+});
+```
+
+---
+
+## Express Middleware
+
+```typescript
+import express from 'express';
+import { TrustScope, expressMiddleware } from '@trustscope/sdk';
+
+const app = express();
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// Add middleware - creates session per request
+app.use(expressMiddleware(ts, {
+  agentId: 'api-agent',
+  extractUserId: (req) => req.headers['x-user-id'] as string,
+  extractSessionId: (req) => req.headers['x-session-id'] as string
+}));
+
+app.post('/chat', async (req, res) => {
+  // req.trustscope contains session
+  const { session } = req.trustscope;
+  
+  await session.logAction('user_message', { content: req.body.message });
+  
+  const response = await processMessage(req.body.message);
+  
+  await session.logAction('bot_response', { content: response });
+  
+  res.json({ response });
+});
+```
+
+---
+
+## Next.js Integration
+
+```typescript
+// app/api/chat/route.ts
+import { NextResponse } from 'next/server';
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: process.env.TRUSTSCOPE_API_KEY });
+
+export async function POST(request: Request) {
+  const { message, sessionId } = await request.json();
+  
+  const session = ts.startSession({
+    agentId: 'nextjs-agent',
+    sessionId
+  });
+  
+  try {
+    await session.logAction('user_message', { content: message });
+    
+    const response = await generateResponse(message);
+    
+    await session.logLLMCall({
+      provider: 'openai',
+      model: 'gpt-4o',
+      inputMessages: [{ role: 'user', content: message }],
+      outputContent: response
+    });
+    
+    return NextResponse.json({ response });
+  } finally {
+    await session.end();
+  }
+}
+```
+
+---
+
+## Testing
+
+```typescript
+import { MockTrustScope } from '@trustscope/sdk/testing';
+
+describe('MyAgent', () => {
+  let mockTs: MockTrustScope;
+  
+  beforeEach(() => {
+    mockTs = new MockTrustScope();
+  });
+  
+  it('should log LLM calls', async () => {
+    const agent = mockTs.observe(myAgentFunction, { agentId: 'test-agent' });
+    
+    await agent('test input');
+    
+    expect(mockTs.events).toHaveLength(1);
+    expect(mockTs.events[0].agentId).toBe('test-agent');
+  });
+  
+  it('should handle policy violations', async () => {
+    mockTs.setPolicyResult('content-filter', {
+      allowed: false,
+      reason: 'Test block'
+    });
+    
+    const enforced = mockTs.enforce(myFunction, {
+      agentId: 'test',
+      policies: ['content-filter']
+    });
+    
+    await expect(enforced('bad input')).rejects.toThrow(PolicyViolationError);
+  });
+});
+```
+
+---
+
+## API Reference
+
+### TrustScope Class
+
+```typescript
+class TrustScope {
+  constructor(config?: TrustScopeConfig);
+  
+  observe<T extends (...args: any[]) => any>(
+    fn: T,
+    options: ObserveOptions
+  ): T;
+  
+  enforce<T extends (...args: any[]) => any>(
+    fn: T,
+    options: EnforceOptions
+  ): T;
+  
+  startSession(config: SessionConfig): Session;
+  createSessionContext(config: SessionConfig): SessionContext;
+  
+  logLLMCall(params: LogLLMCallParams): Promise<string>;
+  logAction(params: LogActionParams): Promise<string>;
+  logDecision(params: LogDecisionParams): Promise<string>;
+  
+  checkPolicies(params: PolicyCheckParams): Promise<PolicyCheckResult>;
+  
+  flush(): Promise<void>;
+  shutdown(): Promise<void>;
+}
+```
+
+---
+
+## Next Steps
+
+- [Python SDK](/docs/sdks/python) - Python version
+- [CLI Reference](/docs/cli/overview) - Command-line interface
+- [API Reference](/docs/api-reference/overview) - Direct REST API
+- [Framework Integrations](/docs/frameworks/overview) - LangChain, etc.

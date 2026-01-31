@@ -1,0 +1,220 @@
+---
+sidebar_position: 4
+title: Glossary
+description: TrustScope terminology and definitions
+---
+
+# Glossary
+
+Key terms and definitions used in TrustScope.
+
+---
+
+## A
+
+### Agent
+An AI system that performs tasks autonomously. In TrustScope, each agent has a unique `agent_id` that identifies it across all traces and sessions.
+
+### Agent Fingerprint
+A behavioral profile of an agent based on its system prompt, tools, model preferences, and response patterns. Used for drift detection and identity verification.
+
+### Audit Trail
+An immutable, cryptographically-linked sequence of traces that provides evidence of all AI agent activity for compliance and forensics.
+
+---
+
+## B
+
+### Batch
+Multiple API calls grouped together in a single request for efficiency. TrustScope supports up to 100 observations per batch.
+
+### Bitcoin Anchoring
+Optional feature that anchors trace hashes to the Bitcoin blockchain for tamper-evident, publicly verifiable audit trails.
+
+---
+
+## C
+
+### Chain of Custody
+The cryptographic hash chain linking all traces in sequence, ensuring data integrity and tamper detection.
+
+### Compliance Export
+A formatted report of AI activity for regulatory requirements (NIST, EU AI Act, SOC 2, etc.).
+
+---
+
+## D
+
+### Detection
+An identified pattern or anomaly in AI traffic, such as PII, prompt injection, or behavioral drift.
+
+### Drift
+A change in agent behavior from its established baseline fingerprint. Drift detection helps identify compromised or modified agents.
+
+---
+
+## E
+
+### Enforce
+The act of checking policies before allowing an action to proceed. Failed policy checks block the action.
+
+### Evidence Pack
+A collection of traces, detections, and metadata packaged for compliance audits.
+
+---
+
+## F
+
+### Fingerprint
+See [Agent Fingerprint](#agent-fingerprint).
+
+### Flush
+The action of sending batched observations to the TrustScope API. Can be automatic (timer-based) or manual.
+
+---
+
+## G
+
+### Gateway
+TrustScope's proxy service that intercepts LLM API calls. Change your base URL to route traffic through the Gateway for automatic monitoring.
+
+### Governance
+The policies, procedures, and controls that manage AI agent behavior and ensure compliance.
+
+---
+
+## H
+
+### Hash Chain
+A sequence of cryptographic hashes where each trace's hash includes the previous trace's hash, creating a tamper-evident chain.
+
+---
+
+## I
+
+### Ingestion
+The process of capturing and recording AI agent activity in TrustScope. Supports multiple methods: Gateway, SDK, API, CLI, and framework callbacks.
+
+---
+
+## J
+
+### Jailbreak
+An attempt to bypass an AI model's safety measures or content policies. TrustScope detects and can block jailbreak attempts.
+
+---
+
+## L
+
+### Latency
+The time taken for an operation to complete. TrustScope tracks time-to-first-token and total latency for LLM calls.
+
+### Lock (Fingerprint)
+The action of saving an agent's current fingerprint as the baseline for drift detection.
+
+---
+
+## M
+
+### MCP (Model Context Protocol)
+A protocol for integrating AI tools with development environments. TrustScope provides an MCP server for Claude Code and Cursor.
+
+### Metrics
+Quantitative measurements captured for each trace: tokens, latency, cost, etc.
+
+---
+
+## O
+
+### Observe
+The act of logging an action or LLM call to TrustScope without blocking (monitoring mode).
+
+### Observation
+A single recorded event in TrustScope, such as an LLM call, tool use, or decision.
+
+---
+
+## P
+
+### PII (Personally Identifiable Information)
+Data that can identify an individual: names, emails, SSNs, etc. TrustScope detects PII and can block or redact it.
+
+### PHI (Protected Health Information)
+Health-related data protected under HIPAA. TrustScope detects PHI for healthcare compliance.
+
+### Policy
+A rule that governs AI agent behavior. Policies can block, alert, or log based on various conditions.
+
+### Policy Violation
+An event where agent activity conflicts with a defined policy. Can result in blocking, alerting, or logging.
+
+### Prompt Injection
+An attack where malicious input attempts to override an AI system's instructions. TrustScope detects and blocks injection attempts.
+
+---
+
+## R
+
+### Rate Limit
+The maximum number of API requests allowed in a time window. Varies by tier.
+
+### Redaction
+The process of removing or masking sensitive data (like PII) from logs while preserving the rest of the trace.
+
+---
+
+## S
+
+### Session
+A logical grouping of related traces, typically representing a conversation or workflow.
+
+### System Prompt
+The initial instructions given to an LLM that define its behavior and constraints.
+
+---
+
+## T
+
+### Trace
+A single recorded event in TrustScope, including input, output, metrics, and metadata. The atomic unit of observability.
+
+### Trace ID
+A unique identifier for each trace, formatted as `tr_xxxxx`.
+
+---
+
+## V
+
+### Verification
+The process of confirming trace integrity using cryptographic hashes. Ensures traces haven't been tampered with.
+
+---
+
+## W
+
+### Webhook
+An HTTP callback that TrustScope sends when events occur (policy violations, detections, etc.).
+
+---
+
+## Abbreviations
+
+| Abbreviation | Meaning |
+|--------------|---------|
+| API | Application Programming Interface |
+| CLI | Command Line Interface |
+| EU AI Act | European Union Artificial Intelligence Act |
+| GA | Generally Available |
+| HIPAA | Health Insurance Portability and Accountability Act |
+| LLM | Large Language Model |
+| MCP | Model Context Protocol |
+| NIST | National Institute of Standards and Technology |
+| OWASP | Open Web Application Security Project |
+| PII | Personally Identifiable Information |
+| PHI | Protected Health Information |
+| RAG | Retrieval Augmented Generation |
+| RMF | Risk Management Framework |
+| SDK | Software Development Kit |
+| SOC | Service Organization Control |
+| SSN | Social Security Number |
+| TLS | Transport Layer Security |

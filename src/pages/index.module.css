@@ -1,0 +1,85 @@
+/**
+ * TrustScope Landing Page Styles
+ */
+
+.heroBanner {
+  padding: 6rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--ifm-background-surface-color) 0%, var(--ifm-background-color) 100%);
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 3rem 1rem;
+  }
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.features {
+  display: flex;
+  align-items: stretch;
+  padding: 3rem 0;
+}
+
+.featureCard {
+  display: block;
+  height: 100%;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.featureCard:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.15);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.featureCard h3 {
+  color: var(--ifm-color-primary);
+}
+
+.featureCard p {
+  color: var(--ifm-color-content-secondary);
+}
+
+.quickstart {
+  padding: 4rem 0;
+  background: var(--ifm-background-surface-color);
+  text-align: center;
+}
+
+.quickstart h2 {
+  margin-bottom: 2rem;
+}
+
+.codeExample {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.codeExample pre {
+  background: #1E1E1E;
+  border-radius: 8px;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.codeExample code {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #d4d4d4;
+}

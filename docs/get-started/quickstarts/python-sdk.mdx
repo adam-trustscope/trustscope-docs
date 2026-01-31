@@ -1,0 +1,58 @@
+---
+sidebar_position: 2
+title: Python SDK Quickstart
+description: Get started with the TrustScope Python SDK
+---
+
+# Python SDK Quickstart
+
+Get started with the TrustScope Python SDK in 5 minutes.
+
+## Installation
+
+```bash
+pip install trustscope
+```
+
+**Requirements:** Python 3.8+
+
+---
+
+## Quick Start
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="my-agent")
+def my_agent(prompt: str) -> str:
+    # Your agent logic here
+    from openai import OpenAI
+    client = OpenAI()
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+result = my_agent("Hello!")
+# Automatically logged to TrustScope
+```
+
+---
+
+## What Gets Captured
+
+- Function inputs and outputs
+- Execution time
+- Errors and exceptions
+- Custom metadata
+
+---
+
+## Next Steps
+
+- [Full Python SDK Guide](/docs/sdks/python) - Complete documentation
+- [Sessions](/docs/concepts/sessions) - Group related requests
+- [Policies](/docs/concepts/policies) - Enforce rules

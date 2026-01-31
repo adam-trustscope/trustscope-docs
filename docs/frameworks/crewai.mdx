@@ -1,0 +1,256 @@
+---
+sidebar_position: 2
+title: CrewAI
+description: Monitor CrewAI multi-agent systems with TrustScope
+---
+
+# CrewAI Integration
+
+Monitor CrewAI agents, tasks, and crew executions with TrustScope.
+
+## Installation
+
+```bash
+pip install trustscope crewai
+```
+
+---
+
+## Quick Start
+
+```python
+from crewai import Agent, Task, Crew
+from trustscope.integrations.crewai import TrustScopeCrewCallback
+
+# Create callback
+callback = TrustScopeCrewCallback(
+    api_key="ts_live_xxx"
+)
+
+# Define agents
+researcher = Agent(
+    role="Researcher",
+    goal="Find accurate information",
+    backstory="Expert at finding information",
+    verbose=True
+)
+
+writer = Agent(
+    role="Writer",
+    goal="Write clear content",
+    backstory="Skilled technical writer",
+    verbose=True
+)
+
+# Define tasks
+research_task = Task(
+    description="Research AI governance",
+    agent=researcher,
+    expected_output="Research summary"
+)
+
+write_task = Task(
+    description="Write article based on research",
+    agent=writer,
+    expected_output="Article draft"
+)
+
+# Create crew with monitoring
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research_task, write_task],
+    callbacks=[callback]
+)
+
+result = crew.kickoff()
+```
+
+---
+
+## What Gets Captured
+
+### Agent Activity
+- Agent role and configuration
+- Goal and backstory
+- Each reasoning step
+- Tool usage
+
+### Task Execution
+- Task description and assignment
+- Input context
+- Output results
+- Execution duration
+
+### Crew Coordination
+- Task ordering
+- Agent handoffs
+- Context passing
+- Final outputs
+
+```json
+{
+  "session_id": "crew_abc123",
+  "traces": [
+    {
+      "agent_id": "researcher",
+      "action": "llm_call",
+      "task": "Research AI governance",
+      "output": "..."
+    },
+    {
+      "agent_id": "writer",
+      "action": "llm_call",
+      "task": "Write article",
+      "context_from": "researcher",
+      "output": "..."
+    }
+  ]
+}
+```
+
+---
+
+## Multi-Agent Tracking
+
+TrustScope automatically tracks interactions between agents:
+
+```python
+# Each agent gets a unique ID
+researcher = Agent(
+    role="Researcher",
+    ...
+)  # agent_id: "researcher"
+
+writer = Agent(
+    role="Writer",
+    ...
+)  # agent_id: "writer"
+
+# Interactions tracked in session
+# researcher -> [research output] -> writer
+```
+
+**Dashboard View:**
+```
+Session: crew_abc123
+├─ researcher: Research AI governance
+│  └─ LLM call (gpt-4o, 234ms, $0.003)
+│  └─ Tool: web_search
+│  └─ Output: "AI governance involves..."
+├─ writer: Write article
+│  └─ Context received from: researcher
+│  └─ LLM call (gpt-4o, 456ms, $0.005)
+│  └─ Output: "# AI Governance Guide..."
+└─ Crew complete (total: $0.008, 12s)
+```
+
+---
+
+## Tool Monitoring
+
+Monitor custom tools used by agents:
+
+```python
+from crewai import Tool
+
+@tool
+def search_database(query: str) -> str:
+    """Search the internal database"""
+    return db.search(query)
+
+researcher = Agent(
+    role="Researcher",
+    tools=[search_database],
+    ...
+)
+
+# TrustScope captures:
+# - Tool selection by agent
+# - Tool input (query)
+# - Tool output (results)
+# - Execution time
+```
+
+---
+
+## Hierarchical Crews
+
+Monitor manager-worker hierarchies:
+
+```python
+crew = Crew(
+    agents=[manager, worker1, worker2],
+    tasks=[complex_task],
+    process=Process.hierarchical,
+    manager_llm=ChatOpenAI(model="gpt-4o"),
+    callbacks=[callback]
+)
+
+# TrustScope tracks:
+# - Manager delegation decisions
+# - Worker task assignments
+# - Result aggregation
+```
+
+---
+
+## Session Grouping
+
+Group crew executions by business context:
+
+```python
+callback = TrustScopeCrewCallback(
+    api_key="ts_live_xxx",
+    session_id="customer_request_456"  # Business context
+)
+
+# All agent activity grouped under this session
+crew = Crew(..., callbacks=[callback])
+result = crew.kickoff()
+```
+
+---
+
+## Policy Enforcement
+
+Apply policies to CrewAI agents:
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+# Enforce policies on agent actions
+@ts.enforce(
+    agent_id="researcher",
+    policies=["no-pii", "approved-sources-only"]
+)
+def research_with_policies(task):
+    return researcher.execute_task(task)
+```
+
+---
+
+## Configuration Options
+
+```python
+callback = TrustScopeCrewCallback(
+    api_key="ts_live_xxx",
+    session_id="optional-session",
+    metadata={
+        "crew_name": "content-team",
+        "environment": "production"
+    },
+    capture_thoughts=True,     # Log agent reasoning
+    capture_tool_calls=True,   # Log tool usage
+    capture_context=True,      # Log context passing
+)
+```
+
+---
+
+## Next Steps
+
+- [AutoGen Integration](/docs/frameworks/autogen) - Microsoft AutoGen
+- [LangChain Integration](/docs/frameworks/langchain) - LangChain agents
+- [Sessions](/docs/concepts/sessions) - Session management

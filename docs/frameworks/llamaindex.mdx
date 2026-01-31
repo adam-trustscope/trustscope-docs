@@ -1,0 +1,284 @@
+---
+sidebar_position: 4
+title: LlamaIndex
+description: Monitor LlamaIndex RAG pipelines with TrustScope
+---
+
+# LlamaIndex Integration
+
+Monitor LlamaIndex queries, retrievers, and RAG pipelines with TrustScope.
+
+## Installation
+
+```bash
+pip install trustscope llama-index
+```
+
+---
+
+## Quick Start
+
+```python
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core.callbacks import CallbackManager
+from trustscope.integrations.llamaindex import TrustScopeCallbackHandler
+
+# Create callback handler
+callback_handler = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="rag-agent"
+)
+
+# Configure callback manager
+callback_manager = CallbackManager([callback_handler])
+
+# Load documents and create index
+documents = SimpleDirectoryReader("data").load_data()
+index = VectorStoreIndex.from_documents(
+    documents,
+    callback_manager=callback_manager
+)
+
+# Query - all steps monitored
+query_engine = index.as_query_engine()
+response = query_engine.query("What is machine learning?")
+```
+
+---
+
+## What Gets Captured
+
+### Indexing
+- Document loading
+- Chunking operations
+- Embedding generation
+- Index creation
+
+### Retrieval
+- Query text
+- Retrieved nodes/chunks
+- Similarity scores
+- Retrieval latency
+
+### Synthesis
+- Context assembly
+- LLM prompt
+- Generated response
+- Token usage
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "type": "rag_query",
+  "stages": {
+    "retrieval": {
+      "query": "What is machine learning?",
+      "nodes_retrieved": 5,
+      "top_score": 0.92,
+      "latency_ms": 45
+    },
+    "synthesis": {
+      "model": "gpt-4o",
+      "prompt_tokens": 1200,
+      "completion_tokens": 150,
+      "latency_ms": 890
+    }
+  }
+}
+```
+
+---
+
+## Query Engine Monitoring
+
+Monitor different query engine types:
+
+### Standard Query Engine
+
+```python
+query_engine = index.as_query_engine()
+response = query_engine.query("Your question")
+```
+
+### Chat Engine
+
+```python
+chat_engine = index.as_chat_engine()
+response = chat_engine.chat("Hello!")
+response = chat_engine.chat("Tell me more")
+# Conversation history tracked
+```
+
+### Retriever Only
+
+```python
+retriever = index.as_retriever(similarity_top_k=5)
+nodes = retriever.retrieve("Your query")
+# Just retrieval, no synthesis
+```
+
+---
+
+## Advanced RAG Monitoring
+
+### Sub-Question Query Engine
+
+```python
+from llama_index.core.query_engine import SubQuestionQueryEngine
+from llama_index.core.tools import QueryEngineTool
+
+# Multiple sub-queries tracked
+tools = [
+    QueryEngineTool.from_defaults(query_engine=wiki_engine, name="wiki"),
+    QueryEngineTool.from_defaults(query_engine=docs_engine, name="docs"),
+]
+
+query_engine = SubQuestionQueryEngine.from_defaults(
+    query_engine_tools=tools,
+    callback_manager=callback_manager
+)
+
+# TrustScope tracks:
+# - Original question
+# - Generated sub-questions
+# - Each sub-query execution
+# - Final synthesis
+```
+
+### Router Query Engine
+
+```python
+from llama_index.core.query_engine import RouterQueryEngine
+
+# Route selection tracked
+router_engine = RouterQueryEngine(
+    selector=selector,
+    query_engine_tools=tools,
+    callback_manager=callback_manager
+)
+```
+
+---
+
+## Embedding Monitoring
+
+Track embedding operations:
+
+```python
+from llama_index.embeddings.openai import OpenAIEmbedding
+
+embed_model = OpenAIEmbedding(
+    callback_manager=callback_manager
+)
+
+# Captures:
+# - Text being embedded
+# - Embedding model used
+# - Dimension of embeddings
+# - Latency
+```
+
+---
+
+## Reranking Monitoring
+
+Monitor reranking steps:
+
+```python
+from llama_index.postprocessor.cohere_rerank import CohereRerank
+
+reranker = CohereRerank(top_n=3)
+
+query_engine = index.as_query_engine(
+    node_postprocessors=[reranker],
+    callback_manager=callback_manager
+)
+
+# Captures:
+# - Original node order
+# - Reranked order
+# - Score changes
+```
+
+---
+
+## Streaming Support
+
+Monitor streaming responses:
+
+```python
+query_engine = index.as_query_engine(streaming=True)
+
+streaming_response = query_engine.query("Your question")
+for text in streaming_response.response_gen:
+    print(text, end="")
+
+# TrustScope captures complete response
+# even with streaming
+```
+
+---
+
+## Session Tracking
+
+Group queries into sessions:
+
+```python
+callback_handler = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="rag-agent",
+    session_id="user_conversation_123"
+)
+
+# All queries in this session grouped
+response1 = query_engine.query("First question")
+response2 = query_engine.query("Follow-up question")
+```
+
+---
+
+## Gateway + LlamaIndex
+
+Use Gateway for LLM calls within LlamaIndex:
+
+```python
+from llama_index.llms.openai import OpenAI
+
+# Route LLM calls through Gateway
+llm = OpenAI(
+    model="gpt-4o",
+    api_base="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# Use with index
+index = VectorStoreIndex.from_documents(
+    documents,
+    llm=llm,
+    callback_manager=callback_manager  # Also use callback
+)
+```
+
+---
+
+## Configuration Options
+
+```python
+callback_handler = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="rag-agent",
+    session_id="optional-session",
+    metadata={"index_name": "product-docs"},
+    capture_nodes=True,          # Log retrieved nodes
+    capture_embeddings=False,    # Skip embedding vectors
+    capture_prompts=True,        # Log full prompts
+)
+```
+
+---
+
+## Next Steps
+
+- [LangChain Integration](/docs/frameworks/langchain) - LangChain RAG
+- [Detections](/docs/concepts/detections) - PII in retrieved content
+- [Policies](/docs/concepts/policies) - Content policies

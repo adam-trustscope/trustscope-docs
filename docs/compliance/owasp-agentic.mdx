@@ -1,0 +1,177 @@
+---
+sidebar_position: 2
+title: OWASP Agentic Top 10
+description: How TrustScope addresses the OWASP Agentic Security Top 10
+---
+
+# OWASP Agentic Top 10
+
+The OWASP Agentic Security Top 10 identifies critical security risks in AI agent systems. Here's how TrustScope addresses each.
+
+## AG01: Prompt Injection
+
+**Risk:** Attackers manipulate agent behavior through malicious inputs.
+
+**TrustScope Protection:**
+- Real-time prompt injection detection
+- Pattern matching for known injection techniques
+- Anomaly detection for unusual prompts
+- Automatic blocking or alerting
+
+```python
+# Automatic detection in Gateway
+client = OpenAI(base_url="https://gateway.trustscope.ai/v1", ...)
+
+# If injection detected:
+# {
+#   "detections": [{
+#     "type": "prompt_injection",
+#     "confidence": 0.95,
+#     "action": "blocked"
+#   }]
+# }
+```
+
+---
+
+## AG02: Insecure Output Handling
+
+**Risk:** Agent outputs executed without validation, leading to code injection.
+
+**TrustScope Protection:**
+- Output content scanning
+- Code pattern detection
+- Structured output validation
+- Response sanitization alerts
+
+---
+
+## AG03: Supply Chain Vulnerabilities
+
+**Risk:** Compromised tools, plugins, or dependencies.
+
+**TrustScope Protection:**
+- Tool usage logging
+- Plugin behavior monitoring
+- Dependency integrity verification
+- Third-party API tracking
+
+---
+
+## AG04: Excessive Agency
+
+**Risk:** Agent has more permissions than necessary.
+
+**TrustScope Protection:**
+- Tool access policies
+- Action rate limiting
+- Privilege escalation detection
+- Least-privilege enforcement
+
+```python
+@ts.enforce(
+    agent_id="support-bot",
+    policies=["approved-tools-only", "read-only-database"]
+)
+def support_agent(query: str):
+    ...
+```
+
+---
+
+## AG05: Improper Error Handling
+
+**Risk:** Errors expose sensitive information or system details.
+
+**TrustScope Protection:**
+- Error response monitoring
+- Sensitive data in errors detection
+- Stack trace exposure alerts
+- Error pattern analysis
+
+---
+
+## AG06: Unauthorized Actions
+
+**Risk:** Agent performs actions beyond intended scope.
+
+**TrustScope Protection:**
+- Action whitelisting
+- Business hours enforcement
+- Monetary limits
+- Human-in-the-loop triggers
+
+---
+
+## AG07: Data Poisoning
+
+**Risk:** Malicious data corrupts agent behavior or training.
+
+**TrustScope Protection:**
+- Input validation logging
+- Anomalous data pattern detection
+- Source verification
+- Data lineage tracking
+
+---
+
+## AG08: Inadequate Sandboxing
+
+**Risk:** Agent escapes containment to access unauthorized resources.
+
+**TrustScope Protection:**
+- Resource access monitoring
+- File system access tracking
+- Network call logging
+- Container escape detection
+
+---
+
+## AG09: Insufficient Logging
+
+**Risk:** Lack of visibility into agent actions for forensics.
+
+**TrustScope Protection:**
+- Comprehensive trace logging
+- Immutable audit trail
+- Cryptographic verification
+- Long-term retention
+
+---
+
+## AG10: Model Denial of Service
+
+**Risk:** Resource exhaustion attacks against AI infrastructure.
+
+**TrustScope Protection:**
+- Rate limiting
+- Token budgets
+- Cost caps
+- Anomaly detection for usage spikes
+
+```python
+# Cost and rate policies
+policies=["cost-limit-10", "rate-limit-100-per-minute"]
+```
+
+---
+
+## Compliance Report
+
+Generate OWASP Agentic compliance reports:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/export \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{
+    "format": "owasp-agentic",
+    "from": "2026-01-01",
+    "to": "2026-01-31"
+  }'
+```
+
+The report includes:
+- Coverage assessment for each AG item
+- Detected incidents by category
+- Remediation recommendations
+- Evidence for each control

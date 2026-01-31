@@ -1,0 +1,139 @@
+---
+sidebar_position: 1
+title: Introduction
+description: What is TrustScope and why you need AI agent governance
+slug: /get-started/introduction
+---
+
+# Introduction to TrustScope
+
+TrustScope is an **AI Agent Governance Platform** that provides observability, security, and compliance for AI agents in production.
+
+## Why TrustScope?
+
+As AI agents become more autonomous and powerful, organizations need:
+
+- **Visibility** into what agents are doing
+- **Control** over agent behavior
+- **Evidence** for compliance and audits
+- **Security** against prompt injection and misuse
+
+TrustScope provides all of this with minimal code changes.
+
+---
+
+## What TrustScope Does
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Your AI Agent Application                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                    │
+│   │   Gateway   │    │  Python SDK │    │ Node.js SDK │                    │
+│   │   (Proxy)   │    │ (Decorators)│    │  (Wrappers) │                    │
+│   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘                    │
+│          │                  │                  │                           │
+│          └────────────┬─────┴──────────────────┘                           │
+│                       │                                                     │
+│                       ▼                                                     │
+│              ┌─────────────────────────────────────┐                       │
+│              │         TrustScope Platform         │                       │
+│              │  • Trace every LLM call             │                       │
+│              │  • Detect threats & PII             │                       │
+│              │  • Enforce policies                 │                       │
+│              │  • Generate audit trails            │                       │
+│              └─────────────────────────────────────┘                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Core Capabilities
+
+### 1. Observability
+Capture every AI interaction with full context:
+- Input prompts and system messages
+- Model responses and tool calls
+- Token usage and costs
+- Latency metrics
+
+### 2. Security
+Detect and prevent threats in real-time:
+- Prompt injection attacks
+- PII leakage
+- Jailbreak attempts
+- Unauthorized actions
+
+### 3. Policy Enforcement
+Define rules for agent behavior:
+- Content filters
+- Cost limits
+- Rate limiting
+- Business logic constraints
+
+### 4. Compliance
+Maintain audit trails for regulations:
+- Immutable trace logs
+- Cryptographic verification
+- Export in standard formats (NIST, EU AI Act, SOC 2)
+
+---
+
+## Integration Methods
+
+TrustScope offers multiple ways to integrate:
+
+| Method | Best For | Setup Time |
+|--------|----------|------------|
+| **Gateway** | Existing apps, zero refactoring | 5 minutes |
+| **SDK** | New apps, fine-grained control | 15 minutes |
+| **Direct API** | Any language, custom integrations | 10 minutes |
+| **Frameworks** | LangChain, CrewAI, AutoGen users | 10 minutes |
+
+---
+
+## Supported Providers
+
+TrustScope works with all major LLM providers:
+
+- **OpenAI** - GPT-4o, GPT-4, o1
+- **Anthropic** - Claude 3.5 Sonnet, Claude 3 Opus
+- **Google** - Gemini 1.5 Pro, Gemini 2.0
+- **Mistral** - Mistral Large, Codestral
+- **Azure OpenAI** - All Azure-hosted models
+- **AWS Bedrock** - Claude, Titan, Llama
+
+---
+
+## Get Started
+
+Ready to start? Choose your path:
+
+<div className="card-grid">
+  <a href="/docs/get-started/quickstarts/gateway" className="card">
+    <h3>Gateway Quickstart</h3>
+    <p>Start in 5 minutes with 2 lines of code</p>
+  </a>
+  <a href="/docs/sdks/python" className="card">
+    <h3>Python SDK</h3>
+    <p>Full control with decorators</p>
+  </a>
+  <a href="/docs/sdks/nodejs" className="card">
+    <h3>Node.js SDK</h3>
+    <p>TypeScript-first integration</p>
+  </a>
+  <a href="/docs/api-reference/overview" className="card">
+    <h3>Direct API</h3>
+    <p>Any language, maximum flexibility</p>
+  </a>
+</div>
+
+---
+
+## Next Steps
+
+- [Quickstart Guide](/docs/get-started/quickstart) - Get up and running fast
+- [Core Concepts](/docs/concepts/agents) - Understand agents, sessions, and traces
+- [API Reference](/docs/api-reference/overview) - Full API documentation

@@ -1,0 +1,282 @@
+---
+sidebar_position: 8
+title: Traces API
+description: Query and manage traces
+---
+
+# Traces API
+
+Query trace data for analysis, debugging, and compliance.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/traces` | List traces |
+| GET | `/v1/traces/{id}` | Get trace details |
+| GET | `/v1/traces/{id}/verify` | Verify trace integrity |
+| POST | `/v1/traces/search` | Search traces |
+
+---
+
+## GET /traces
+
+List traces with filtering.
+
+### Request
+
+```bash
+curl "https://api.trustscope.ai/v1/traces?agent_id=my-agent&limit=20" \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agent_id` | string | Filter by agent |
+| `session_id` | string | Filter by session |
+| `action_type` | string | Filter by action type |
+| `provider` | string | Filter by LLM provider |
+| `model` | string | Filter by model |
+| `from` | ISO date | Start timestamp |
+| `to` | ISO date | End timestamp |
+| `has_detections` | boolean | Only traces with detections |
+| `policy_status` | string | `allowed` or `blocked` |
+| `limit` | int | Max results (default: 20, max: 100) |
+| `cursor` | string | Pagination cursor |
+
+### Response
+
+```json
+{
+  "traces": [
+    {
+      "trace_id": "tr_abc123",
+      "agent_id": "my-agent",
+      "session_id": "sess_123",
+      "action_type": "llm_call",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "timestamp": "2026-01-31T12:00:00.000Z",
+      "metrics": {
+        "input_tokens": 15,
+        "output_tokens": 12,
+        "latency_ms": 234,
+        "cost_usd": 0.00045
+      },
+      "detections": [],
+      "policy_result": "allowed"
+    }
+  ],
+  "cursor": "eyJsYXN0X2lkIjoiMTIzIn0=",
+  "has_more": true
+}
+```
+
+---
+
+## GET /traces/{id}
+
+Get full trace details.
+
+### Request
+
+```bash
+curl https://api.trustscope.ai/v1/traces/tr_abc123 \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Response
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "agent_id": "my-agent",
+  "session_id": "sess_123",
+  "action_type": "llm_call",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "timestamp": "2026-01-31T12:00:00.000Z",
+  "input": {
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is machine learning?"}
+    ],
+    "temperature": 0.7,
+    "max_tokens": 1000
+  },
+  "output": {
+    "content": "Machine learning is a subset of artificial intelligence...",
+    "finish_reason": "stop",
+    "tool_calls": null
+  },
+  "metrics": {
+    "input_tokens": 25,
+    "output_tokens": 150,
+    "latency_ms": 890,
+    "cost_usd": 0.00275,
+    "time_to_first_token_ms": 120
+  },
+  "detections": [],
+  "policy_result": {
+    "allowed": true,
+    "policies_checked": ["content-filter", "cost-limit-10"],
+    "policy_details": []
+  },
+  "hash_chain": {
+    "hash": "sha256:a1b2c3d4e5f6...",
+    "previous_hash": "sha256:f6e5d4c3b2a1...",
+    "sequence": 42
+  },
+  "metadata": {
+    "user_id": "user_456",
+    "environment": "production"
+  }
+}
+```
+
+---
+
+## GET /traces/{id}/verify
+
+Verify trace integrity using cryptographic hash chain.
+
+### Request
+
+```bash
+curl https://api.trustscope.ai/v1/traces/tr_abc123/verify \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Response
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "verified": true,
+  "hash_valid": true,
+  "chain_valid": true,
+  "timestamp_valid": true,
+  "bitcoin_anchor": {
+    "anchored": true,
+    "block_height": 876543,
+    "block_hash": "00000000000000000002a7c...",
+    "timestamp": "2026-01-31T11:00:00.000Z",
+    "merkle_proof": ["abc123...", "def456..."]
+  },
+  "signature": {
+    "valid": true,
+    "algorithm": "ed25519",
+    "public_key": "MCowBQYDK2VwAyEA..."
+  }
+}
+```
+
+---
+
+## POST /traces/search
+
+Full-text and semantic search across traces.
+
+### Request
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/traces/search \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "refund request",
+    "agent_ids": ["support-bot", "refund-agent"],
+    "from": "2026-01-01T00:00:00Z",
+    "to": "2026-01-31T23:59:59Z",
+    "search_type": "semantic",
+    "limit": 20
+  }'
+```
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `query` | string | Search query |
+| `agent_ids` | array | Agents to search (optional) |
+| `session_ids` | array | Sessions to search (optional) |
+| `from` | ISO date | Start timestamp |
+| `to` | ISO date | End timestamp |
+| `search_type` | string | `text` or `semantic` |
+| `search_in` | array | Fields to search: `input`, `output`, `metadata` |
+| `limit` | int | Max results |
+
+### Response
+
+```json
+{
+  "results": [
+    {
+      "trace_id": "tr_xyz789",
+      "score": 0.92,
+      "snippet": "...customer requested a refund for order #12345...",
+      "agent_id": "support-bot",
+      "timestamp": "2026-01-15T14:30:00.000Z"
+    }
+  ],
+  "total_count": 45,
+  "has_more": true
+}
+```
+
+---
+
+## SDK Usage
+
+### Python
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+# List recent traces
+traces = ts.list_traces(agent_id="my-agent", limit=10)
+
+# Get trace details
+trace = ts.get_trace("tr_abc123")
+print(f"Input: {trace.input}")
+print(f"Output: {trace.output}")
+print(f"Cost: ${trace.metrics.cost_usd}")
+
+# Verify trace
+verification = ts.verify_trace("tr_abc123")
+print(f"Verified: {verification.verified}")
+
+# Search traces
+results = ts.search_traces(
+    query="customer complaint",
+    from_date="2026-01-01",
+    search_type="semantic"
+)
+```
+
+### Node.js
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// List traces
+const traces = await ts.listTraces({ agentId: 'my-agent', limit: 10 });
+
+// Get trace
+const trace = await ts.getTrace('tr_abc123');
+
+// Verify
+const verification = await ts.verifyTrace('tr_abc123');
+
+// Search
+const results = await ts.searchTraces({
+  query: 'customer complaint',
+  searchType: 'semantic'
+});
+```

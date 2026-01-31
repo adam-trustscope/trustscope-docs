@@ -1,0 +1,352 @@
+---
+sidebar_position: 2
+title: Security Best Practices
+description: Security recommendations for AI agents with TrustScope
+---
+
+# Security Best Practices
+
+Protect your AI agents and users with these security best practices.
+
+## API Key Management
+
+### Secure Storage
+
+**Do:**
+- Store keys in environment variables
+- Use secrets management (AWS Secrets Manager, HashiCorp Vault, etc.)
+- Encrypt keys at rest
+
+**Don't:**
+- Commit keys to version control
+- Log keys in application logs
+- Share keys via email or chat
+
+```python
+# Good: Environment variable
+import os
+ts = TrustScope(api_key=os.environ["TRUSTSCOPE_API_KEY"])
+
+# Good: Secrets manager
+from aws_secrets import get_secret
+ts = TrustScope(api_key=get_secret("trustscope/api-key"))
+
+# Bad: Hardcoded
+ts = TrustScope(api_key="ts_live_xxx")  # Never do this
+```
+
+### Key Rotation
+
+Rotate keys every 90 days:
+
+1. Create new key in dashboard
+2. Update secrets in production
+3. Verify new key works
+4. Revoke old key
+
+```bash
+# Set up automated rotation reminder
+# Add to your calendar or ops playbook
+```
+
+### Least Privilege
+
+Create scoped keys for different use cases:
+
+| Use Case | Permissions |
+|----------|-------------|
+| Production agents | `write:traces`, `read:traces` |
+| Analytics dashboard | `read:traces`, `read:agents` |
+| Admin operations | `admin` |
+
+---
+
+## Input Validation
+
+### Enable Detection Policies
+
+Always enable these policies in production:
+
+```python
+@ts.enforce(
+    agent_id="production-agent",
+    policies=[
+        "prompt-injection",  # Block injection attempts
+        "no-pii",            # Block PII exposure
+        "no-secrets",        # Block credential leaks
+        "content-filter"     # Block harmful content
+    ]
+)
+def handle_user_input(prompt):
+    ...
+```
+
+### Validate Before Processing
+
+```python
+def process_request(user_input: str):
+    # 1. Check policies before any processing
+    result = ts.check_policies(
+        agent_id="my-agent",
+        action_type="llm_call",
+        input={"messages": [{"role": "user", "content": user_input}]},
+        policies=["prompt-injection", "no-pii", "content-filter"]
+    )
+
+    if not result.allowed:
+        # Log the attempt
+        logger.warning(f"Blocked input: {result.reason}")
+        raise SecurityException(f"Input blocked: {result.blocked_by}")
+
+    # 2. Only then proceed with LLM call
+    return llm.generate(user_input)
+```
+
+### Input Sanitization
+
+Even with TrustScope detection, apply defense in depth:
+
+```python
+def sanitize_input(user_input: str) -> str:
+    # Remove null bytes
+    user_input = user_input.replace('\x00', '')
+
+    # Limit length
+    if len(user_input) > 10000:
+        user_input = user_input[:10000]
+
+    # Remove known injection patterns (optional, TrustScope handles this)
+    # user_input = remove_injection_patterns(user_input)
+
+    return user_input
+```
+
+---
+
+## Output Validation
+
+### Monitor Agent Outputs
+
+TrustScope automatically scans outputs for:
+- PII in responses
+- Credential leakage
+- Harmful content
+
+### Implement Application-Level Checks
+
+```python
+def validate_output(response: str) -> str:
+    # Additional business logic validation
+    if contains_sensitive_data(response):
+        raise OutputValidationError("Response contains sensitive data")
+
+    if exceeds_length_limit(response):
+        response = truncate(response)
+
+    return response
+```
+
+---
+
+## Tool/Function Security
+
+### Restrict Tool Access
+
+```python
+# Define allowed tools per agent
+ALLOWED_TOOLS = {
+    "support-agent": ["search_knowledge_base", "create_ticket"],
+    "research-agent": ["web_search", "document_retrieval"],
+}
+
+@ts.enforce(policies=["approved-tools-only"])
+def execute_tool(agent_id: str, tool_name: str, args: dict):
+    if tool_name not in ALLOWED_TOOLS.get(agent_id, []):
+        raise SecurityException(f"Tool {tool_name} not allowed for {agent_id}")
+
+    return tools[tool_name](**args)
+```
+
+### Sandbox Tool Execution
+
+```python
+# Execute tools in restricted environment
+def safe_execute(code: str):
+    # Use sandboxing
+    with restricted_execution_context():
+        return exec(code)
+```
+
+### Log All Tool Calls
+
+```python
+@ts.observe(agent_id="my-agent")
+def tool_call(tool_name: str, args: dict):
+    ts.log_action(
+        agent_id="my-agent",
+        action_type="tool_call",
+        action_name=tool_name,
+        input=args,
+        metadata={"risk_level": assess_risk(tool_name, args)}
+    )
+    return execute_tool(tool_name, args)
+```
+
+---
+
+## Rate Limiting
+
+### Per-User Limits
+
+```python
+from functools import lru_cache
+from datetime import datetime, timedelta
+
+user_request_counts = {}
+
+def check_rate_limit(user_id: str, limit: int = 100, window_minutes: int = 60):
+    now = datetime.now()
+    window_start = now - timedelta(minutes=window_minutes)
+
+    # Clean old entries
+    user_request_counts[user_id] = [
+        t for t in user_request_counts.get(user_id, [])
+        if t > window_start
+    ]
+
+    # Check limit
+    if len(user_request_counts.get(user_id, [])) >= limit:
+        raise RateLimitError("User rate limit exceeded")
+
+    # Record request
+    user_request_counts.setdefault(user_id, []).append(now)
+```
+
+### Cost Limits
+
+```python
+@ts.enforce(policies=["cost-limit-10", "daily-budget-100"])
+def expensive_operation(prompt: str):
+    # Only executes if within cost limits
+    return llm.generate(prompt, model="gpt-4o")
+```
+
+---
+
+## Audit & Monitoring
+
+### Enable Comprehensive Logging
+
+```python
+ts = TrustScope(
+    api_key="ts_live_xxx",
+    async_flush=True  # Don't block on logging
+)
+
+@ts.observe(
+    agent_id="production-agent",
+    capture_input=True,   # Log all inputs
+    capture_output=True,  # Log all outputs
+    capture_errors=True   # Log all errors
+)
+def agent_handler(request):
+    ...
+```
+
+### Set Up Alerts
+
+In the TrustScope dashboard, configure alerts for:
+
+| Event | Threshold | Action |
+|-------|-----------|--------|
+| Prompt injection detected | Any | Alert + Block |
+| PII in input | Any | Alert + Block |
+| PII in output | Any | Alert |
+| High error rate | > 5% | Alert |
+| Unusual traffic | > 200% normal | Alert |
+| Agent drift detected | > 0.2 score | Alert |
+
+### Regular Reviews
+
+- **Daily:** Check detection summary
+- **Weekly:** Review policy violations
+- **Monthly:** Compliance report generation
+- **Quarterly:** Security audit
+
+---
+
+## Incident Response
+
+### Prepare Runbooks
+
+Document procedures for:
+1. Policy violation alerts
+2. Detected attacks
+3. Agent compromise
+4. Data exposure
+
+### Quick Response Actions
+
+```python
+# Emergency kill switch
+def emergency_shutdown(agent_id: str):
+    # 1. Disable agent
+    ts.update_agent(agent_id, status="disabled")
+
+    # 2. Alert team
+    send_alert(f"Emergency shutdown: {agent_id}")
+
+    # 3. Preserve evidence
+    export = ts.create_export(
+        format="json",
+        agent_ids=[agent_id],
+        from_date=datetime.now() - timedelta(hours=24),
+        include_evidence=True
+    )
+
+    return export.id
+```
+
+---
+
+## Compliance
+
+### Data Retention
+
+Configure retention based on requirements:
+- PCI DSS: 1 year
+- HIPAA: 6 years
+- SOX: 7 years
+- GDPR: As long as necessary
+
+### Regular Exports
+
+```python
+# Monthly compliance export
+def monthly_compliance_export():
+    last_month = get_last_month_range()
+
+    export = ts.create_export(
+        format="soc2",
+        from_date=last_month.start,
+        to_date=last_month.end,
+        include_evidence=True
+    )
+
+    # Store in compliance archive
+    archive_export(export)
+```
+
+### Hash Verification
+
+Regularly verify trace integrity:
+
+```python
+def verify_recent_traces():
+    traces = ts.list_traces(limit=100)
+
+    for trace in traces:
+        verification = ts.verify_trace(trace.id)
+        if not verification.verified:
+            alert(f"Trace integrity failure: {trace.id}")
+```

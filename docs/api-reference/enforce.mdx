@@ -1,0 +1,249 @@
+---
+sidebar_position: 6
+title: POST /enforce
+description: Check policies before executing an action
+---
+
+# POST /enforce
+
+Check policies before executing an action. Returns whether the action is allowed.
+
+## Endpoint
+
+```
+POST https://api.trustscope.ai/v1/enforce
+```
+
+## Request
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | `Bearer ts_live_xxx` |
+| `Content-Type` | Yes | `application/json` |
+
+### Body
+
+```json
+{
+  "agent_id": "my-agent",
+  "action_type": "llm_call",
+  "input": {
+    "messages": [
+      {"role": "user", "content": "Process refund for John Smith, SSN 123-45-6789"}
+    ]
+  },
+  "policies": ["no-pii", "content-filter", "cost-limit-10"],
+  "metadata": {
+    "user_id": "user_456"
+  }
+}
+```
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent_id` | string | Yes | Agent making the request |
+| `action_type` | string | Yes | Type of action being checked |
+| `input` | object | Yes | Input data to check |
+| `policies` | array | Yes | List of policy names to check |
+| `metadata` | object | No | Additional context |
+
+---
+
+## Response
+
+### Allowed
+
+```json
+{
+  "allowed": true,
+  "trace_id": "tr_abc123",
+  "policy_results": [
+    {"policy": "no-pii", "passed": true, "details": null},
+    {"policy": "content-filter", "passed": true, "details": null},
+    {"policy": "cost-limit-10", "passed": true, "details": null}
+  ]
+}
+```
+
+### Blocked
+
+```json
+{
+  "allowed": false,
+  "trace_id": "tr_def456",
+  "blocked_by": "no-pii",
+  "reason": "PII detected: SSN pattern found in input",
+  "policy_results": [
+    {
+      "policy": "no-pii",
+      "passed": false,
+      "details": {
+        "detection": "ssn",
+        "pattern": "123-45-6789",
+        "location": "input.messages[0].content"
+      }
+    },
+    {"policy": "content-filter", "passed": true, "details": null},
+    {"policy": "cost-limit-10", "passed": null, "details": "skipped"}
+  ]
+}
+```
+
+---
+
+## Policy Types
+
+### Built-in Policies
+
+| Policy | Description |
+|--------|-------------|
+| `no-pii` | Block personally identifiable information |
+| `no-phi` | Block protected health information |
+| `no-secrets` | Block API keys, passwords, tokens |
+| `content-filter` | Block harmful/inappropriate content |
+| `prompt-injection` | Block injection attempts |
+
+### Cost Policies
+
+| Policy | Description |
+|--------|-------------|
+| `cost-limit-{n}` | Block if estimated cost > $n |
+| `token-limit-{n}` | Block if tokens > n |
+| `daily-budget-{n}` | Block if daily spend > $n |
+
+### Custom Policies
+
+Define custom policies in the dashboard, then reference by name:
+
+```json
+{
+  "policies": ["my-custom-policy", "business-hours"]
+}
+```
+
+---
+
+## Examples
+
+### Python
+
+```python
+import requests
+
+response = requests.post(
+    "https://api.trustscope.ai/v1/enforce",
+    headers={
+        "Authorization": "Bearer ts_live_xxx",
+        "Content-Type": "application/json"
+    },
+    json={
+        "agent_id": "refund-bot",
+        "action_type": "llm_call",
+        "input": {
+            "messages": [{"role": "user", "content": user_input}]
+        },
+        "policies": ["no-pii", "content-filter"]
+    }
+)
+
+result = response.json()
+if result["allowed"]:
+    # Proceed with action
+    pass
+else:
+    print(f"Blocked by {result['blocked_by']}: {result['reason']}")
+```
+
+### Node.js
+
+```typescript
+const response = await fetch('https://api.trustscope.ai/v1/enforce', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ts_live_xxx',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    agent_id: 'refund-bot',
+    action_type: 'llm_call',
+    input: {
+      messages: [{ role: 'user', content: userInput }]
+    },
+    policies: ['no-pii', 'content-filter']
+  })
+});
+
+const result = await response.json();
+if (result.allowed) {
+  // Proceed
+} else {
+  console.log(`Blocked: ${result.reason}`);
+}
+```
+
+### cURL
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/enforce \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "action_type": "llm_call",
+    "input": {"messages": [{"role": "user", "content": "Hello"}]},
+    "policies": ["content-filter", "no-pii"]
+  }'
+```
+
+---
+
+## Integration Pattern
+
+Typical usage pattern:
+
+```python
+from trustscope import TrustScope
+from trustscope.exceptions import PolicyViolationError
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+def process_user_request(user_input: str):
+    # 1. Check policies first
+    result = ts.check_policies(
+        agent_id="my-agent",
+        action_type="llm_call",
+        input={"messages": [{"role": "user", "content": user_input}]},
+        policies=["no-pii", "content-filter"]
+    )
+
+    if not result.allowed:
+        raise PolicyViolationError(result.blocked_by, result.reason)
+
+    # 2. Execute action
+    response = llm.generate(user_input)
+
+    # 3. Log the observation
+    ts.log_action(
+        agent_id="my-agent",
+        action_type="llm_call",
+        input={"messages": [{"role": "user", "content": user_input}]},
+        output={"content": response}
+    )
+
+    return response
+```
+
+---
+
+## Errors
+
+| Status | Error | Description |
+|--------|-------|-------------|
+| 400 | `validation_error` | Invalid request body |
+| 401 | `authentication_error` | Invalid API key |
+| 404 | `policy_not_found` | Referenced policy doesn't exist |
+| 429 | `rate_limit_exceeded` | Too many requests |

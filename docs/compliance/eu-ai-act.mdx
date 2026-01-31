@@ -1,0 +1,173 @@
+---
+sidebar_position: 3
+title: EU AI Act
+description: EU AI Act compliance with TrustScope
+---
+
+# EU AI Act Compliance
+
+The EU AI Act establishes regulatory requirements for AI systems. TrustScope helps organizations meet these requirements.
+
+## Risk Classification
+
+The EU AI Act classifies AI systems by risk level:
+
+| Risk Level | Examples | Requirements |
+|------------|----------|--------------|
+| **Unacceptable** | Social scoring, real-time biometric | Prohibited |
+| **High-Risk** | HR, credit scoring, law enforcement | Full compliance |
+| **Limited Risk** | Chatbots, AI-generated content | Transparency |
+| **Minimal Risk** | Spam filters, games | None |
+
+---
+
+## High-Risk AI System Requirements
+
+### Article 9: Risk Management System
+
+**Requirement:** Establish a risk management system throughout the AI system lifecycle.
+
+**TrustScope Support:**
+- Continuous monitoring of AI behavior
+- Risk detection and alerting
+- Incident tracking and remediation
+- Trend analysis and reporting
+
+```bash
+# Generate risk assessment report
+curl -X POST https://api.trustscope.ai/v1/export \
+  -d '{"format": "eu-ai-act-risk-assessment"}'
+```
+
+---
+
+### Article 10: Data Governance
+
+**Requirement:** Training, validation, and testing data must be relevant, representative, and error-free.
+
+**TrustScope Support:**
+- Data lineage tracking
+- Input validation logging
+- Bias detection in outputs
+- Data quality metrics
+
+---
+
+### Article 11: Technical Documentation
+
+**Requirement:** Maintain technical documentation demonstrating compliance.
+
+**TrustScope Support:**
+- Automated documentation generation
+- System architecture records
+- Model versioning
+- Configuration history
+
+---
+
+### Article 12: Record-Keeping
+
+**Requirement:** Automatic logging of events throughout the AI system lifecycle.
+
+**TrustScope Support:**
+- Immutable audit trails
+- Cryptographic verification
+- Configurable retention (10+ years)
+- Tamper-evident storage
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "timestamp": "2026-01-31T12:00:00Z",
+  "hash": "sha256:a1b2c3d4...",
+  "chain_verified": true
+}
+```
+
+---
+
+### Article 13: Transparency
+
+**Requirement:** High-risk AI systems must be designed to enable users to understand outputs.
+
+**TrustScope Support:**
+- Decision logging with reasoning
+- Confidence scores
+- Factor attribution
+- Explainability reports
+
+---
+
+### Article 14: Human Oversight
+
+**Requirement:** Enable effective human oversight during AI system use.
+
+**TrustScope Support:**
+- Human-in-the-loop triggers
+- Approval workflows
+- Override capabilities
+- Escalation policies
+
+```python
+@ts.enforce(
+    policies=["require-human-approval-over-1000"]
+)
+def process_loan(application):
+    ...
+```
+
+---
+
+### Article 15: Accuracy, Robustness, Cybersecurity
+
+**Requirement:** Achieve appropriate levels of accuracy, robustness, and cybersecurity.
+
+**TrustScope Support:**
+- Accuracy monitoring
+- Drift detection
+- Security scanning
+- Vulnerability alerts
+
+---
+
+## Compliance Dashboard
+
+TrustScope provides an EU AI Act compliance dashboard showing:
+
+1. **Risk Classification** - Current classification of your AI systems
+2. **Requirement Coverage** - Status of each Article requirement
+3. **Evidence Collection** - Automated evidence for audits
+4. **Gap Analysis** - Missing controls and remediation steps
+
+---
+
+## Export Formats
+
+Generate EU AI Act compliant reports:
+
+```bash
+# Full compliance report
+curl -X POST https://api.trustscope.ai/v1/export \
+  -d '{"format": "eu-ai-act"}'
+
+# Technical documentation
+curl -X POST https://api.trustscope.ai/v1/export \
+  -d '{"format": "eu-ai-act-technical-docs"}'
+
+# Incident report
+curl -X POST https://api.trustscope.ai/v1/export \
+  -d '{"format": "eu-ai-act-incidents"}'
+```
+
+---
+
+## Timeline
+
+| Milestone | Date | Impact |
+|-----------|------|--------|
+| Entry into force | August 2024 | Act becomes law |
+| Prohibited practices | February 2025 | Unacceptable risk banned |
+| GPAI rules | August 2025 | General-purpose AI rules |
+| **Full application** | **August 2026** | All requirements enforced |
+
+Start preparing now with TrustScope to ensure compliance by August 2026.

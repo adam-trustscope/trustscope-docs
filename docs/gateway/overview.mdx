@@ -1,0 +1,227 @@
+---
+sidebar_position: 1
+title: Supported Providers
+description: TrustScope supports all major LLM providers - OpenAI, Anthropic, Google, Mistral, and more
+---
+
+# Supported LLM Providers
+
+TrustScope works with **all major LLM providers** through our Gateway proxy. Your existing code works unchanged - just point to our Gateway URL.
+
+## Provider Overview
+
+| Provider | Gateway URL | Native Format | Status |
+|----------|-------------|---------------|--------|
+| [OpenAI](/docs/providers/openai) | `gateway.trustscope.ai/v1` | ✅ OpenAI | ✅ GA |
+| [Anthropic](/docs/providers/anthropic) | `gateway.trustscope.ai/anthropic` | ✅ Messages API | ✅ GA |
+| [Google Gemini](/docs/providers/google-gemini) | `gateway.trustscope.ai/google` | OpenAI-compat | ✅ GA |
+| [Mistral](/docs/providers/mistral) | `gateway.trustscope.ai/mistral` | OpenAI-compat | ✅ GA |
+| [Cohere](/docs/providers/cohere) | `gateway.trustscope.ai/cohere` | OpenAI-compat | ✅ GA |
+| [Azure OpenAI](/docs/providers/azure-openai) | `gateway.trustscope.ai/azure` | ✅ Azure OpenAI | ✅ GA |
+| [AWS Bedrock](/docs/providers/aws-bedrock) | `gateway.trustscope.ai/bedrock` | OpenAI-compat | ✅ GA |
+| [Groq](/docs/providers/groq) | `gateway.trustscope.ai/groq` | OpenAI-compat | ✅ GA |
+| [Together AI](/docs/providers/together) | `gateway.trustscope.ai/together` | OpenAI-compat | ✅ GA |
+| [Perplexity](/docs/providers/perplexity) | `gateway.trustscope.ai/perplexity` | OpenAI-compat | ✅ GA |
+
+---
+
+## Quick Comparison
+
+### By Integration Complexity
+
+| Complexity | Providers | What Changes |
+|------------|-----------|--------------|
+| **1 line** | OpenAI, Azure | Just `base_url` |
+| **2 lines** | Anthropic | `base_url` + TrustScope header |
+| **SDK swap** | Gemini, Mistral, Cohere | Use OpenAI SDK with our URL |
+
+### By Feature Support
+
+| Feature | OpenAI | Anthropic | Gemini | Mistral |
+|---------|--------|-----------|--------|---------|
+| Chat completions | ✅ | ✅ | ✅ | ✅ |
+| Streaming | ✅ | ✅ | ✅ | ✅ |
+| Function calling | ✅ | ✅ | ✅ | ✅ |
+| Vision (images) | ✅ | ✅ | ✅ | ✅ |
+| Vision (video) | ❌ | ❌ | ✅ | ❌ |
+| Computer use | ❌ | ✅ | ❌ | ❌ |
+| Extended thinking | ✅ | ✅ | ❌ | ❌ |
+| Code interpreter | ✅ | ❌ | ✅ | ✅ |
+
+### By Cost (Flagship Models)
+
+| Provider | Model | Input/1M | Output/1M |
+|----------|-------|----------|-----------|
+| OpenAI | GPT-4o | $2.50 | $10.00 |
+| Anthropic | Claude 3.5 Sonnet | $3.00 | $15.00 |
+| Google | Gemini 1.5 Pro | $1.25 | $5.00 |
+| Mistral | Mistral Large | $2.00 | $6.00 |
+| Groq | Llama 3.1 70B | $0.59 | $0.79 |
+
+---
+
+## Integration Patterns
+
+### Pattern 1: Direct SDK (OpenAI, Anthropic)
+
+Best for: Native SDK users who want minimal changes
+
+```python
+# OpenAI - just change base_url
+from openai import OpenAI
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# Anthropic - same pattern
+from anthropic import Anthropic
+client = Anthropic(
+    base_url="https://gateway.trustscope.ai/anthropic",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+```
+
+### Pattern 2: OpenAI-Compatible (Gemini, Mistral, etc.)
+
+Best for: Non-OpenAI providers, unified SDK experience
+
+```python
+# Use OpenAI SDK for any provider
+from openai import OpenAI
+
+# Gemini
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/google",
+    api_key="your-google-key",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# Mistral
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/mistral",
+    api_key="your-mistral-key",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+```
+
+### Pattern 3: Framework Integration (LangChain, CrewAI)
+
+Best for: Framework users who want automatic monitoring
+
+```python
+from langchain_openai import ChatOpenAI
+from trustscope.langchain import TrustScopeCallback
+
+llm = ChatOpenAI(
+    model="gpt-4o",
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# Or use callbacks for more detailed tracking
+llm.invoke("Hello", config={"callbacks": [TrustScopeCallback()]})
+```
+
+---
+
+## What Gets Captured (All Providers)
+
+Regardless of provider, TrustScope captures:
+
+| Data | Description |
+|------|-------------|
+| **Request** | Full prompt, system message, tools |
+| **Response** | Generated content, tool calls, stop reason |
+| **Tokens** | Input tokens, output tokens, total |
+| **Cost** | Calculated from provider pricing |
+| **Latency** | Time to first token, total time |
+| **Metadata** | Model, provider, agent ID, session ID |
+| **Detections** | PII, prompt injection, policy violations |
+
+---
+
+## Unified Dashboard
+
+All providers appear in the same dashboard:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  Traces                                        [Filter ▾]  │
+├────────────────────────────────────────────────────────────┤
+│  🟢 tr_abc123  │ anthropic │ claude-3.5  │ 234ms │ $0.002 │
+│  🟢 tr_def456  │ openai    │ gpt-4o      │ 456ms │ $0.003 │
+│  🟢 tr_ghi789  │ google    │ gemini-1.5  │ 189ms │ $0.001 │
+│  🔴 tr_jkl012  │ anthropic │ claude-3.5  │ 123ms │ BLOCKED│
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Provider-Specific Features
+
+### OpenAI-Only
+- Assistants API
+- Batch API
+- Fine-tuning (monitor inference)
+- DALL-E image generation
+
+### Anthropic-Only
+- Computer Use (beta)
+- Extended thinking
+- Artifacts
+
+### Google-Only
+- 2M token context
+- Video analysis
+- Vertex AI integration
+
+### Azure-Only
+- Private endpoints
+- Data residency guarantees
+- HIPAA/SOC2 compliance built-in
+
+---
+
+## Adding New Providers
+
+TrustScope adds new providers regularly. Request support:
+
+1. [Open an issue](https://github.com/trustscope-ai/feedback/issues) on GitHub
+2. Email [support@trustscope.ai](mailto:support@trustscope.ai)
+
+Current roadmap:
+- [ ] xAI (Grok) - Q1 2026
+- [ ] AI21 Labs - Q1 2026
+- [ ] Alibaba Qwen - Q2 2026
+
+---
+
+## Provider Guides
+
+<div className="card-grid">
+  <a href="/docs/providers/openai" className="card">
+    <h3>OpenAI</h3>
+    <p>GPT-4o, GPT-4, o1, DALL-E</p>
+  </a>
+  <a href="/docs/providers/anthropic" className="card">
+    <h3>Anthropic</h3>
+    <p>Claude 3.5, Claude 3, Computer Use</p>
+  </a>
+  <a href="/docs/providers/google-gemini" className="card">
+    <h3>Google Gemini</h3>
+    <p>Gemini 1.5/2.0, 2M context, video</p>
+  </a>
+  <a href="/docs/providers/mistral" className="card">
+    <h3>Mistral</h3>
+    <p>Mistral Large, Codestral</p>
+  </a>
+  <a href="/docs/providers/azure-openai" className="card">
+    <h3>Azure OpenAI</h3>
+    <p>Enterprise OpenAI, private endpoints</p>
+  </a>
+  <a href="/docs/providers/aws-bedrock" className="card">
+    <h3>AWS Bedrock</h3>
+    <p>Claude, Titan, Llama on AWS</p>
+  </a>
+</div>

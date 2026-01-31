@@ -1,0 +1,175 @@
+---
+sidebar_position: 2
+title: Authentication
+description: TrustScope API authentication methods
+---
+
+# Authentication
+
+All TrustScope API requests require authentication using your API key.
+
+## API Keys
+
+### Getting Your Key
+
+1. Go to [app.trustscope.ai](https://app.trustscope.ai)
+2. Navigate to **Settings → API Keys**
+3. Click **Create Key**
+4. Copy your key: `ts_live_xxxxx`
+
+### Key Types
+
+| Key Prefix | Environment | Usage |
+|------------|-------------|-------|
+| `ts_live_` | Production | Live traffic, real billing |
+| `ts_test_` | Testing | Test traffic, no billing |
+
+---
+
+## Authentication Methods
+
+### Bearer Token (Recommended)
+
+```bash
+curl https://api.trustscope.ai/v1/traces \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### X-TrustScope-Key Header
+
+Alternative header format:
+
+```bash
+curl https://api.trustscope.ai/v1/traces \
+  -H "X-TrustScope-Key: ts_live_xxx"
+```
+
+---
+
+## SDK Authentication
+
+### Python
+
+```python
+from trustscope import TrustScope
+
+# Direct
+ts = TrustScope(api_key="ts_live_xxx")
+
+# From environment variable
+import os
+os.environ["TRUSTSCOPE_API_KEY"] = "ts_live_xxx"
+ts = TrustScope()  # Auto-reads from env
+```
+
+### Node.js
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+// Direct
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// From environment variable
+process.env.TRUSTSCOPE_API_KEY = 'ts_live_xxx';
+const ts = new TrustScope();  // Auto-reads from env
+```
+
+---
+
+## Gateway Authentication
+
+Gateway requests require both TrustScope and provider authentication:
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    api_key="sk-openai-xxx",  # OpenAI key (in Authorization header)
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx"  # TrustScope key
+    }
+)
+```
+
+---
+
+## Key Permissions
+
+API keys can have scoped permissions:
+
+| Permission | Description |
+|------------|-------------|
+| `read:traces` | Read trace data |
+| `write:traces` | Create traces (observe) |
+| `read:agents` | Read agent data |
+| `write:policies` | Create/update policies |
+| `admin` | Full access |
+
+Create scoped keys in the dashboard for least-privilege access.
+
+---
+
+## Key Rotation
+
+Best practices for key management:
+
+1. **Rotate regularly** - Rotate keys every 90 days
+2. **Use environment variables** - Never hardcode keys
+3. **Scope appropriately** - Use minimum required permissions
+4. **Monitor usage** - Check key usage in dashboard
+
+### Rotating a Key
+
+1. Create a new key in the dashboard
+2. Update your applications
+3. Verify new key works
+4. Delete the old key
+
+---
+
+## Security Best Practices
+
+### Do
+
+- Store keys in environment variables
+- Use secrets management (AWS Secrets Manager, HashiCorp Vault)
+- Rotate keys regularly
+- Use test keys in development
+
+### Don't
+
+- Commit keys to version control
+- Share keys between environments
+- Use production keys in development
+- Log keys in application logs
+
+---
+
+## Authentication Errors
+
+### 401 Unauthorized
+
+```json
+{
+  "error": "authentication_error",
+  "message": "Invalid API key"
+}
+```
+
+**Causes:**
+- Key is missing
+- Key is invalid
+- Key has been revoked
+
+### 403 Forbidden
+
+```json
+{
+  "error": "permission_error",
+  "message": "Key does not have required permission: write:policies"
+}
+```
+
+**Causes:**
+- Key doesn't have required permission
+- Resource belongs to different organization

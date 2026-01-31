@@ -1,0 +1,254 @@
+---
+sidebar_position: 4
+title: Errors
+description: TrustScope API error codes and handling
+---
+
+# Error Handling
+
+TrustScope uses conventional HTTP response codes and returns detailed error messages.
+
+## HTTP Status Codes
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success |
+| `201` | Created |
+| `400` | Bad Request - Invalid parameters |
+| `401` | Unauthorized - Invalid or missing API key |
+| `403` | Forbidden - Insufficient permissions |
+| `404` | Not Found - Resource doesn't exist |
+| `409` | Conflict - Resource already exists |
+| `422` | Unprocessable - Validation failed |
+| `429` | Too Many Requests - Rate limited |
+| `500` | Internal Server Error |
+| `503` | Service Unavailable |
+
+---
+
+## Error Response Format
+
+All errors return a consistent JSON format:
+
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable description",
+  "details": {
+    "field": "specific_field",
+    "constraint": "what_failed"
+  },
+  "request_id": "req_abc123"
+}
+```
+
+---
+
+## Common Errors
+
+### Authentication Errors
+
+**401 - Invalid API Key**
+```json
+{
+  "error": "authentication_error",
+  "message": "Invalid API key",
+  "request_id": "req_abc123"
+}
+```
+
+**403 - Insufficient Permissions**
+```json
+{
+  "error": "permission_error",
+  "message": "Key does not have permission: write:policies",
+  "details": {
+    "required_permission": "write:policies",
+    "key_permissions": ["read:traces", "write:traces"]
+  }
+}
+```
+
+---
+
+### Validation Errors
+
+**400 - Missing Required Field**
+```json
+{
+  "error": "validation_error",
+  "message": "agent_id is required",
+  "details": {
+    "field": "agent_id",
+    "constraint": "required"
+  }
+}
+```
+
+**422 - Invalid Field Value**
+```json
+{
+  "error": "validation_error",
+  "message": "Invalid action_type. Must be one of: llm_call, tool_call, decision, custom",
+  "details": {
+    "field": "action_type",
+    "constraint": "enum",
+    "allowed_values": ["llm_call", "tool_call", "decision", "custom"]
+  }
+}
+```
+
+---
+
+### Resource Errors
+
+**404 - Not Found**
+```json
+{
+  "error": "not_found",
+  "message": "Trace not found",
+  "details": {
+    "resource": "trace",
+    "id": "tr_invalid"
+  }
+}
+```
+
+**409 - Conflict**
+```json
+{
+  "error": "conflict",
+  "message": "Session already ended",
+  "details": {
+    "session_id": "sess_123",
+    "ended_at": "2026-01-31T12:00:00Z"
+  }
+}
+```
+
+---
+
+### Rate Limit Errors
+
+**429 - Rate Limited**
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Too many requests",
+  "retry_after": 30,
+  "details": {
+    "limit": 5000,
+    "current": 5001,
+    "resets_at": "2026-01-31T12:01:00Z"
+  }
+}
+```
+
+---
+
+### Policy Errors
+
+**403 - Policy Violation**
+```json
+{
+  "error": "policy_violation",
+  "message": "Request blocked by policy: no-pii",
+  "details": {
+    "policy": "no-pii",
+    "detection": "ssn",
+    "location": "input.messages[0].content"
+  },
+  "trace_id": "tr_abc123"
+}
+```
+
+---
+
+## Error Handling in SDKs
+
+### Python
+
+```python
+from trustscope import TrustScope
+from trustscope.exceptions import (
+    TrustScopeError,
+    AuthenticationError,
+    ValidationError,
+    NotFoundError,
+    RateLimitError,
+    PolicyViolationError
+)
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+try:
+    result = ts.log_action(...)
+except AuthenticationError:
+    print("Check your API key")
+except ValidationError as e:
+    print(f"Invalid input: {e.field} - {e.message}")
+except NotFoundError as e:
+    print(f"Resource not found: {e.resource_type}/{e.resource_id}")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after} seconds")
+except PolicyViolationError as e:
+    print(f"Blocked by policy: {e.policy_name}")
+except TrustScopeError as e:
+    print(f"API error: {e.message}")
+```
+
+### Node.js
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+import {
+  TrustScopeError,
+  AuthenticationError,
+  ValidationError,
+  NotFoundError,
+  RateLimitError,
+  PolicyViolationError
+} from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+try {
+  await ts.logAction({ ... });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.log('Check your API key');
+  } else if (error instanceof ValidationError) {
+    console.log(`Invalid input: ${error.field} - ${error.message}`);
+  } else if (error instanceof RateLimitError) {
+    console.log(`Rate limited. Retry after ${error.retryAfter}ms`);
+  } else if (error instanceof PolicyViolationError) {
+    console.log(`Blocked by policy: ${error.policyName}`);
+  } else if (error instanceof TrustScopeError) {
+    console.log(`API error: ${error.message}`);
+  }
+}
+```
+
+---
+
+## Debugging Tips
+
+### Include Request ID
+
+Always log the `request_id` from error responses for debugging:
+
+```python
+except TrustScopeError as e:
+    logger.error(f"TrustScope error: {e.message}, request_id: {e.request_id}")
+```
+
+### Enable Debug Mode
+
+```python
+ts = TrustScope(api_key="ts_live_xxx", debug=True)
+# Logs all requests and responses
+```
+
+### Check Status Page
+
+For 5xx errors, check [status.trustscope.ai](https://status.trustscope.ai) for service status.

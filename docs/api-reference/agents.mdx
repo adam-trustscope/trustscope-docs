@@ -1,0 +1,336 @@
+---
+sidebar_position: 9
+title: Agents API
+description: Agent management and fingerprinting endpoints
+---
+
+# Agents API
+
+Manage agents, view fingerprints, and detect behavioral drift.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/agents` | List agents |
+| GET | `/v1/agents/{id}` | Get agent details |
+| GET | `/v1/agents/{id}/fingerprint` | Get agent fingerprint |
+| POST | `/v1/agents/{id}/lock` | Lock agent fingerprint |
+| GET | `/v1/agents/{id}/drift` | Check for behavioral drift |
+
+---
+
+## GET /agents
+
+List all agents in your organization.
+
+### Request
+
+```bash
+curl "https://api.trustscope.ai/v1/agents?status=active" \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | `active`, `inactive`, `all` |
+| `limit` | int | Max results (default: 50) |
+| `cursor` | string | Pagination cursor |
+
+### Response
+
+```json
+{
+  "agents": [
+    {
+      "agent_id": "support-bot",
+      "first_seen": "2025-06-15T00:00:00.000Z",
+      "last_seen": "2026-01-31T12:00:00.000Z",
+      "status": "active",
+      "trace_count": 45678,
+      "total_cost_usd": 234.56,
+      "models_used": ["gpt-4o", "gpt-4o-mini"],
+      "fingerprint_locked": false
+    },
+    {
+      "agent_id": "research-agent",
+      "first_seen": "2025-09-01T00:00:00.000Z",
+      "last_seen": "2026-01-31T11:00:00.000Z",
+      "status": "active",
+      "trace_count": 12345,
+      "total_cost_usd": 89.12,
+      "models_used": ["claude-3-5-sonnet-20241022"],
+      "fingerprint_locked": true
+    }
+  ],
+  "cursor": null,
+  "has_more": false
+}
+```
+
+---
+
+## GET /agents/{id}
+
+Get detailed agent information.
+
+### Request
+
+```bash
+curl https://api.trustscope.ai/v1/agents/support-bot \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Response
+
+```json
+{
+  "agent_id": "support-bot",
+  "first_seen": "2025-06-15T00:00:00.000Z",
+  "last_seen": "2026-01-31T12:00:00.000Z",
+  "status": "active",
+  "stats": {
+    "trace_count": 45678,
+    "session_count": 8901,
+    "total_tokens": 12345678,
+    "total_cost_usd": 234.56,
+    "avg_latency_ms": 456,
+    "detection_count": 23,
+    "policy_violation_count": 5
+  },
+  "models_used": [
+    {"model": "gpt-4o", "percentage": 85},
+    {"model": "gpt-4o-mini", "percentage": 15}
+  ],
+  "tools_used": [
+    "search_knowledge_base",
+    "create_ticket",
+    "send_email"
+  ],
+  "fingerprint": {
+    "locked": false,
+    "last_updated": "2026-01-30T00:00:00.000Z"
+  },
+  "metadata": {
+    "team": "customer-success",
+    "version": "2.1.0"
+  }
+}
+```
+
+---
+
+## GET /agents/{id}/fingerprint
+
+Get the behavioral fingerprint for an agent.
+
+### Request
+
+```bash
+curl https://api.trustscope.ai/v1/agents/support-bot/fingerprint \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Response
+
+```json
+{
+  "agent_id": "support-bot",
+  "fingerprint": {
+    "system_prompt_hash": "sha256:a1b2c3d4e5f6...",
+    "tools": [
+      "search_knowledge_base",
+      "create_ticket",
+      "send_email"
+    ],
+    "model_preferences": [
+      {"model": "gpt-4o", "weight": 0.85},
+      {"model": "gpt-4o-mini", "weight": 0.15}
+    ],
+    "behavioral_traits": {
+      "avg_response_length": 234,
+      "greeting_style": "formal",
+      "language_patterns": ["How can I help", "I understand", "Let me check"],
+      "error_handling": "apologetic",
+      "tool_call_frequency": 0.45
+    },
+    "typical_session": {
+      "avg_turns": 4.5,
+      "avg_duration_ms": 180000,
+      "resolution_rate": 0.87
+    }
+  },
+  "confidence": 0.95,
+  "sample_size": 10000,
+  "locked": false,
+  "computed_at": "2026-01-30T00:00:00.000Z"
+}
+```
+
+---
+
+## POST /agents/{id}/lock
+
+Lock an agent's fingerprint to enable drift detection.
+
+### Request
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/agents/support-bot/lock \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "notify_on_drift": true,
+    "drift_threshold": 0.15,
+    "notification_channels": ["email", "webhook"]
+  }'
+```
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `notify_on_drift` | boolean | Send alerts when drift detected |
+| `drift_threshold` | float | Sensitivity (0.0 - 1.0, lower = more sensitive) |
+| `notification_channels` | array | Where to send alerts |
+
+### Response
+
+```json
+{
+  "agent_id": "support-bot",
+  "locked": true,
+  "locked_at": "2026-01-31T12:00:00.000Z",
+  "fingerprint_hash": "sha256:xyz789...",
+  "drift_settings": {
+    "notify_on_drift": true,
+    "drift_threshold": 0.15,
+    "notification_channels": ["email", "webhook"]
+  }
+}
+```
+
+---
+
+## GET /agents/{id}/drift
+
+Check for behavioral drift from locked fingerprint.
+
+### Request
+
+```bash
+curl "https://api.trustscope.ai/v1/agents/support-bot/drift?period=7d" \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `period` | string | Analysis period: `1d`, `7d`, `30d` |
+
+### Response
+
+```json
+{
+  "agent_id": "support-bot",
+  "drift_detected": true,
+  "overall_drift_score": 0.23,
+  "period": "7d",
+  "analysis": {
+    "system_prompt": {
+      "changed": false,
+      "drift_score": 0
+    },
+    "tools": {
+      "changed": true,
+      "drift_score": 0.4,
+      "details": {
+        "added": ["new_tool"],
+        "removed": [],
+        "usage_changes": [
+          {"tool": "search_knowledge_base", "change": -0.15}
+        ]
+      }
+    },
+    "model_preferences": {
+      "changed": true,
+      "drift_score": 0.2,
+      "details": {
+        "gpt-4o": {"baseline": 0.85, "current": 0.70},
+        "gpt-4o-mini": {"baseline": 0.15, "current": 0.30}
+      }
+    },
+    "behavioral_traits": {
+      "changed": true,
+      "drift_score": 0.18,
+      "details": {
+        "avg_response_length": {"baseline": 234, "current": 289},
+        "tool_call_frequency": {"baseline": 0.45, "current": 0.38}
+      }
+    }
+  },
+  "alerts": [
+    {
+      "severity": "medium",
+      "message": "New tool 'new_tool' detected",
+      "timestamp": "2026-01-28T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## SDK Usage
+
+### Python
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+# List agents
+agents = ts.list_agents(status="active")
+
+# Get agent details
+agent = ts.get_agent("support-bot")
+print(f"Total traces: {agent.stats.trace_count}")
+
+# Get fingerprint
+fingerprint = ts.get_agent_fingerprint("support-bot")
+print(f"Tools: {fingerprint.tools}")
+
+# Lock fingerprint
+ts.lock_agent_fingerprint(
+    "support-bot",
+    notify_on_drift=True,
+    drift_threshold=0.15
+)
+
+# Check drift
+drift = ts.check_agent_drift("support-bot", period="7d")
+if drift.drift_detected:
+    print(f"Drift detected! Score: {drift.overall_drift_score}")
+```
+
+### Node.js
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// List agents
+const agents = await ts.listAgents({ status: 'active' });
+
+// Get fingerprint
+const fingerprint = await ts.getAgentFingerprint('support-bot');
+
+// Lock and check drift
+await ts.lockAgentFingerprint('support-bot', { notifyOnDrift: true });
+const drift = await ts.checkAgentDrift('support-bot', { period: '7d' });
+```

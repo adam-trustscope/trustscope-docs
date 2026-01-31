@@ -1,0 +1,46 @@
+---
+sidebar_position: 3
+title: Sessions
+description: Grouping related AI interactions with sessions
+---
+
+# Sessions
+
+A **session** groups related AI interactions together, providing context and traceability.
+
+## What is a Session?
+
+A session might represent:
+- A user conversation from start to finish
+- A multi-step workflow execution
+- A batch processing job
+- Any logical unit of work
+
+## Creating Sessions
+
+### Python SDK
+
+```python
+with ts.session(agent_id="my-agent", session_id="user_123") as session:
+    result1 = process_query("What's my order status?")
+    result2 = process_query("Can you update my address?")
+```
+
+### Gateway (via Headers)
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-TrustScope-Session-Id": "user_123"
+    }
+)
+```
+
+## Session Benefits
+
+1. **Traceability** - See all actions in a conversation
+2. **Context** - Understand user intent across messages
+3. **Analytics** - Measure session-level metrics
+4. **Compliance** - Export complete interaction history

@@ -1,0 +1,240 @@
+---
+sidebar_position: 1
+title: LangChain
+description: Integrate TrustScope with LangChain for AI agent monitoring
+---
+
+# LangChain Integration
+
+Monitor LangChain agents, chains, and LLM calls with TrustScope.
+
+## Installation
+
+```bash
+pip install trustscope langchain langchain-openai
+```
+
+---
+
+## Quick Start
+
+### Using the Callback Handler
+
+```python
+from langchain_openai import ChatOpenAI
+from trustscope.integrations.langchain import TrustScopeCallbackHandler
+
+# Create callback
+callback = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="langchain-agent"
+)
+
+# Add to LLM
+llm = ChatOpenAI(model="gpt-4o", callbacks=[callback])
+
+# All calls automatically monitored
+response = llm.invoke("What is machine learning?")
+```
+
+---
+
+## Chain Monitoring
+
+Monitor entire chains including all intermediate steps:
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+# Create chain
+prompt = ChatPromptTemplate.from_template("Tell me about {topic}")
+chain = prompt | llm | StrOutputParser()
+
+# Invoke with callback - monitors all steps
+result = chain.invoke(
+    {"topic": "artificial intelligence"},
+    config={"callbacks": [callback]}
+)
+```
+
+**Captured Data:**
+- Prompt template rendering
+- LLM input/output
+- Parser operations
+- Execution time per step
+
+---
+
+## Agent Monitoring
+
+Monitor ReAct agents with tool usage:
+
+```python
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_core.tools import Tool
+
+# Define tools
+tools = [
+    Tool(name="search", func=search_func, description="Search the web"),
+    Tool(name="calculator", func=calc_func, description="Do math"),
+]
+
+# Create agent
+agent = create_react_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools)
+
+# Run with monitoring
+result = agent_executor.invoke(
+    {"input": "What is 25 * 4?"},
+    config={"callbacks": [callback]}
+)
+```
+
+**Captured Data:**
+- Each agent reasoning step
+- Tool selection decisions
+- Tool inputs and outputs
+- Final answer generation
+
+---
+
+## Session Tracking
+
+Group related chain invocations into sessions:
+
+```python
+callback = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="langchain-agent",
+    session_id="user_123"  # Group all calls in this session
+)
+
+# All invocations share the session
+response1 = chain.invoke({"topic": "ML"}, config={"callbacks": [callback]})
+response2 = chain.invoke({"topic": "AI"}, config={"callbacks": [callback]})
+```
+
+---
+
+## LCEL (LangChain Expression Language)
+
+Full support for LCEL chains:
+
+```python
+from langchain_core.runnables import RunnablePassthrough
+
+# Complex LCEL chain
+chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+# Monitor the entire pipeline
+result = chain.invoke(
+    "What is RAG?",
+    config={"callbacks": [callback]}
+)
+```
+
+---
+
+## Retrieval Monitoring
+
+Monitor RAG (Retrieval Augmented Generation) pipelines:
+
+```python
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+
+# Create retriever
+vectorstore = Chroma.from_documents(documents, OpenAIEmbeddings())
+retriever = vectorstore.as_retriever()
+
+# RAG chain with monitoring
+rag_chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+result = rag_chain.invoke("question", config={"callbacks": [callback]})
+```
+
+**Captured Data:**
+- Query to retriever
+- Retrieved documents
+- Context used in prompt
+- Final generation
+
+---
+
+## Gateway + LangChain
+
+Combine Gateway and callback for comprehensive monitoring:
+
+```python
+from langchain_openai import ChatOpenAI
+from trustscope.integrations.langchain import TrustScopeCallbackHandler
+
+# Gateway for LLM calls
+llm = ChatOpenAI(
+    model="gpt-4o",
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# Callback for chain-level monitoring
+callback = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="langchain-agent"
+)
+
+# Both methods capture complementary data
+chain = prompt | llm | parser
+result = chain.invoke({"input": "Hello"}, config={"callbacks": [callback]})
+```
+
+---
+
+## What Gets Captured
+
+| Event | Data Captured |
+|-------|---------------|
+| LLM Start | Model, messages, parameters |
+| LLM End | Response, tokens, latency |
+| Chain Start | Chain type, inputs |
+| Chain End | Outputs, duration |
+| Tool Start | Tool name, input |
+| Tool End | Output, errors |
+| Retriever | Query, documents |
+| Agent Action | Reasoning, tool choice |
+
+---
+
+## Configuration Options
+
+```python
+callback = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="my-agent",
+    session_id="optional-session",
+    user_id="optional-user",
+    tags=["production", "v2"],
+    metadata={"environment": "prod"},
+    capture_input=True,      # Log inputs
+    capture_output=True,     # Log outputs
+    async_logging=True,      # Non-blocking
+)
+```
+
+---
+
+## Next Steps
+
+- [CrewAI Integration](/docs/frameworks/crewai) - Multi-agent systems
+- [Policies](/docs/concepts/policies) - Add enforcement
+- [Sessions](/docs/concepts/sessions) - Track conversations

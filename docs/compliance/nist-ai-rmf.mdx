@@ -1,0 +1,216 @@
+---
+sidebar_position: 4
+title: NIST AI RMF
+description: NIST AI Risk Management Framework alignment with TrustScope
+---
+
+# NIST AI Risk Management Framework
+
+The NIST AI RMF provides guidelines for managing AI risks. TrustScope maps directly to its core functions.
+
+## Framework Overview
+
+The NIST AI RMF consists of four core functions:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     NIST AI RMF                              │
+├───────────────┬───────────────┬───────────────┬─────────────┤
+│    GOVERN     │      MAP      │    MEASURE    │   MANAGE    │
+│  Organization │   Context     │  Analysis     │  Response   │
+│  policies     │   mapping     │  assessment   │  actions    │
+└───────────────┴───────────────┴───────────────┴─────────────┘
+```
+
+---
+
+## GOVERN Function
+
+Establish organizational AI governance.
+
+### GOVERN 1: Policies and Procedures
+
+**TrustScope Support:**
+- Define and enforce AI policies
+- Version control for policy changes
+- Audit trail of policy violations
+
+```python
+# Define organization-wide policies
+policies = [
+    "no-pii",
+    "cost-limit-100",
+    "content-filter",
+    "business-hours-only"
+]
+```
+
+### GOVERN 2: Accountability Structures
+
+**TrustScope Support:**
+- Role-based access control
+- Action attribution
+- Approval workflows
+
+### GOVERN 3: Workforce Diversity
+
+**TrustScope Support:**
+- Bias detection in outputs
+- Demographic fairness analysis
+- Disparate impact monitoring
+
+---
+
+## MAP Function
+
+Understand AI system context and risks.
+
+### MAP 1: System Context
+
+**TrustScope Support:**
+- Automatic system documentation
+- Dependency mapping
+- Integration inventory
+
+### MAP 2: Categorization
+
+**TrustScope Support:**
+- Risk classification tagging
+- Impact assessment
+- Use case documentation
+
+```python
+@ts.observe(
+    agent_id="loan-processor",
+    metadata={
+        "risk_level": "high",
+        "impact_category": "financial",
+        "data_sensitivity": "pii"
+    }
+)
+def process_loan_application():
+    ...
+```
+
+### MAP 3: Beneficial Uses
+
+**TrustScope Support:**
+- Outcome tracking
+- Success metrics
+- Value documentation
+
+---
+
+## MEASURE Function
+
+Analyze AI system performance and risks.
+
+### MEASURE 1: Risk Identification
+
+**TrustScope Support:**
+- Automated risk detection
+- Anomaly identification
+- Threat monitoring
+
+### MEASURE 2: Risk Assessment
+
+**TrustScope Support:**
+- Risk scoring
+- Trend analysis
+- Benchmark comparisons
+
+### MEASURE 3: Risk Tracking
+
+**TrustScope Support:**
+- Historical risk data
+- Mitigation effectiveness
+- Residual risk calculation
+
+```json
+{
+  "risk_metrics": {
+    "prompt_injection_attempts": 12,
+    "pii_exposures_blocked": 45,
+    "policy_violations": 3,
+    "overall_risk_score": 0.23
+  }
+}
+```
+
+---
+
+## MANAGE Function
+
+Respond to and mitigate AI risks.
+
+### MANAGE 1: Risk Prioritization
+
+**TrustScope Support:**
+- Severity ranking
+- Impact assessment
+- Resource allocation guidance
+
+### MANAGE 2: Risk Response
+
+**TrustScope Support:**
+- Automated blocking
+- Alerting and escalation
+- Remediation tracking
+
+### MANAGE 3: Risk Monitoring
+
+**TrustScope Support:**
+- Continuous monitoring
+- Real-time dashboards
+- Trend alerts
+
+```python
+# Automated risk response
+@ts.enforce(
+    policies=["block-high-risk"],
+    on_violation="block"
+)
+def ai_operation():
+    ...
+```
+
+---
+
+## NIST AI RMF Export
+
+Generate NIST-aligned reports:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/export \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{
+    "format": "nist",
+    "from": "2026-01-01",
+    "to": "2026-01-31",
+    "include_evidence": true
+  }'
+```
+
+**Report Contents:**
+- Function-by-function assessment
+- Control mapping
+- Evidence artifacts
+- Gap analysis
+- Remediation recommendations
+
+---
+
+## Trustworthy AI Characteristics
+
+NIST defines characteristics of trustworthy AI that TrustScope helps achieve:
+
+| Characteristic | TrustScope Feature |
+|----------------|-------------------|
+| **Valid & Reliable** | Continuous monitoring, drift detection |
+| **Safe** | Policy enforcement, blocking |
+| **Secure & Resilient** | Threat detection, audit trails |
+| **Accountable** | Immutable logging, attribution |
+| **Transparent** | Full observability, explainability |
+| **Explainable** | Decision logging, factor tracking |
+| **Privacy-Enhanced** | PII detection, data minimization |
+| **Fair** | Bias detection, fairness metrics |

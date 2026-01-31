@@ -1,0 +1,423 @@
+---
+sidebar_position: 3
+title: Google Gemini
+description: Monitor Gemini models through TrustScope - Gemini 1.5 Pro, Flash, and Gemini 2.0
+---
+
+# Google Gemini Integration
+
+TrustScope provides full support for Google's Gemini models through an **OpenAI-compatible Gateway endpoint**, making integration seamless with existing code.
+
+## Supported Models
+
+| Model | Model ID | Context | Best For |
+|-------|----------|---------|----------|
+| Gemini 2.0 Flash | `gemini-2.0-flash-exp` | 1M | Latest, experimental |
+| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | Long context, reasoning |
+| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | Fast, cost-effective |
+| Gemini 1.5 Flash-8B | `gemini-1.5-flash-8b` | 1M | Fastest, cheapest |
+| Gemini 1.0 Pro | `gemini-1.0-pro` | 32K | Legacy support |
+
+---
+
+## Gateway Integration
+
+TrustScope exposes Gemini through an **OpenAI-compatible API**, so you can use the familiar OpenAI SDK:
+
+### Python (OpenAI SDK)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/google",
+    api_key="your-google-api-key",  # Google AI Studio API key
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[
+        {"role": "user", "content": "Explain machine learning in simple terms"}
+    ]
+)
+
+print(response.choices[0].message.content)
+```
+
+### Node.js (OpenAI SDK)
+
+```typescript
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  baseURL: 'https://gateway.trustscope.ai/google',
+  apiKey: process.env.GOOGLE_API_KEY,
+  defaultHeaders: { 'X-TrustScope-Key': 'ts_live_xxx' }
+});
+
+const response = await client.chat.completions.create({
+  model: 'gemini-1.5-pro',
+  messages: [
+    { role: 'user', content: 'Explain machine learning in simple terms' }
+  ]
+});
+
+console.log(response.choices[0].message.content);
+```
+
+### cURL
+
+```bash
+curl https://gateway.trustscope.ai/google/chat/completions \
+  -H "Authorization: Bearer $GOOGLE_API_KEY" \
+  -H "X-TrustScope-Key: ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemini-1.5-pro",
+    "messages": [
+      {"role": "user", "content": "Explain machine learning"}
+    ]
+  }'
+```
+
+---
+
+## Native Gemini SDK (Alternative)
+
+If you prefer the native Google SDK, use our Python SDK wrapper:
+
+```python
+from trustscope import TrustScope
+import google.generativeai as genai
+
+# Initialize TrustScope
+ts = TrustScope(api_key="ts_live_xxx")
+
+# Configure Gemini
+genai.configure(api_key="your-google-api-key")
+model = genai.GenerativeModel('gemini-1.5-pro')
+
+# Wrap with TrustScope monitoring
+@ts.observe(agent_id="gemini-agent")
+def generate_response(prompt: str):
+    response = model.generate_content(prompt)
+    return response.text
+
+result = generate_response("Explain quantum computing")
+```
+
+---
+
+## Streaming
+
+```python
+# Streaming with OpenAI SDK
+stream = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[{"role": "user", "content": "Write a poem"}],
+    stream=True
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)
+```
+
+```typescript
+// Node.js streaming
+const stream = await client.chat.completions.create({
+  model: 'gemini-1.5-pro',
+  messages: [{ role: 'user', content: 'Write a poem' }],
+  stream: true
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+```
+
+---
+
+## Vision (Images)
+
+Gemini supports multimodal inputs:
+
+```python
+import base64
+
+# Encode image
+with open("image.jpg", "rb") as f:
+    image_data = base64.b64encode(f.read()).decode()
+
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_data}"
+                    }
+                },
+                {
+                    "type": "text",
+                    "text": "What's in this image?"
+                }
+            ]
+        }
+    ]
+)
+```
+
+---
+
+## Video Analysis
+
+Gemini 1.5 Pro can analyze video content:
+
+```python
+import base64
+
+# For short videos, encode as base64
+with open("video.mp4", "rb") as f:
+    video_data = base64.b64encode(f.read()).decode()
+
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "video_url",
+                    "video_url": {
+                        "url": f"data:video/mp4;base64,{video_data}"
+                    }
+                },
+                {
+                    "type": "text", 
+                    "text": "Summarize what happens in this video"
+                }
+            ]
+        }
+    ]
+)
+```
+
+:::note Video Size Limits
+For videos larger than 20MB, use Google's File API to upload first, then reference by URI.
+:::
+
+---
+
+## Function Calling
+
+```python
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[
+        {"role": "user", "content": "What's the weather in Tokyo?"}
+    ],
+    tools=[
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "Get current weather for a location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "City name"
+                        }
+                    },
+                    "required": ["location"]
+                }
+            }
+        }
+    ],
+    tool_choice="auto"
+)
+
+# Check if function was called
+if response.choices[0].message.tool_calls:
+    tool_call = response.choices[0].message.tool_calls[0]
+    print(f"Function: {tool_call.function.name}")
+    print(f"Arguments: {tool_call.function.arguments}")
+```
+
+---
+
+## System Instructions
+
+```python
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[
+        {
+            "role": "system",
+            "content": "You are a helpful coding assistant. Always provide code examples."
+        },
+        {
+            "role": "user",
+            "content": "How do I read a file in Python?"
+        }
+    ]
+)
+```
+
+---
+
+## Long Context (Up to 2M tokens)
+
+Gemini 1.5 Pro supports up to 2 million tokens:
+
+```python
+# Load a large document
+with open("large_document.txt", "r") as f:
+    document = f.read()
+
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[
+        {
+            "role": "user",
+            "content": f"Summarize this document:\n\n{document}"
+        }
+    ],
+    max_tokens=4096
+)
+```
+
+:::tip Cost Optimization
+Long context requests can be expensive. TrustScope's cost tracking helps you monitor and set limits on token usage.
+:::
+
+---
+
+## Safety Settings
+
+Control Gemini's safety filters through TrustScope policies or via API:
+
+```python
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[{"role": "user", "content": "Your prompt"}],
+    extra_body={
+        "safety_settings": [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+            }
+        ]
+    }
+)
+```
+
+---
+
+## Agent Identity
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/google",
+    api_key="your-google-api-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-TrustScope-Agent-Id": "research-assistant",
+        "X-TrustScope-Session-Id": "session_xyz789"
+    }
+)
+```
+
+---
+
+## Cost Tracking
+
+TrustScope automatically tracks Gemini costs:
+
+| Model | Input (per 1M tokens) | Output (per 1M tokens) |
+|-------|----------------------|------------------------|
+| Gemini 1.5 Pro | $1.25 (≤128K) / $2.50 (>128K) | $5.00 (≤128K) / $10.00 (>128K) |
+| Gemini 1.5 Flash | $0.075 (≤128K) / $0.15 (>128K) | $0.30 (≤128K) / $0.60 (>128K) |
+| Gemini 1.5 Flash-8B | $0.0375 | $0.15 |
+
+---
+
+## Vertex AI (Enterprise)
+
+For Google Cloud Vertex AI:
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/vertex",
+    api_key="not-used",  # Auth via headers
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-GCP-Project": "your-project-id",
+        "X-GCP-Region": "us-central1",
+        "Authorization": f"Bearer {access_token}"  # GCP access token
+    }
+)
+
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+```
+
+---
+
+## Troubleshooting
+
+### "Model not found"
+- Use the full model name: `gemini-1.5-pro` (not just `gemini`)
+- Check model availability in your region
+
+### Rate Limiting
+```python
+from openai import RateLimitError
+import time
+
+try:
+    response = client.chat.completions.create(...)
+except RateLimitError:
+    time.sleep(60)  # Wait and retry
+```
+
+### "Invalid API Key"
+- Get your API key from [Google AI Studio](https://aistudio.google.com/apikey)
+- Ensure the key is enabled for Generative Language API
+
+### Content Blocked
+- Gemini has strict safety filters
+- Check `response.choices[0].finish_reason` for `"safety"`
+- Adjust safety settings if appropriate for your use case
+
+---
+
+## API Mapping Reference
+
+TrustScope translates between OpenAI and Gemini formats:
+
+| OpenAI | Gemini |
+|--------|--------|
+| `messages[].role: "system"` | `system_instruction` |
+| `messages[].role: "user"` | `contents[].role: "user"` |
+| `messages[].role: "assistant"` | `contents[].role: "model"` |
+| `max_tokens` | `maxOutputTokens` |
+| `temperature` | `temperature` |
+| `top_p` | `topP` |
+| `stop` | `stopSequences` |
+
+---
+
+## Next Steps
+
+- [Add Cost Limits](/docs/concepts/policies#cost-limits) - Prevent runaway Gemini costs
+- [LangChain + Gemini](/docs/frameworks/langchain) - Use Gemini with LangChain
+- [Long Context Best Practices](/docs/guides/long-context) - Optimize 2M token usage

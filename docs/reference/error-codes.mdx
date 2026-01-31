@@ -1,0 +1,391 @@
+---
+sidebar_position: 3
+title: Error Codes
+description: Complete list of TrustScope error codes
+---
+
+# Error Codes
+
+Complete reference of TrustScope API error codes.
+
+## Error Response Format
+
+All errors return this format:
+
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable description",
+  "details": { },
+  "request_id": "req_abc123"
+}
+```
+
+---
+
+## Authentication Errors
+
+### authentication_error
+
+**Status:** 401 Unauthorized
+
+Invalid or missing API key.
+
+```json
+{
+  "error": "authentication_error",
+  "message": "Invalid API key"
+}
+```
+
+**Solutions:**
+- Check API key is correct
+- Ensure key hasn't been revoked
+- Check Authorization header format: `Bearer ts_live_xxx`
+
+---
+
+### permission_error
+
+**Status:** 403 Forbidden
+
+Key lacks required permission.
+
+```json
+{
+  "error": "permission_error",
+  "message": "Key does not have permission: write:policies",
+  "details": {
+    "required": "write:policies",
+    "available": ["read:traces"]
+  }
+}
+```
+
+**Solutions:**
+- Use a key with appropriate permissions
+- Create a new key with required scopes
+
+---
+
+## Validation Errors
+
+### validation_error
+
+**Status:** 400 Bad Request
+
+Invalid request parameters.
+
+```json
+{
+  "error": "validation_error",
+  "message": "agent_id is required",
+  "details": {
+    "field": "agent_id",
+    "constraint": "required"
+  }
+}
+```
+
+**Common validation errors:**
+
+| Field | Constraint | Message |
+|-------|------------|---------|
+| `agent_id` | required | agent_id is required |
+| `action_type` | enum | Invalid action_type. Must be one of: llm_call, tool_call, decision, custom |
+| `timestamp` | format | Invalid timestamp format. Use ISO 8601 |
+| `policies` | min_items | At least one policy required |
+
+---
+
+### invalid_json
+
+**Status:** 400 Bad Request
+
+Request body is not valid JSON.
+
+```json
+{
+  "error": "invalid_json",
+  "message": "Request body must be valid JSON"
+}
+```
+
+---
+
+## Resource Errors
+
+### not_found
+
+**Status:** 404 Not Found
+
+Resource doesn't exist.
+
+```json
+{
+  "error": "not_found",
+  "message": "Trace not found",
+  "details": {
+    "resource": "trace",
+    "id": "tr_invalid"
+  }
+}
+```
+
+---
+
+### conflict
+
+**Status:** 409 Conflict
+
+Resource state conflict.
+
+```json
+{
+  "error": "conflict",
+  "message": "Session already ended",
+  "details": {
+    "session_id": "sess_123",
+    "ended_at": "2026-01-31T12:00:00Z"
+  }
+}
+```
+
+---
+
+### already_exists
+
+**Status:** 409 Conflict
+
+Resource already exists.
+
+```json
+{
+  "error": "already_exists",
+  "message": "Policy with name 'my-policy' already exists",
+  "details": {
+    "resource": "policy",
+    "name": "my-policy"
+  }
+}
+```
+
+---
+
+## Rate Limit Errors
+
+### rate_limit_exceeded
+
+**Status:** 429 Too Many Requests
+
+Rate limit exceeded.
+
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Too many requests",
+  "retry_after": 30,
+  "details": {
+    "limit": 5000,
+    "current": 5001,
+    "window": "1m"
+  }
+}
+```
+
+**Headers:**
+```http
+Retry-After: 30
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1706702400
+```
+
+---
+
+## Policy Errors
+
+### policy_violation
+
+**Status:** 403 Forbidden
+
+Request blocked by policy.
+
+```json
+{
+  "error": "policy_violation",
+  "message": "Request blocked by policy: no-pii",
+  "details": {
+    "policy": "no-pii",
+    "detection": "ssn",
+    "location": "input.messages[0].content"
+  },
+  "trace_id": "tr_abc123"
+}
+```
+
+---
+
+### policy_not_found
+
+**Status:** 404 Not Found
+
+Referenced policy doesn't exist.
+
+```json
+{
+  "error": "policy_not_found",
+  "message": "Policy 'my-policy' not found",
+  "details": {
+    "policy": "my-policy"
+  }
+}
+```
+
+---
+
+## Export Errors
+
+### export_failed
+
+**Status:** 500 Internal Server Error
+
+Export job failed.
+
+```json
+{
+  "error": "export_failed",
+  "message": "Export failed due to internal error",
+  "details": {
+    "export_id": "exp_123",
+    "reason": "timeout"
+  }
+}
+```
+
+---
+
+### export_expired
+
+**Status:** 410 Gone
+
+Export download link expired.
+
+```json
+{
+  "error": "export_expired",
+  "message": "Export download link has expired",
+  "details": {
+    "export_id": "exp_123",
+    "expired_at": "2026-01-31T12:00:00Z"
+  }
+}
+```
+
+---
+
+## Server Errors
+
+### internal_error
+
+**Status:** 500 Internal Server Error
+
+Unexpected server error.
+
+```json
+{
+  "error": "internal_error",
+  "message": "An unexpected error occurred",
+  "request_id": "req_abc123"
+}
+```
+
+**What to do:**
+1. Retry with exponential backoff
+2. Check status.trustscope.ai
+3. Contact support with request_id
+
+---
+
+### service_unavailable
+
+**Status:** 503 Service Unavailable
+
+Service temporarily unavailable.
+
+```json
+{
+  "error": "service_unavailable",
+  "message": "Service temporarily unavailable. Please retry.",
+  "retry_after": 60
+}
+```
+
+---
+
+### gateway_timeout
+
+**Status:** 504 Gateway Timeout
+
+Request timeout.
+
+```json
+{
+  "error": "gateway_timeout",
+  "message": "Request timed out",
+  "request_id": "req_abc123"
+}
+```
+
+---
+
+## SDK Error Classes
+
+### Python
+
+```python
+from trustscope.exceptions import (
+    TrustScopeError,          # Base class
+    AuthenticationError,       # 401
+    PermissionError,          # 403 (permission)
+    ValidationError,          # 400
+    NotFoundError,            # 404
+    ConflictError,            # 409
+    RateLimitError,           # 429
+    PolicyViolationError,     # 403 (policy)
+    InternalError,            # 500
+    ServiceUnavailableError,  # 503
+)
+
+try:
+    ts.observe(...)
+except RateLimitError as e:
+    print(f"Retry after: {e.retry_after}")
+except PolicyViolationError as e:
+    print(f"Blocked by: {e.policy_name}")
+except TrustScopeError as e:
+    print(f"Error: {e.message}, request_id: {e.request_id}")
+```
+
+### Node.js
+
+```typescript
+import {
+  TrustScopeError,
+  AuthenticationError,
+  ValidationError,
+  NotFoundError,
+  RateLimitError,
+  PolicyViolationError,
+} from '@trustscope/sdk';
+
+try {
+  await ts.observe({ ... });
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log(`Retry after: ${error.retryAfter}`);
+  } else if (error instanceof PolicyViolationError) {
+    console.log(`Blocked by: ${error.policyName}`);
+  }
+}
+```

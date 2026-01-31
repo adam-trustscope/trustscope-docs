@@ -1,0 +1,422 @@
+---
+sidebar_position: 1
+title: Gateway Quickstart
+description: Start monitoring AI agents in 5 minutes. Works with OpenAI, Anthropic, Google Gemini, and more.
+---
+
+# Gateway Quickstart
+
+Start monitoring your AI agents in 5 minutes. **Change one line of code** - works with any LLM provider.
+
+## Supported Providers
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| **OpenAI** | GPT-4o, GPT-4, GPT-3.5-turbo, o1, o1-mini | ✅ Full Support |
+| **Anthropic** | Claude 3.5 Sonnet, Claude 3 Opus/Sonnet/Haiku | ✅ Full Support |
+| **Google** | Gemini 1.5 Pro, Gemini 1.5 Flash, Gemini 2.0 | ✅ Full Support |
+| **Mistral** | Mistral Large, Mistral Medium, Codestral | ✅ Full Support |
+| **Cohere** | Command R+, Command R | ✅ Full Support |
+| **Azure OpenAI** | All Azure-hosted OpenAI models | ✅ Full Support |
+| **AWS Bedrock** | Claude, Titan, Llama via Bedrock | ✅ Full Support |
+
+---
+
+## Prerequisites
+
+- TrustScope account ([sign up free](https://app.trustscope.ai))
+- API key from your LLM provider
+- Existing code using any supported provider
+
+---
+
+## Step 1: Get Your TrustScope API Key
+
+1. Go to [app.trustscope.ai](https://app.trustscope.ai)
+2. Navigate to **Settings → API Keys**
+3. Click **Create Key**
+4. Copy your key: `ts_live_xxxxx`
+
+---
+
+## Step 2: Update Your Code
+
+Choose your LLM provider below. Each requires only **2 lines changed**:
+
+### OpenAI
+
+```python
+# ❌ BEFORE
+from openai import OpenAI
+client = OpenAI()
+
+# ✅ AFTER - Add 2 lines
+from openai import OpenAI
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",           # ← Add this
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}    # ← Add this
+)
+
+# Your existing code works unchanged
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### Anthropic (Claude)
+
+```python
+# ❌ BEFORE
+from anthropic import Anthropic
+client = Anthropic()
+
+# ✅ AFTER - Add 2 lines
+from anthropic import Anthropic
+client = Anthropic(
+    base_url="https://gateway.trustscope.ai/anthropic",    # ← Add this
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}    # ← Add this
+)
+
+# Your existing code works unchanged
+response = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### Google Gemini
+
+```python
+# ❌ BEFORE - Native Gemini SDK
+import google.generativeai as genai
+genai.configure(api_key="your-google-key")
+model = genai.GenerativeModel('gemini-1.5-pro')
+
+# ✅ AFTER - Use OpenAI-compatible endpoint through TrustScope
+from openai import OpenAI
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/google",       # ← TrustScope Gateway
+    api_key="your-google-key",                             # ← Your Google API key
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}    # ← TrustScope key
+)
+
+# Use OpenAI-compatible format (we translate automatically)
+response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+:::tip Gemini Native SDK Support
+We also support the native Gemini SDK via our Python SDK. See [Gemini Integration Guide](/docs/providers/google-gemini) for details.
+:::
+
+### Mistral
+
+```python
+# ❌ BEFORE
+from mistralai.client import MistralClient
+client = MistralClient(api_key="your-mistral-key")
+
+# ✅ AFTER - Use OpenAI-compatible endpoint
+from openai import OpenAI
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/mistral",      # ← TrustScope Gateway
+    api_key="your-mistral-key",                            # ← Your Mistral API key
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}    # ← TrustScope key
+)
+
+response = client.chat.completions.create(
+    model="mistral-large-latest",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### Azure OpenAI
+
+```python
+# ❌ BEFORE
+from openai import AzureOpenAI
+client = AzureOpenAI(
+    azure_endpoint="https://your-resource.openai.azure.com",
+    api_version="2024-02-01"
+)
+
+# ✅ AFTER - Route through TrustScope
+from openai import AzureOpenAI
+client = AzureOpenAI(
+    azure_endpoint="https://gateway.trustscope.ai/azure",  # ← TrustScope Gateway
+    api_version="2024-02-01",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",                 # ← TrustScope key
+        "X-Azure-Endpoint": "https://your-resource.openai.azure.com"
+    }
+)
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### AWS Bedrock
+
+```python
+# ❌ BEFORE - Native Bedrock client
+import boto3
+bedrock = boto3.client('bedrock-runtime')
+
+# ✅ AFTER - Use OpenAI-compatible endpoint through TrustScope
+from openai import OpenAI
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/bedrock",
+    api_key="not-used",  # Auth via headers
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-AWS-Access-Key-Id": "your-access-key",
+        "X-AWS-Secret-Access-Key": "your-secret-key",
+        "X-AWS-Region": "us-east-1"
+    }
+)
+
+response = client.chat.completions.create(
+    model="anthropic.claude-3-sonnet-20240229-v1:0",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+---
+
+## Step 3: Make a Request
+
+Run your existing code. TrustScope automatically captures:
+
+- ✅ Full request/response content
+- ✅ Token usage and cost
+- ✅ Latency metrics
+- ✅ Model and provider info
+- ✅ Agent identity (if configured)
+
+---
+
+## Step 4: View in Dashboard
+
+1. Go to [app.trustscope.ai/traces](https://app.trustscope.ai/traces)
+2. See your request appear in real-time
+3. Click to view full details
+
+---
+
+## Gateway Endpoints by Provider
+
+| Provider | Gateway URL | API Format |
+|----------|-------------|------------|
+| OpenAI | `gateway.trustscope.ai/v1` | OpenAI native |
+| Anthropic | `gateway.trustscope.ai/anthropic` | Anthropic Messages native |
+| Google Gemini | `gateway.trustscope.ai/google` | OpenAI-compatible |
+| Mistral | `gateway.trustscope.ai/mistral` | OpenAI-compatible |
+| Cohere | `gateway.trustscope.ai/cohere` | OpenAI-compatible |
+| Azure OpenAI | `gateway.trustscope.ai/azure` | Azure OpenAI native |
+| AWS Bedrock | `gateway.trustscope.ai/bedrock` | OpenAI-compatible |
+
+---
+
+## Required Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-TrustScope-Key` | ✅ Yes | Your TrustScope API key |
+| `Authorization` | ✅ Yes | Your LLM provider API key |
+| `X-TrustScope-Agent-Id` | Optional | Custom agent identifier |
+| `X-TrustScope-Session-Id` | Optional | Group related requests |
+| `X-TrustScope-User-Id` | Optional | End-user identifier |
+
+---
+
+## Node.js Examples
+
+### OpenAI (Node.js)
+
+```typescript
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  baseURL: 'https://gateway.trustscope.ai/v1',
+  defaultHeaders: { 'X-TrustScope-Key': 'ts_live_xxx' }
+});
+
+const response = await client.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+### Anthropic (Node.js)
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  baseURL: 'https://gateway.trustscope.ai/anthropic',
+  defaultHeaders: { 'X-TrustScope-Key': 'ts_live_xxx' }
+});
+
+const response = await client.messages.create({
+  model: 'claude-3-5-sonnet-20241022',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+### Google Gemini (Node.js)
+
+```typescript
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  baseURL: 'https://gateway.trustscope.ai/google',
+  apiKey: process.env.GOOGLE_API_KEY,
+  defaultHeaders: { 'X-TrustScope-Key': 'ts_live_xxx' }
+});
+
+const response = await client.chat.completions.create({
+  model: 'gemini-1.5-pro',
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+---
+
+## cURL Examples
+
+### OpenAI (cURL)
+
+```bash
+curl https://gateway.trustscope.ai/v1/chat/completions \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "X-TrustScope-Key: ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+### Anthropic (cURL)
+
+```bash
+curl https://gateway.trustscope.ai/anthropic/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "X-TrustScope-Key: ts_live_xxx" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+### Google Gemini (cURL)
+
+```bash
+curl https://gateway.trustscope.ai/google/chat/completions \
+  -H "Authorization: Bearer $GOOGLE_API_KEY" \
+  -H "X-TrustScope-Key: ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemini-1.5-pro",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+---
+
+## What Gets Captured (All Providers)
+
+Every request through the Gateway records:
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "timestamp": "2026-01-31T12:00:00Z",
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "request": {
+    "messages": [...],
+    "max_tokens": 1024
+  },
+  "response": {
+    "content": "Hello! How can I help you today?",
+    "stop_reason": "end_turn"
+  },
+  "metrics": {
+    "input_tokens": 12,
+    "output_tokens": 45,
+    "latency_ms": 234,
+    "cost_usd": 0.00023
+  },
+  "detections": [],
+  "policy_result": "ALLOWED"
+}
+```
+
+---
+
+## Streaming Support
+
+All providers support streaming through the Gateway:
+
+```python
+# OpenAI streaming
+for chunk in client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}],
+    stream=True
+):
+    print(chunk.choices[0].delta.content, end="")
+
+# Anthropic streaming
+with client.messages.stream(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello!"}]
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="")
+```
+
+---
+
+## Next Steps
+
+- [Add Policies](/docs/concepts/policies) - Block harmful content, limit costs
+- [Track Sessions](/docs/concepts/sessions) - Group related requests
+- [Identify Agents](/docs/concepts/agents) - Track which agent made each request
+- [Export Compliance](/docs/compliance/overview) - Generate audit reports
+
+---
+
+## Troubleshooting
+
+### "Unauthorized" Error
+- Check your TrustScope API key is correct
+- Ensure your LLM provider API key is valid
+- Verify the `X-TrustScope-Key` header is included
+
+### Requests Not Appearing in Dashboard
+- Confirm you're using the Gateway URL, not the provider's direct URL
+- Check network connectivity to `gateway.trustscope.ai`
+
+### Provider-Specific Issues
+
+| Provider | Common Issue | Solution |
+|----------|--------------|----------|
+| Anthropic | Missing `anthropic-version` header | Add `anthropic-version: 2023-06-01` |
+| Azure | 404 errors | Ensure `X-Azure-Endpoint` header is set |
+| Bedrock | Auth failures | Check AWS credentials in headers |
+| Gemini | Model not found | Use full model name: `gemini-1.5-pro` |
+
+Need help? [Contact support](mailto:support@trustscope.ai) or join our [Discord](https://discord.gg/trustscope).

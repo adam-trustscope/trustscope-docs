@@ -1,0 +1,49 @@
+---
+sidebar_position: 1
+title: Gateway vs SDK
+description: When to use TrustScope Gateway vs SDK integration
+---
+
+# Gateway vs SDK
+
+TrustScope offers two primary integration methods. Here's how to choose.
+
+## Quick Comparison
+
+| Aspect | Gateway | SDK |
+|--------|---------|-----|
+| **Setup time** | 5 minutes | 15 minutes |
+| **Code changes** | 2 lines | Decorators/wrappers |
+| **Languages** | Any (HTTP) | Python, Node.js |
+| **Capture** | All LLM calls automatically | Selected functions |
+| **Custom actions** | No | Yes |
+| **Offline support** | No | Yes (batching) |
+
+## Use Gateway When
+
+- You want minimal code changes
+- You have existing applications
+- You use multiple LLM providers
+- You want automatic capture of everything
+
+## Use SDK When
+
+- You want fine-grained control
+- You need to capture custom actions (tool calls, decisions)
+- You're building a new application
+- You need offline/batched logging
+
+## Combining Both
+
+You can use both Gateway and SDK together for comprehensive coverage:
+
+```python
+# Gateway for LLM calls
+client = OpenAI(base_url="https://gateway.trustscope.ai/v1", ...)
+
+# SDK for custom actions
+@ts.observe(agent_id="my-agent")
+def my_agent():
+    response = client.chat.completions.create(...)  # Captured by Gateway
+    ts.log_action("business_logic", {...})          # Captured by SDK
+```

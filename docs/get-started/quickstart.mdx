@@ -1,0 +1,128 @@
+---
+sidebar_position: 2
+title: Quickstart
+description: Get started with TrustScope in under 5 minutes
+---
+
+# Quickstart
+
+Get your first AI agent monitored in under 5 minutes.
+
+## Prerequisites
+
+- TrustScope account ([sign up free](https://app.trustscope.ai))
+- API key from your LLM provider (OpenAI, Anthropic, etc.)
+
+---
+
+## Step 1: Get Your API Key
+
+1. Go to [app.trustscope.ai](https://app.trustscope.ai)
+2. Navigate to **Settings → API Keys**
+3. Click **Create Key**
+4. Copy your key: `ts_live_xxxxx`
+
+---
+
+## Step 2: Choose Your Integration
+
+### Option A: Gateway (Fastest)
+
+Change 2 lines of code to route through TrustScope:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",           # ← Add this
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}    # ← Add this
+)
+
+# Your existing code works unchanged
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### Option B: Python SDK
+
+Install and use decorators:
+
+```bash
+pip install trustscope
+```
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="my-agent")
+def my_agent(prompt: str):
+    # Your agent logic
+    return call_llm(prompt)
+
+result = my_agent("Hello!")
+```
+
+### Option C: Node.js SDK
+
+```bash
+npm install @trustscope/sdk
+```
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+const observedAgent = ts.observe(myAgentFunction, { agentId: 'my-agent' });
+const result = await observedAgent('Hello!');
+```
+
+---
+
+## Step 3: View in Dashboard
+
+1. Go to [app.trustscope.ai/traces](https://app.trustscope.ai/traces)
+2. See your request appear in real-time
+3. Click to view full details
+
+---
+
+## What Gets Captured
+
+Every request through TrustScope records:
+
+| Data | Description |
+|------|-------------|
+| **Request** | Full prompt, system message, tools |
+| **Response** | Generated content, tool calls, stop reason |
+| **Tokens** | Input tokens, output tokens, total |
+| **Cost** | Calculated from provider pricing |
+| **Latency** | Time to first token, total time |
+| **Detections** | PII, prompt injection, policy violations |
+
+---
+
+## Next Steps
+
+<div className="card-grid">
+  <a href="/docs/get-started/quickstarts/gateway" className="card">
+    <h3>Gateway Guide</h3>
+    <p>All providers: OpenAI, Anthropic, Gemini</p>
+  </a>
+  <a href="/docs/sdks/python" className="card">
+    <h3>Python SDK</h3>
+    <p>Decorators, sessions, policies</p>
+  </a>
+  <a href="/docs/concepts/policies" className="card">
+    <h3>Add Policies</h3>
+    <p>Block harmful content, limit costs</p>
+  </a>
+  <a href="/docs/concepts/sessions" className="card">
+    <h3>Track Sessions</h3>
+    <p>Group related requests</p>
+  </a>
+</div>

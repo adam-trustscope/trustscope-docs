@@ -1,0 +1,236 @@
+---
+sidebar_position: 1
+title: Production Checklist
+description: Prepare your AI agents for production deployment
+---
+
+# Production Checklist
+
+Ensure your AI agents are production-ready with this comprehensive checklist.
+
+## Pre-Launch Checklist
+
+### Authentication & Security
+
+- [ ] **API keys secured** - Keys stored in environment variables or secrets manager
+- [ ] **Keys rotated** - Not using initial development keys
+- [ ] **Scoped permissions** - Using least-privilege API keys
+- [ ] **TLS enabled** - All traffic over HTTPS
+
+```bash
+# Good: Environment variable
+export TRUSTSCOPE_API_KEY=ts_live_xxx
+
+# Bad: Hardcoded in code
+ts = TrustScope(api_key="ts_live_xxx")  # Don't do this
+```
+
+---
+
+### Agent Configuration
+
+- [ ] **Agent IDs defined** - Meaningful, consistent agent identifiers
+- [ ] **Metadata configured** - Environment, version, team tags
+- [ ] **Session tracking** - Sessions properly scoped to business units
+
+```python
+@ts.observe(
+    agent_id="customer-support-v2",  # Versioned, descriptive
+    metadata={
+        "environment": "production",
+        "version": "2.1.0",
+        "team": "customer-success"
+    }
+)
+def support_agent(query):
+    ...
+```
+
+---
+
+### Policies Configured
+
+- [ ] **Content policies** - `no-pii`, `content-filter` enabled
+- [ ] **Cost policies** - Budget limits set
+- [ ] **Rate limits** - Appropriate for expected traffic
+- [ ] **Custom policies** - Business-specific rules defined
+
+```python
+# In dashboard or via API, configure:
+policies = [
+    "no-pii",
+    "content-filter",
+    "cost-limit-10",
+    "daily-budget-1000",
+    "approved-tools-only"
+]
+```
+
+---
+
+### Monitoring & Alerts
+
+- [ ] **Dashboard access** - Team has access to TrustScope dashboard
+- [ ] **Alerts configured** - Notifications for critical events
+- [ ] **Webhooks set up** - Integration with incident management
+- [ ] **Status page monitored** - [status.trustscope.ai](https://status.trustscope.ai)
+
+**Alert recommendations:**
+| Event | Priority | Channel |
+|-------|----------|---------|
+| Policy violation | High | Slack, PagerDuty |
+| Detection (PII, injection) | High | Slack, PagerDuty |
+| Agent drift detected | Medium | Email, Slack |
+| High cost alert | Medium | Email |
+| Error rate spike | High | PagerDuty |
+
+---
+
+### Error Handling
+
+- [ ] **Retry logic** - Implemented for transient failures
+- [ ] **Graceful degradation** - Fallback when TrustScope unavailable
+- [ ] **Error logging** - TrustScope errors logged with request IDs
+- [ ] **Rate limit handling** - Exponential backoff implemented
+
+```python
+from trustscope.exceptions import TrustScopeError, RateLimitError
+
+def call_with_retry(func, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except RateLimitError as e:
+            if attempt < max_retries - 1:
+                time.sleep(e.retry_after)
+            else:
+                raise
+        except TrustScopeError as e:
+            logger.error(f"TrustScope error: {e.message}, request_id: {e.request_id}")
+            raise
+```
+
+---
+
+### Performance
+
+- [ ] **Async logging enabled** - Non-blocking for performance
+- [ ] **Batching configured** - Reduces API calls
+- [ ] **Timeouts set** - Prevent hanging requests
+- [ ] **Gateway latency acceptable** - < 50ms overhead
+
+```python
+ts = TrustScope(
+    api_key="ts_live_xxx",
+    async_flush=True,
+    flush_interval=5.0,
+    batch_size=100,
+    timeout=30
+)
+```
+
+---
+
+### Compliance
+
+- [ ] **Data retention configured** - Meets regulatory requirements
+- [ ] **Export tested** - Can generate compliance reports
+- [ ] **Audit trail verified** - Hash chain integrity confirmed
+- [ ] **PII handling reviewed** - Appropriate redaction/blocking
+
+---
+
+### Testing
+
+- [ ] **Integration tests pass** - With TrustScope integration
+- [ ] **Load testing complete** - Under expected production load
+- [ ] **Failover tested** - Behavior when TrustScope unavailable
+- [ ] **Policy enforcement tested** - Violations correctly blocked
+
+```python
+# Test policy enforcement
+def test_pii_blocked():
+    with pytest.raises(PolicyViolationError) as exc:
+        ts.check_policies(
+            agent_id="test-agent",
+            input={"messages": [{"role": "user", "content": "SSN: 123-45-6789"}]},
+            policies=["no-pii"]
+        )
+    assert exc.value.policy_name == "no-pii"
+```
+
+---
+
+## Launch Day
+
+### Deployment
+
+1. **Deploy with feature flag** - Gradual rollout
+2. **Monitor dashboard** - Watch for anomalies
+3. **Check alert channels** - Verify alerts working
+4. **Compare metrics** - Before/after deployment
+
+### First Hour
+
+- [ ] Traces appearing in dashboard
+- [ ] No unexpected policy violations
+- [ ] Latency within acceptable range
+- [ ] No error rate increase
+
+### First Day
+
+- [ ] Review daily cost
+- [ ] Check detection summary
+- [ ] Review any alerts triggered
+- [ ] Verify session tracking
+
+---
+
+## Post-Launch
+
+### Week 1
+
+- [ ] **Review analytics** - Usage patterns, costs, errors
+- [ ] **Tune policies** - Adjust thresholds based on data
+- [ ] **Update documentation** - Runbooks, incident response
+- [ ] **Lock agent fingerprints** - Enable drift detection
+
+### Ongoing
+
+- [ ] **Weekly review** - Dashboard metrics review
+- [ ] **Monthly compliance** - Generate compliance reports
+- [ ] **Quarterly audit** - Full security/compliance review
+- [ ] **Key rotation** - Rotate API keys every 90 days
+
+---
+
+## Quick Reference
+
+### Environment Variables
+
+```bash
+# Required
+TRUSTSCOPE_API_KEY=ts_live_xxx
+
+# Optional
+TRUSTSCOPE_BASE_URL=https://api.trustscope.ai
+TRUSTSCOPE_DEBUG=false
+TRUSTSCOPE_ASYNC=true
+TRUSTSCOPE_TIMEOUT=30
+```
+
+### Minimum Viable Configuration
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(
+    api_key=os.environ["TRUSTSCOPE_API_KEY"],
+    async_flush=True
+)
+
+@ts.observe(agent_id="my-agent")
+@ts.enforce(policies=["no-pii", "content-filter"])
+def my_agent(prompt):
+    ...
+```

@@ -1,0 +1,53 @@
+---
+sidebar_position: 5
+title: Detections
+description: Real-time threat and anomaly detection for AI agents
+---
+
+# Detections
+
+TrustScope runs real-time detection engines on all AI traffic to identify threats and anomalies.
+
+## Detection Categories
+
+### Security Detections
+- **Prompt Injection** - Attempts to override system instructions
+- **Jailbreak** - Attempts to bypass safety measures
+- **Data Exfiltration** - Unauthorized data access attempts
+
+### Privacy Detections
+- **PII** - Names, emails, SSNs, credit cards
+- **PHI** - Health information (HIPAA)
+- **Secrets** - API keys, passwords, tokens
+
+### Behavioral Detections
+- **Agent Drift** - Behavior differs from baseline
+- **Anomaly** - Unusual patterns detected
+- **Rate Anomaly** - Abnormal request volume
+
+## Detection Response
+
+When a detection fires:
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "detections": [
+    {
+      "type": "pii",
+      "subtype": "ssn",
+      "confidence": 0.98,
+      "location": "input.messages[0].content",
+      "action": "blocked"
+    }
+  ]
+}
+```
+
+## Configuring Detections
+
+In the dashboard, configure:
+- Which detections to enable
+- Sensitivity thresholds
+- Actions (log, alert, block)
+- Exceptions and allowlists

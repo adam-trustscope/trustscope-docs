@@ -1,0 +1,1628 @@
+openapi: 3.1.0
+info:
+  title: TrustScope API
+  description: |
+    The TrustScope API provides programmatic access to AI agent governance capabilities including
+    observability, policy enforcement, session management, and compliance reporting.
+
+    ## Authentication
+
+    All API requests require authentication using an API key. Include your API key in the
+    `Authorization` header as a Bearer token:
+
+    ```
+    Authorization: Bearer ts_live_xxxxx
+    ```
+
+    ## Base URL
+
+    All API endpoints are relative to:
+
+    ```
+    https://api.trustscope.ai/v1
+    ```
+
+    ## Rate Limits
+
+    | Tier | Requests/min | Requests/day |
+    |------|--------------|--------------|
+    | Free | 60 | 1,000 |
+    | Pro | 600 | 100,000 |
+    | Enterprise | 6,000 | Unlimited |
+
+  version: 1.0.0
+  contact:
+    name: TrustScope Support
+    email: support@trustscope.ai
+    url: https://trustscope.ai/support
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://api.trustscope.ai/v1
+    description: Production API
+  - url: https://api.staging.trustscope.ai/v1
+    description: Staging API (for testing)
+
+tags:
+  - name: Observe
+    description: Record AI agent interactions for monitoring and audit
+  - name: Enforce
+    description: Apply policies and get real-time decisions
+  - name: Sessions
+    description: Manage conversation sessions and context
+  - name: Traces
+    description: Query and retrieve interaction traces
+  - name: Agents
+    description: Register and manage AI agent identities
+  - name: Policies
+    description: Create and manage governance policies
+  - name: Export
+    description: Export data for compliance and reporting
+
+security:
+  - bearerAuth: []
+
+paths:
+  /observe:
+    post:
+      operationId: observe
+      summary: Record an AI interaction
+      description: |
+        Records an AI agent interaction for monitoring, analysis, and audit purposes.
+        This is an asynchronous operation - the interaction is queued for processing
+        and a trace ID is returned immediately.
+
+        Use this endpoint when you want to:
+        - Log interactions without blocking your application
+        - Build audit trails for compliance
+        - Analyze patterns across interactions
+      tags:
+        - Observe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObserveRequest'
+            examples:
+              basic:
+                summary: Basic observation
+                value:
+                  agent_id: "customer-support-agent"
+                  session_id: "session_abc123"
+                  input:
+                    messages:
+                      - role: "user"
+                        content: "What's your refund policy?"
+                  output:
+                    messages:
+                      - role: "assistant"
+                        content: "Our refund policy allows returns within 30 days..."
+                  model: "gpt-4o"
+                  provider: "openai"
+              with_tools:
+                summary: Observation with tool use
+                value:
+                  agent_id: "data-analyst-agent"
+                  session_id: "session_def456"
+                  input:
+                    messages:
+                      - role: "user"
+                        content: "What were our sales last month?"
+                  output:
+                    messages:
+                      - role: "assistant"
+                        content: "Based on the data, last month's sales were $1.2M..."
+                    tool_calls:
+                      - name: "query_database"
+                        arguments:
+                          query: "SELECT SUM(amount) FROM sales WHERE month = 'December'"
+                        result: "1200000"
+                  model: "claude-3-5-sonnet-20241022"
+                  provider: "anthropic"
+                  metadata:
+                    department: "analytics"
+                    user_id: "user_123"
+      responses:
+        '200':
+          description: Interaction recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObserveResponse'
+              example:
+                trace_id: "tr_abc123def456"
+                status: "queued"
+                timestamp: "2026-01-31T12:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /enforce:
+    post:
+      operationId: enforce
+      summary: Enforce policies on an interaction
+      description: |
+        Evaluates an AI interaction against configured policies and returns an
+        enforcement decision. This is a synchronous operation designed for
+        real-time policy enforcement.
+
+        Use this endpoint when you need to:
+        - Block harmful content before it reaches users
+        - Enforce cost limits and rate controls
+        - Apply content filtering rules
+        - Get real-time compliance decisions
+
+        **Important:** This endpoint adds latency to your AI pipeline. For
+        logging-only use cases, use `/observe` instead.
+      tags:
+        - Enforce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnforceRequest'
+            examples:
+              basic:
+                summary: Basic enforcement check
+                value:
+                  agent_id: "customer-support-agent"
+                  input:
+                    messages:
+                      - role: "user"
+                        content: "What's your refund policy?"
+                  output:
+                    messages:
+                      - role: "assistant"
+                        content: "Our refund policy allows returns within 30 days..."
+                  policies:
+                    - "policy_content_safety"
+                    - "policy_pii_protection"
+              with_context:
+                summary: Enforcement with session context
+                value:
+                  agent_id: "financial-advisor-agent"
+                  session_id: "session_ghi789"
+                  input:
+                    messages:
+                      - role: "user"
+                        content: "Should I invest in crypto?"
+                  output:
+                    messages:
+                      - role: "assistant"
+                        content: "I cannot provide specific investment advice..."
+                  policies:
+                    - "policy_financial_compliance"
+                  context:
+                    user_tier: "premium"
+                    jurisdiction: "US"
+      responses:
+        '200':
+          description: Policy evaluation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnforceResponse'
+              examples:
+                allowed:
+                  summary: Request allowed
+                  value:
+                    decision: "ALLOW"
+                    trace_id: "tr_xyz789"
+                    detections: []
+                    latency_ms: 45
+                blocked:
+                  summary: Request blocked
+                  value:
+                    decision: "BLOCK"
+                    trace_id: "tr_xyz790"
+                    detections:
+                      - type: "pii_detected"
+                        severity: "high"
+                        details:
+                          pii_type: "ssn"
+                          location: "output"
+                    blocked_by: "policy_pii_protection"
+                    message: "Response blocked: PII detected in output"
+                    latency_ms: 52
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /sessions:
+    get:
+      operationId: listSessions
+      summary: List sessions
+      description: |
+        Retrieves a paginated list of sessions with optional filtering.
+      tags:
+        - Sessions
+      parameters:
+        - name: agent_id
+          in: query
+          description: Filter by agent ID
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          description: Filter by end user ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by session status
+          schema:
+            type: string
+            enum: [active, completed, expired]
+        - name: start_time
+          in: query
+          description: Filter sessions started after this time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          description: Filter sessions started before this time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Maximum number of results (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: Pagination cursor from previous response
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    post:
+      operationId: createSession
+      summary: Create a new session
+      description: |
+        Creates a new session for grouping related interactions.
+      tags:
+        - Sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+            example:
+              agent_id: "customer-support-agent"
+              user_id: "user_123"
+              metadata:
+                channel: "web"
+                initial_intent: "billing_inquiry"
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /sessions/{session_id}:
+    get:
+      operationId: getSession
+      summary: Get session details
+      description: |
+        Retrieves detailed information about a specific session, including
+        all associated traces and aggregated metrics.
+      tags:
+        - Sessions
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: The session ID
+          schema:
+            type: string
+        - name: include_traces
+          in: query
+          description: Include full trace details (default false)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateSession
+      summary: Update session
+      description: |
+        Updates session metadata or status.
+      tags:
+        - Sessions
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionRequest'
+      responses:
+        '200':
+          description: Session updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /traces:
+    get:
+      operationId: listTraces
+      summary: List traces
+      description: |
+        Retrieves a paginated list of interaction traces with optional filtering.
+      tags:
+        - Traces
+      parameters:
+        - name: session_id
+          in: query
+          description: Filter by session ID
+          schema:
+            type: string
+        - name: agent_id
+          in: query
+          description: Filter by agent ID
+          schema:
+            type: string
+        - name: model
+          in: query
+          description: Filter by model name
+          schema:
+            type: string
+        - name: provider
+          in: query
+          description: Filter by provider
+          schema:
+            type: string
+            enum: [openai, anthropic, google, mistral, cohere, azure, bedrock]
+        - name: decision
+          in: query
+          description: Filter by policy decision
+          schema:
+            type: string
+            enum: [ALLOW, BLOCK, WARN]
+        - name: has_detections
+          in: query
+          description: Filter to traces with detections
+          schema:
+            type: boolean
+        - name: detection_type
+          in: query
+          description: Filter by detection type
+          schema:
+            type: string
+        - name: start_time
+          in: query
+          description: Filter traces after this time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          description: Filter traces before this time (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of traces
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /traces/{trace_id}:
+    get:
+      operationId: getTrace
+      summary: Get trace details
+      description: |
+        Retrieves full details of a specific trace including input, output,
+        detections, policy results, and metrics.
+      tags:
+        - Traces
+      parameters:
+        - name: trace_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents:
+    get:
+      operationId: listAgents
+      summary: List agents
+      description: |
+        Retrieves all registered agents in your organization.
+      tags:
+        - Agents
+      parameters:
+        - name: status
+          in: query
+          description: Filter by agent status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: createAgent
+      summary: Register a new agent
+      description: |
+        Registers a new AI agent identity. Each agent can have its own
+        policies, rate limits, and monitoring configuration.
+      tags:
+        - Agents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentRequest'
+            example:
+              agent_id: "customer-support-agent"
+              name: "Customer Support Agent"
+              description: "Handles customer inquiries and support tickets"
+              policies:
+                - "policy_content_safety"
+                - "policy_pii_protection"
+              metadata:
+                team: "support"
+                environment: "production"
+      responses:
+        '201':
+          description: Agent registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Agent ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /agents/{agent_id}:
+    get:
+      operationId: getAgent
+      summary: Get agent details
+      description: |
+        Retrieves detailed information about a specific agent including
+        configuration, policies, and usage statistics.
+      tags:
+        - Agents
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateAgent
+      summary: Update agent
+      description: |
+        Updates an agent's configuration, policies, or metadata.
+      tags:
+        - Agents
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentRequest'
+      responses:
+        '200':
+          description: Agent updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deleteAgent
+      summary: Delete agent
+      description: |
+        Archives an agent. Historical data is preserved but no new
+        interactions can be recorded.
+      tags:
+        - Agents
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent archived
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /policies:
+    get:
+      operationId: listPolicies
+      summary: List policies
+      description: |
+        Retrieves all policies in your organization.
+      tags:
+        - Policies
+      parameters:
+        - name: type
+          in: query
+          description: Filter by policy type
+          schema:
+            type: string
+            enum: [content_safety, pii_protection, cost_limit, rate_limit, custom]
+        - name: status
+          in: query
+          description: Filter by policy status
+          schema:
+            type: string
+            enum: [active, inactive, draft]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: createPolicy
+      summary: Create a new policy
+      description: |
+        Creates a new governance policy. Policies define rules that are
+        evaluated against AI interactions.
+      tags:
+        - Policies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePolicyRequest'
+            examples:
+              content_safety:
+                summary: Content safety policy
+                value:
+                  name: "Content Safety Policy"
+                  type: "content_safety"
+                  action: "block"
+                  rules:
+                    block_categories:
+                      - "hate_speech"
+                      - "violence"
+                      - "self_harm"
+                    sensitivity: "high"
+              pii_protection:
+                summary: PII protection policy
+                value:
+                  name: "PII Protection Policy"
+                  type: "pii_protection"
+                  action: "redact"
+                  rules:
+                    detect_types:
+                      - "ssn"
+                      - "credit_card"
+                      - "phone_number"
+                      - "email"
+                    redaction_char: "X"
+              cost_limit:
+                summary: Cost limit policy
+                value:
+                  name: "Cost Limit Policy"
+                  type: "cost_limit"
+                  action: "block"
+                  rules:
+                    max_cost_per_request: 0.50
+                    max_cost_per_session: 5.00
+                    max_cost_per_day: 100.00
+      responses:
+        '201':
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /policies/{policy_id}:
+    get:
+      operationId: getPolicy
+      summary: Get policy details
+      description: |
+        Retrieves detailed information about a specific policy.
+      tags:
+        - Policies
+      parameters:
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updatePolicy
+      summary: Update policy
+      description: |
+        Updates a policy's configuration or rules.
+      tags:
+        - Policies
+      parameters:
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePolicyRequest'
+      responses:
+        '200':
+          description: Policy updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deletePolicy
+      summary: Delete policy
+      description: |
+        Deletes a policy. Cannot delete policies that are currently
+        assigned to agents.
+      tags:
+        - Policies
+      parameters:
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Policy deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Policy is in use by agents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /export:
+    post:
+      operationId: exportData
+      summary: Export data
+      description: |
+        Initiates an export of traces, sessions, or compliance data.
+        Returns a job ID that can be used to check status and download results.
+      tags:
+        - Export
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+            examples:
+              traces_export:
+                summary: Export traces to CSV
+                value:
+                  type: "traces"
+                  format: "csv"
+                  filters:
+                    start_time: "2026-01-01T00:00:00Z"
+                    end_time: "2026-01-31T23:59:59Z"
+                    agent_id: "customer-support-agent"
+              compliance_export:
+                summary: Export compliance report
+                value:
+                  type: "compliance_report"
+                  format: "pdf"
+                  framework: "nist_ai_rmf"
+                  filters:
+                    start_time: "2026-01-01T00:00:00Z"
+                    end_time: "2026-01-31T23:59:59Z"
+      responses:
+        '202':
+          description: Export job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+              example:
+                job_id: "export_abc123"
+                status: "processing"
+                created_at: "2026-01-31T12:00:00Z"
+                estimated_completion: "2026-01-31T12:05:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /export/{job_id}:
+    get:
+      operationId: getExportJob
+      summary: Get export job status
+      description: |
+        Retrieves the status of an export job. When complete, includes
+        a download URL.
+      tags:
+        - Export
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Export job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+              examples:
+                processing:
+                  summary: Job still processing
+                  value:
+                    job_id: "export_abc123"
+                    status: "processing"
+                    progress: 45
+                    created_at: "2026-01-31T12:00:00Z"
+                completed:
+                  summary: Job completed
+                  value:
+                    job_id: "export_abc123"
+                    status: "completed"
+                    progress: 100
+                    created_at: "2026-01-31T12:00:00Z"
+                    completed_at: "2026-01-31T12:03:00Z"
+                    download_url: "https://exports.trustscope.ai/export_abc123.csv"
+                    expires_at: "2026-02-01T12:03:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Use your TrustScope API key as the bearer token.
+        Example: `Authorization: Bearer ts_live_xxxxx`
+
+  schemas:
+    # Request schemas
+    ObserveRequest:
+      type: object
+      required:
+        - input
+        - output
+      properties:
+        agent_id:
+          type: string
+          description: Identifier for the AI agent
+          example: "customer-support-agent"
+        session_id:
+          type: string
+          description: Session ID to group related interactions
+          example: "session_abc123"
+        input:
+          $ref: '#/components/schemas/InteractionInput'
+        output:
+          $ref: '#/components/schemas/InteractionOutput'
+        model:
+          type: string
+          description: Model name/ID used
+          example: "gpt-4o"
+        provider:
+          type: string
+          description: LLM provider
+          enum: [openai, anthropic, google, mistral, cohere, azure, bedrock]
+          example: "openai"
+        metadata:
+          type: object
+          description: Custom metadata to attach to the trace
+          additionalProperties: true
+
+    EnforceRequest:
+      type: object
+      required:
+        - input
+        - output
+      properties:
+        agent_id:
+          type: string
+          description: Identifier for the AI agent
+        session_id:
+          type: string
+          description: Session ID for context
+        input:
+          $ref: '#/components/schemas/InteractionInput'
+        output:
+          $ref: '#/components/schemas/InteractionOutput'
+        policies:
+          type: array
+          description: Specific policy IDs to evaluate (defaults to agent's policies)
+          items:
+            type: string
+        context:
+          type: object
+          description: Additional context for policy evaluation
+          additionalProperties: true
+
+    CreateSessionRequest:
+      type: object
+      required:
+        - agent_id
+      properties:
+        agent_id:
+          type: string
+        user_id:
+          type: string
+          description: End user identifier
+        metadata:
+          type: object
+          additionalProperties: true
+
+    UpdateSessionRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, completed]
+        metadata:
+          type: object
+          additionalProperties: true
+
+    CreateAgentRequest:
+      type: object
+      required:
+        - agent_id
+        - name
+      properties:
+        agent_id:
+          type: string
+          description: Unique identifier for the agent
+          pattern: '^[a-z0-9][a-z0-9-_]*[a-z0-9]$'
+          minLength: 3
+          maxLength: 64
+        name:
+          type: string
+          description: Human-readable name
+          maxLength: 128
+        description:
+          type: string
+          description: Description of the agent's purpose
+          maxLength: 512
+        policies:
+          type: array
+          description: Policy IDs to apply to this agent
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    UpdateAgentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        description:
+          type: string
+          maxLength: 512
+        policies:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, inactive]
+        metadata:
+          type: object
+          additionalProperties: true
+
+    CreatePolicyRequest:
+      type: object
+      required:
+        - name
+        - type
+        - action
+        - rules
+      properties:
+        name:
+          type: string
+          description: Policy name
+          maxLength: 128
+        description:
+          type: string
+          maxLength: 512
+        type:
+          type: string
+          enum: [content_safety, pii_protection, cost_limit, rate_limit, custom]
+        action:
+          type: string
+          enum: [block, warn, log, redact]
+          description: Action to take when policy is violated
+        rules:
+          type: object
+          description: Policy-specific rules configuration
+          additionalProperties: true
+
+    UpdatePolicyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        description:
+          type: string
+          maxLength: 512
+        action:
+          type: string
+          enum: [block, warn, log, redact]
+        rules:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [active, inactive]
+
+    ExportRequest:
+      type: object
+      required:
+        - type
+        - format
+      properties:
+        type:
+          type: string
+          enum: [traces, sessions, agents, compliance_report, audit_log]
+          description: Type of data to export
+        format:
+          type: string
+          enum: [csv, json, pdf]
+          description: Export format
+        framework:
+          type: string
+          enum: [nist_ai_rmf, eu_ai_act, owasp_agentic, soc2, hipaa]
+          description: Compliance framework (required for compliance_report type)
+        filters:
+          type: object
+          properties:
+            start_time:
+              type: string
+              format: date-time
+            end_time:
+              type: string
+              format: date-time
+            agent_id:
+              type: string
+            session_id:
+              type: string
+
+    # Response schemas
+    ObserveResponse:
+      type: object
+      properties:
+        trace_id:
+          type: string
+          description: Unique identifier for the trace
+        status:
+          type: string
+          enum: [queued, processing, completed]
+        timestamp:
+          type: string
+          format: date-time
+
+    EnforceResponse:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [ALLOW, BLOCK, WARN]
+          description: Policy decision
+        trace_id:
+          type: string
+          description: Trace ID for this interaction
+        detections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Detection'
+        blocked_by:
+          type: string
+          description: Policy ID that blocked the request (if blocked)
+        message:
+          type: string
+          description: Human-readable explanation
+        modified_output:
+          $ref: '#/components/schemas/InteractionOutput'
+          description: Modified output (if redaction was applied)
+        latency_ms:
+          type: integer
+          description: Processing time in milliseconds
+
+    # Data model schemas
+    InteractionInput:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tool'
+        system:
+          type: string
+          description: System prompt
+
+    InteractionOutput:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+
+    Message:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/ContentBlock'
+
+    ContentBlock:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [text, image, tool_use, tool_result]
+        text:
+          type: string
+        image_url:
+          type: object
+          properties:
+            url:
+              type: string
+
+    Tool:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parameters:
+          type: object
+
+    ToolCall:
+      type: object
+      properties:
+        name:
+          type: string
+        arguments:
+          type: object
+        result:
+          type: string
+
+    Detection:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Detection type
+          example: "pii_detected"
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Confidence score (0-1)
+        details:
+          type: object
+          additionalProperties: true
+
+    Session:
+      type: object
+      properties:
+        session_id:
+          type: string
+        agent_id:
+          type: string
+        user_id:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, expired]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    SessionDetail:
+      allOf:
+        - $ref: '#/components/schemas/Session'
+        - type: object
+          properties:
+            trace_count:
+              type: integer
+            traces:
+              type: array
+              items:
+                $ref: '#/components/schemas/Trace'
+            metrics:
+              type: object
+              properties:
+                total_tokens:
+                  type: integer
+                total_cost:
+                  type: number
+                avg_latency_ms:
+                  type: number
+                detection_count:
+                  type: integer
+
+    SessionList:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+
+    Trace:
+      type: object
+      properties:
+        trace_id:
+          type: string
+        session_id:
+          type: string
+        agent_id:
+          type: string
+        model:
+          type: string
+        provider:
+          type: string
+        input:
+          $ref: '#/components/schemas/InteractionInput'
+        output:
+          $ref: '#/components/schemas/InteractionOutput'
+        metrics:
+          type: object
+          properties:
+            input_tokens:
+              type: integer
+            output_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+            latency_ms:
+              type: integer
+            cost_usd:
+              type: number
+        detections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Detection'
+        policy_result:
+          type: string
+          enum: [ALLOWED, BLOCKED, WARNED]
+        created_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    TraceList:
+      type: object
+      properties:
+        traces:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trace'
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+
+    Agent:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, archived]
+        policies:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    AgentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Agent'
+        - type: object
+          properties:
+            stats:
+              type: object
+              properties:
+                total_traces:
+                  type: integer
+                total_sessions:
+                  type: integer
+                total_cost:
+                  type: number
+                avg_latency_ms:
+                  type: number
+                detection_rate:
+                  type: number
+
+    AgentList:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Agent'
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+
+    Policy:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [content_safety, pii_protection, cost_limit, rate_limit, custom]
+        action:
+          type: string
+          enum: [block, warn, log, redact]
+        rules:
+          type: object
+        status:
+          type: string
+          enum: [active, inactive, draft]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PolicyList:
+      type: object
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Policy'
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+
+    ExportJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        download_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+        error:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "validation_error"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Invalid request: missing required field 'input'"
+            details:
+              type: object
+              description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "validation_error"
+              message: "Invalid request: missing required field 'input'"
+
+    Unauthorized:
+      description: Invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "unauthorized"
+              message: "Invalid API key"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "not_found"
+              message: "Resource not found"
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per minute
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when the rate limit resets
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until next request allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "rate_limited"
+              message: "Rate limit exceeded. Retry after 60 seconds."

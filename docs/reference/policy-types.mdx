@@ -1,0 +1,375 @@
+---
+sidebar_position: 2
+title: Policy Types
+description: Complete reference of TrustScope policy types
+---
+
+# Policy Types
+
+Complete reference of available policy types in TrustScope.
+
+## Content Policies
+
+### no-pii
+
+Block personally identifiable information in inputs or outputs.
+
+**Configuration:**
+```json
+{
+  "name": "no-pii",
+  "type": "content",
+  "detections": ["pii.*"],
+  "action": "block",
+  "scan": ["input", "output"]
+}
+```
+
+**Subtypes blocked:**
+- Email addresses
+- Phone numbers
+- SSN
+- Names
+- Addresses
+- IP addresses
+
+---
+
+### no-phi
+
+Block protected health information (HIPAA compliance).
+
+**Configuration:**
+```json
+{
+  "name": "no-phi",
+  "type": "content",
+  "detections": ["phi.*"],
+  "action": "block"
+}
+```
+
+---
+
+### no-secrets
+
+Block credentials and secrets.
+
+**Configuration:**
+```json
+{
+  "name": "no-secrets",
+  "type": "content",
+  "detections": ["secret.*"],
+  "action": "block"
+}
+```
+
+---
+
+### content-filter
+
+Block harmful or inappropriate content.
+
+**Configuration:**
+```json
+{
+  "name": "content-filter",
+  "type": "content",
+  "detections": ["harmful.*", "profanity.severe"],
+  "action": "block"
+}
+```
+
+---
+
+### prompt-injection
+
+Block prompt injection attempts.
+
+**Configuration:**
+```json
+{
+  "name": "prompt-injection",
+  "type": "security",
+  "detections": ["prompt_injection.*"],
+  "action": "block",
+  "threshold": 0.8
+}
+```
+
+---
+
+## Cost Policies
+
+### cost-limit-{n}
+
+Block requests estimated to exceed $n.
+
+**Examples:**
+- `cost-limit-1` - Max $1 per request
+- `cost-limit-10` - Max $10 per request
+- `cost-limit-100` - Max $100 per request
+
+**Configuration:**
+```json
+{
+  "name": "cost-limit-10",
+  "type": "cost",
+  "max_cost_usd": 10,
+  "action": "block"
+}
+```
+
+---
+
+### token-limit-{n}
+
+Block requests exceeding n tokens.
+
+**Examples:**
+- `token-limit-1000` - Max 1,000 tokens
+- `token-limit-4000` - Max 4,000 tokens
+- `token-limit-128000` - Max 128,000 tokens
+
+**Configuration:**
+```json
+{
+  "name": "token-limit-4000",
+  "type": "cost",
+  "max_tokens": 4000,
+  "scope": "input+output",
+  "action": "block"
+}
+```
+
+---
+
+### daily-budget-{n}
+
+Block when daily spending exceeds $n.
+
+**Configuration:**
+```json
+{
+  "name": "daily-budget-100",
+  "type": "budget",
+  "max_daily_usd": 100,
+  "action": "block",
+  "reset": "midnight_utc"
+}
+```
+
+---
+
+### monthly-budget-{n}
+
+Block when monthly spending exceeds $n.
+
+**Configuration:**
+```json
+{
+  "name": "monthly-budget-1000",
+  "type": "budget",
+  "max_monthly_usd": 1000,
+  "action": "block"
+}
+```
+
+---
+
+## Rate Policies
+
+### rate-limit-{n}-per-minute
+
+Limit to n requests per minute per agent.
+
+**Configuration:**
+```json
+{
+  "name": "rate-limit-100-per-minute",
+  "type": "rate",
+  "max_requests": 100,
+  "window": "1m",
+  "scope": "agent",
+  "action": "block"
+}
+```
+
+---
+
+### rate-limit-{n}-per-user
+
+Limit to n requests per minute per user.
+
+**Configuration:**
+```json
+{
+  "name": "rate-limit-10-per-user",
+  "type": "rate",
+  "max_requests": 10,
+  "window": "1m",
+  "scope": "user",
+  "action": "block"
+}
+```
+
+---
+
+## Business Logic Policies
+
+### business-hours
+
+Only allow during specified hours.
+
+**Configuration:**
+```json
+{
+  "name": "business-hours",
+  "type": "schedule",
+  "hours": {
+    "start": "09:00",
+    "end": "17:00",
+    "timezone": "America/New_York",
+    "days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
+  },
+  "action": "block"
+}
+```
+
+---
+
+### approved-tools-only
+
+Only allow specified tools.
+
+**Configuration:**
+```json
+{
+  "name": "approved-tools-only",
+  "type": "whitelist",
+  "allowed_tools": [
+    "search_knowledge_base",
+    "create_ticket",
+    "send_email"
+  ],
+  "action": "block"
+}
+```
+
+---
+
+### approved-models-only
+
+Only allow specified models.
+
+**Configuration:**
+```json
+{
+  "name": "approved-models-only",
+  "type": "whitelist",
+  "allowed_models": [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "claude-3-5-sonnet-20241022"
+  ],
+  "action": "block"
+}
+```
+
+---
+
+### require-human-approval
+
+Require human approval for certain actions.
+
+**Configuration:**
+```json
+{
+  "name": "require-human-approval-high-value",
+  "type": "approval",
+  "conditions": {
+    "action_type": "decision",
+    "metadata.amount": { "gt": 1000 }
+  },
+  "action": "hold",
+  "timeout": "1h"
+}
+```
+
+---
+
+## Custom Policies
+
+Create custom policies via API:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/policies \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{
+    "name": "no-competitor-mentions",
+    "type": "custom",
+    "rules": [
+      {
+        "field": "output.content",
+        "operator": "not_contains",
+        "values": ["CompetitorA", "CompetitorB"]
+      }
+    ],
+    "action": "block"
+  }'
+```
+
+---
+
+## Policy Combinations
+
+Combine multiple policies for defense in depth:
+
+```python
+@ts.enforce(
+    agent_id="production-agent",
+    policies=[
+        # Security
+        "prompt-injection",
+        "no-secrets",
+
+        # Privacy
+        "no-pii",
+
+        # Cost control
+        "cost-limit-10",
+        "daily-budget-100",
+
+        # Business rules
+        "approved-tools-only",
+        "business-hours"
+    ]
+)
+def production_handler(request):
+    ...
+```
+
+---
+
+## Policy Actions
+
+| Action | Behavior |
+|--------|----------|
+| `log` | Log violation but allow |
+| `alert` | Log + send alert, allow |
+| `block` | Block the request |
+| `hold` | Hold for human approval |
+| `redact` | Redact violating content |
+
+---
+
+## Policy Evaluation Order
+
+1. **Rate policies** - Check first to prevent abuse
+2. **Cost policies** - Check budget before processing
+3. **Security policies** - Block attacks
+4. **Content policies** - Check for violations
+5. **Business policies** - Apply business rules
+
+First policy to block stops evaluation.

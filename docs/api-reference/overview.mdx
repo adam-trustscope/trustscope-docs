@@ -1,0 +1,778 @@
+---
+sidebar_position: 1
+title: API Overview
+description: TrustScope REST API for direct integration in any language
+---
+
+# Direct API Reference
+
+The TrustScope REST API enables direct integration from any programming language or platform.
+
+## Base URL
+
+```
+https://api.trustscope.ai/v1
+```
+
+## Authentication
+
+All requests require the `Authorization` header:
+
+```bash
+Authorization: Bearer ts_live_xxx
+```
+
+Or use the `X-TrustScope-Key` header:
+
+```bash
+X-TrustScope-Key: ts_live_xxx
+```
+
+---
+
+## Core Endpoints
+
+### POST /observe
+
+Log an action or LLM call.
+
+**Request:**
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/observe \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "session_id": "sess_123",
+    "action_type": "llm_call",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "input": {
+      "messages": [
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": "Hello!"}
+      ]
+    },
+    "output": {
+      "content": "Hi there! How can I help you today?",
+      "finish_reason": "stop"
+    },
+    "metrics": {
+      "input_tokens": 15,
+      "output_tokens": 12,
+      "latency_ms": 234,
+      "cost_usd": 0.00045
+    },
+    "metadata": {
+      "user_id": "user_456",
+      "environment": "production"
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "trace_id": "tr_abc123xyz",
+  "status": "created",
+  "timestamp": "2026-01-31T12:00:00.000Z",
+  "detections": [],
+  "policy_result": {
+    "allowed": true,
+    "policies_checked": ["content-filter", "cost-limit"]
+  },
+  "hash": "sha256:a1b2c3d4..."
+}
+```
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent_id` | string | ✅ | Unique agent identifier |
+| `session_id` | string | | Session grouping ID |
+| `action_type` | string | ✅ | Type: `llm_call`, `tool_call`, `decision`, `custom` |
+| `provider` | string | | LLM provider (openai, anthropic, google, etc.) |
+| `model` | string | | Model name |
+| `input` | object | ✅ | Input data |
+| `output` | object | | Output data |
+| `metrics` | object | | Performance metrics |
+| `metadata` | object | | Custom metadata |
+| `timestamp` | string | | ISO timestamp (auto-generated if not provided) |
+
+---
+
+### POST /enforce
+
+Check policies before executing an action.
+
+**Request:**
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/enforce \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "action_type": "llm_call",
+    "input": {
+      "messages": [
+        {"role": "user", "content": "Process a refund for John Smith, SSN 123-45-6789"}
+      ]
+    },
+    "policies": ["no-pii", "content-filter", "cost-limit"]
+  }'
+```
+
+**Response (Allowed):**
+
+```json
+{
+  "allowed": true,
+  "trace_id": "tr_def456abc",
+  "policy_results": [
+    {"policy": "no-pii", "passed": true, "details": null},
+    {"policy": "content-filter", "passed": true, "details": null},
+    {"policy": "cost-limit", "passed": true, "details": null}
+  ]
+}
+```
+
+**Response (Blocked):**
+
+```json
+{
+  "allowed": false,
+  "trace_id": "tr_ghi789xyz",
+  "blocked_by": "no-pii",
+  "reason": "PII detected: SSN pattern found in input",
+  "policy_results": [
+    {
+      "policy": "no-pii",
+      "passed": false,
+      "details": {
+        "detection": "ssn",
+        "pattern": "123-45-6789",
+        "location": "input.messages[0].content"
+      }
+    },
+    {"policy": "content-filter", "passed": true, "details": null},
+    {"policy": "cost-limit", "passed": null, "details": "skipped"}
+  ]
+}
+```
+
+---
+
+### POST /sessions
+
+Start a new session.
+
+**Request:**
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/sessions \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "session_id": "custom-session-id",
+    "user_id": "user_456",
+    "metadata": {
+      "source": "web",
+      "ip": "192.168.1.1"
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "session_id": "custom-session-id",
+  "agent_id": "my-agent",
+  "created_at": "2026-01-31T12:00:00.000Z",
+  "status": "active"
+}
+```
+
+---
+
+### POST /sessions/{id}/end
+
+End a session.
+
+**Request:**
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/sessions/sess_123/end \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "completed",
+    "summary": "User inquiry resolved successfully",
+    "metadata": {
+      "resolution": "refund_processed",
+      "satisfaction_score": 5
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "session_id": "sess_123",
+  "status": "completed",
+  "duration_ms": 45000,
+  "trace_count": 12,
+  "ended_at": "2026-01-31T12:00:45.000Z"
+}
+```
+
+---
+
+### GET /traces
+
+List traces with filtering.
+
+**Request:**
+
+```bash
+curl "https://api.trustscope.ai/v1/traces?agent_id=my-agent&limit=20" \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agent_id` | string | Filter by agent |
+| `session_id` | string | Filter by session |
+| `action_type` | string | Filter by action type |
+| `from` | ISO date | Start timestamp |
+| `to` | ISO date | End timestamp |
+| `limit` | int | Max results (default: 20, max: 100) |
+| `cursor` | string | Pagination cursor |
+
+**Response:**
+
+```json
+{
+  "traces": [
+    {
+      "trace_id": "tr_abc123",
+      "agent_id": "my-agent",
+      "session_id": "sess_123",
+      "action_type": "llm_call",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "timestamp": "2026-01-31T12:00:00.000Z",
+      "metrics": {
+        "input_tokens": 15,
+        "output_tokens": 12,
+        "latency_ms": 234
+      },
+      "detections": [],
+      "policy_result": "allowed"
+    }
+  ],
+  "cursor": "eyJsYXN0X2lkIjoiMTIzIn0=",
+  "has_more": true
+}
+```
+
+---
+
+### GET /traces/{id}
+
+Get trace details.
+
+**Request:**
+
+```bash
+curl https://api.trustscope.ai/v1/traces/tr_abc123 \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+**Response:**
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "agent_id": "my-agent",
+  "session_id": "sess_123",
+  "action_type": "llm_call",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "timestamp": "2026-01-31T12:00:00.000Z",
+  "input": {
+    "messages": [
+      {"role": "user", "content": "Hello!"}
+    ]
+  },
+  "output": {
+    "content": "Hi there! How can I help you today?",
+    "finish_reason": "stop"
+  },
+  "metrics": {
+    "input_tokens": 5,
+    "output_tokens": 12,
+    "latency_ms": 234,
+    "cost_usd": 0.00025
+  },
+  "detections": [],
+  "policy_result": {
+    "allowed": true,
+    "policies_checked": ["content-filter"]
+  },
+  "hash_chain": {
+    "hash": "sha256:a1b2c3d4...",
+    "previous_hash": "sha256:e5f6g7h8...",
+    "sequence": 42
+  },
+  "metadata": {
+    "user_id": "user_456"
+  }
+}
+```
+
+---
+
+### GET /traces/{id}/verify
+
+Verify trace integrity.
+
+**Request:**
+
+```bash
+curl https://api.trustscope.ai/v1/traces/tr_abc123/verify \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+**Response:**
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "verified": true,
+  "hash_valid": true,
+  "chain_valid": true,
+  "bitcoin_anchor": {
+    "anchored": true,
+    "block_height": 876543,
+    "timestamp": "2026-01-31T11:00:00.000Z",
+    "merkle_root": "abc123..."
+  },
+  "signature": {
+    "valid": true,
+    "algorithm": "ed25519",
+    "public_key": "..."
+  }
+}
+```
+
+---
+
+### GET /agents
+
+List agents.
+
+**Request:**
+
+```bash
+curl https://api.trustscope.ai/v1/agents \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+**Response:**
+
+```json
+{
+  "agents": [
+    {
+      "agent_id": "my-agent",
+      "first_seen": "2026-01-01T00:00:00.000Z",
+      "last_seen": "2026-01-31T12:00:00.000Z",
+      "trace_count": 12345,
+      "status": "active",
+      "fingerprint": {
+        "system_prompt_hash": "sha256:...",
+        "tools": ["web_search", "calculator"],
+        "behavioral_signature": "..."
+      }
+    }
+  ]
+}
+```
+
+---
+
+### GET /agents/{id}/fingerprint
+
+Get agent DNA (behavioral fingerprint).
+
+**Request:**
+
+```bash
+curl https://api.trustscope.ai/v1/agents/my-agent/fingerprint \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+**Response:**
+
+```json
+{
+  "agent_id": "my-agent",
+  "fingerprint": {
+    "system_prompt_hash": "sha256:a1b2c3...",
+    "tools": ["web_search", "calculator", "file_read"],
+    "model_preferences": ["gpt-4o", "claude-3-5-sonnet"],
+    "avg_response_length": 234,
+    "response_patterns": {
+      "greeting_style": "formal",
+      "error_handling": "apologetic"
+    },
+    "confidence": 0.95
+  },
+  "locked": false,
+  "locked_at": null
+}
+```
+
+---
+
+### POST /export
+
+Generate compliance export.
+
+**Request:**
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/export \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "format": "nist",
+    "from": "2026-01-01T00:00:00Z",
+    "to": "2026-01-31T23:59:59Z",
+    "agent_ids": ["my-agent"],
+    "include_evidence": true
+  }'
+```
+
+**Formats:**
+- `json` - Raw JSON
+- `csv` - CSV spreadsheet
+- `nist` - NIST AI RMF format
+- `eu-ai-act` - EU AI Act format
+- `soc2` - SOC 2 evidence
+- `iso27001` - ISO 27001 format
+
+**Response:**
+
+```json
+{
+  "export_id": "exp_xyz789",
+  "status": "processing",
+  "download_url": null,
+  "estimated_time_seconds": 30
+}
+```
+
+---
+
+### GET /export/{id}
+
+Check export status and download.
+
+**Request:**
+
+```bash
+curl https://api.trustscope.ai/v1/export/exp_xyz789 \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+**Response (processing):**
+
+```json
+{
+  "export_id": "exp_xyz789",
+  "status": "processing",
+  "progress": 45,
+  "download_url": null
+}
+```
+
+**Response (complete):**
+
+```json
+{
+  "export_id": "exp_xyz789",
+  "status": "complete",
+  "download_url": "https://api.trustscope.ai/v1/export/exp_xyz789/download",
+  "size_bytes": 1234567,
+  "expires_at": "2026-02-01T12:00:00Z"
+}
+```
+
+---
+
+## Batch Operations
+
+### POST /observe/batch
+
+Log multiple observations at once.
+
+**Request:**
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/observe/batch \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "observations": [
+      {
+        "agent_id": "agent-1",
+        "action_type": "llm_call",
+        "provider": "openai",
+        "model": "gpt-4o",
+        "input": {"messages": [...]},
+        "output": {"content": "..."}
+      },
+      {
+        "agent_id": "agent-1",
+        "action_type": "tool_call",
+        "input": {"tool": "search"},
+        "output": {"results": [...]}
+      }
+    ]
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "created": 2,
+  "failed": 0,
+  "traces": [
+    {"trace_id": "tr_abc123", "status": "created"},
+    {"trace_id": "tr_def456", "status": "created"}
+  ]
+}
+```
+
+**Limits:**
+- Max 100 observations per batch
+- Max 10MB request size
+
+---
+
+## Error Responses
+
+**400 Bad Request:**
+
+```json
+{
+  "error": "validation_error",
+  "message": "agent_id is required",
+  "details": {
+    "field": "agent_id",
+    "constraint": "required"
+  }
+}
+```
+
+**401 Unauthorized:**
+
+```json
+{
+  "error": "authentication_error",
+  "message": "Invalid API key"
+}
+```
+
+**429 Rate Limited:**
+
+```json
+{
+  "error": "rate_limit_exceeded",
+  "message": "Too many requests",
+  "retry_after": 60
+}
+```
+
+**500 Internal Error:**
+
+```json
+{
+  "error": "internal_error",
+  "message": "An unexpected error occurred",
+  "request_id": "req_abc123"
+}
+```
+
+---
+
+## Rate Limits
+
+| Tier | Requests/minute | Batch size |
+|------|-----------------|------------|
+| Observe | 1,000 | 100 |
+| Protect | 5,000 | 100 |
+| Enforce | 10,000 | 100 |
+| Govern | 50,000 | 100 |
+
+Rate limit headers:
+
+```
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4999
+X-RateLimit-Reset: 1706702400
+```
+
+---
+
+## Webhooks
+
+Configure webhooks in the dashboard to receive real-time notifications:
+
+```json
+{
+  "event": "policy.violation",
+  "timestamp": "2026-01-31T12:00:00.000Z",
+  "data": {
+    "trace_id": "tr_abc123",
+    "agent_id": "my-agent",
+    "policy": "no-pii",
+    "reason": "SSN detected"
+  }
+}
+```
+
+**Event Types:**
+- `trace.created` - New trace logged
+- `policy.violation` - Policy blocked action
+- `detection.triggered` - Safety detection fired
+- `agent.drift` - Agent behavior changed
+- `session.ended` - Session completed
+
+---
+
+## SDK Examples
+
+### Go
+
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "net/http"
+)
+
+type Observation struct {
+    AgentID    string                 `json:"agent_id"`
+    ActionType string                 `json:"action_type"`
+    Provider   string                 `json:"provider,omitempty"`
+    Model      string                 `json:"model,omitempty"`
+    Input      map[string]interface{} `json:"input"`
+    Output     map[string]interface{} `json:"output,omitempty"`
+}
+
+func LogObservation(apiKey string, obs Observation) error {
+    body, _ := json.Marshal(obs)
+    
+    req, _ := http.NewRequest(
+        "POST",
+        "https://api.trustscope.ai/v1/observe",
+        bytes.NewBuffer(body),
+    )
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+    
+    return nil
+}
+```
+
+### Rust
+
+```rust
+use reqwest::Client;
+use serde_json::json;
+
+async fn log_observation(api_key: &str, agent_id: &str) -> Result<(), reqwest::Error> {
+    let client = Client::new();
+    
+    client.post("https://api.trustscope.ai/v1/observe")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&json!({
+            "agent_id": agent_id,
+            "action_type": "llm_call",
+            "provider": "openai",
+            "model": "gpt-4o",
+            "input": {"messages": [{"role": "user", "content": "Hello"}]},
+            "output": {"content": "Hi there!"}
+        }))
+        .send()
+        .await?;
+    
+    Ok(())
+}
+```
+
+### Java
+
+```java
+import java.net.http.*;
+import java.net.URI;
+
+public class TrustScopeClient {
+    private final String apiKey;
+    private final HttpClient client = HttpClient.newHttpClient();
+    
+    public TrustScopeClient(String apiKey) {
+        this.apiKey = apiKey;
+    }
+    
+    public void logObservation(String agentId, String input, String output) throws Exception {
+        String json = String.format("""
+            {
+                "agent_id": "%s",
+                "action_type": "llm_call",
+                "input": {"content": "%s"},
+                "output": {"content": "%s"}
+            }
+            """, agentId, input, output);
+        
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.trustscope.ai/v1/observe"))
+            .header("Authorization", "Bearer " + apiKey)
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+        
+        client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+}
+```
+
+---
+
+## Next Steps
+
+- [Python SDK](/docs/sdks/python) - Python integration
+- [Node.js SDK](/docs/sdks/nodejs) - JavaScript/TypeScript
+- [CLI Reference](/docs/cli/overview) - Command-line interface
+- [Gateway Quickstart](/docs/gateway/quickstart) - Proxy integration

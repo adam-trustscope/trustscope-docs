@@ -1,0 +1,333 @@
+/**
+ * TrustScope Documentation Theme
+ * Brand Colors & Design System
+ */
+
+/* Brand Colors */
+:root {
+  /* Primary Brand */
+  --trustscope-primary: #0066FF;
+  --trustscope-primary-dark: #0052CC;
+  --trustscope-secondary: #00D4AA;
+  --trustscope-secondary-dark: #00B894;
+
+  /* Semantic Colors */
+  --ts-success: #10B981;
+  --ts-warning: #F59E0B;
+  --ts-error: #EF4444;
+  --ts-blocked: #DC2626;
+
+  /* Docusaurus Theme Overrides - Light Mode */
+  --ifm-color-primary: #0066FF;
+  --ifm-color-primary-dark: #005CE6;
+  --ifm-color-primary-darker: #0052CC;
+  --ifm-color-primary-darkest: #0044AA;
+  --ifm-color-primary-light: #1A75FF;
+  --ifm-color-primary-lighter: #3385FF;
+  --ifm-color-primary-lightest: #4D94FF;
+
+  --ifm-background-color: #FFFFFF;
+  --ifm-background-surface-color: #F9FAFB;
+  --ifm-code-font-size: 95%;
+  --ifm-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --ifm-heading-font-weight: 600;
+  --ifm-navbar-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Code blocks */
+  --prism-background-color: #1E1E1E;
+}
+
+/* Dark Mode */
+[data-theme='dark'] {
+  --ifm-color-primary: #4D94FF;
+  --ifm-color-primary-dark: #3385FF;
+  --ifm-color-primary-darker: #1A75FF;
+  --ifm-color-primary-darkest: #0066FF;
+  --ifm-color-primary-light: #66A3FF;
+  --ifm-color-primary-lighter: #80B3FF;
+  --ifm-color-primary-lightest: #99C2FF;
+
+  --ifm-background-color: #0A0A0A;
+  --ifm-background-surface-color: #141414;
+  --ifm-navbar-background-color: #0A0A0A;
+  --ifm-footer-background-color: #0A0A0A;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Typography */
+html {
+  font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Navbar Styles */
+.navbar {
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+.navbar__title {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.navbar__link {
+  font-weight: 500;
+}
+
+/* Code Blocks */
+pre {
+  border-radius: 8px;
+}
+
+code {
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.875em;
+}
+
+/* Tables */
+table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background-color: var(--ifm-background-surface-color);
+  font-weight: 600;
+  text-align: left;
+}
+
+td, th {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+/* HTTP Method Badges */
+.http-method {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--ifm-font-family-monospace);
+  text-transform: uppercase;
+}
+
+.http-get {
+  background-color: #10B981;
+  color: white;
+}
+
+.http-post {
+  background-color: #0066FF;
+  color: white;
+}
+
+.http-put {
+  background-color: #F59E0B;
+  color: white;
+}
+
+.http-delete {
+  background-color: #EF4444;
+  color: white;
+}
+
+.http-patch {
+  background-color: #8B5CF6;
+  color: white;
+}
+
+/* Tier Badges */
+.tier-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.tier-observe {
+  background-color: #E5E7EB;
+  color: #374151;
+}
+
+.tier-protect {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+}
+
+.tier-enforce {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.tier-govern {
+  background-color: #DCFCE7;
+  color: #166534;
+}
+
+/* Sidebar */
+.menu__link {
+  font-size: 0.9rem;
+}
+
+.menu__link--active {
+  font-weight: 600;
+}
+
+/* Docs Page */
+.markdown > h1:first-child {
+  font-size: 2.5rem;
+}
+
+.markdown > h2 {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+/* Admonitions */
+.admonition {
+  border-radius: 8px;
+  border-left-width: 4px;
+}
+
+/* Card Grid for Provider Links */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.card-grid .card {
+  padding: 1.25rem;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.card-grid .card:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-grid .card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.card-grid .card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+/* Hero Section (Homepage) */
+.hero {
+  padding: 4rem 0;
+  text-align: center;
+}
+
+.hero__title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero__subtitle {
+  font-size: 1.25rem;
+  color: var(--ifm-color-content-secondary);
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+/* Quick Start Box */
+.quickstart-box {
+  background: linear-gradient(135deg, var(--ifm-background-surface-color) 0%, var(--ifm-background-color) 100%);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem 0;
+}
+
+.quickstart-box h3 {
+  margin-top: 0;
+}
+
+/* Feature Grid */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ifm-background-surface-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ifm-color-primary-lightest);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ifm-color-primary-light);
+}
+
+/* API Status Indicators */
+.status-ga {
+  color: #10B981;
+}
+
+.status-beta {
+  color: #F59E0B;
+}
+
+.status-alpha {
+  color: #8B5CF6;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 996px) {
+  .hero__title {
+    font-size: 2rem;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}

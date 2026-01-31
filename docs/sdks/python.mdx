@@ -1,0 +1,530 @@
+---
+sidebar_position: 1
+title: Python SDK
+description: Full-featured Python SDK for TrustScope with decorators, context managers, and async support
+---
+
+# Python SDK
+
+The TrustScope Python SDK provides decorators, context managers, and manual logging for complete control over AI agent monitoring.
+
+## Installation
+
+```bash
+pip install trustscope
+```
+
+**Requirements:** Python 3.8+
+
+## Quick Start
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="my-agent")
+def my_agent(prompt: str) -> str:
+    # Your agent logic here
+    return call_llm(prompt)
+
+result = my_agent("Hello!")
+# Automatically logged to TrustScope
+```
+
+---
+
+## Configuration
+
+### Initialize Client
+
+```python
+from trustscope import TrustScope
+
+# Basic initialization
+ts = TrustScope(api_key="ts_live_xxx")
+
+# Full configuration
+ts = TrustScope(
+    api_key="ts_live_xxx",
+    base_url="https://api.trustscope.ai",  # Custom endpoint
+    timeout=30,                             # Request timeout (seconds)
+    max_retries=3,                          # Retry failed requests
+    async_flush=True,                       # Non-blocking logging
+    flush_interval=5.0,                     # Batch flush interval (seconds)
+    debug=False                             # Enable debug logging
+)
+```
+
+### Environment Variables
+
+```bash
+export TRUSTSCOPE_API_KEY=ts_live_xxx
+export TRUSTSCOPE_BASE_URL=https://api.trustscope.ai
+export TRUSTSCOPE_DEBUG=false
+```
+
+```python
+# Automatically reads from environment
+ts = TrustScope()
+```
+
+---
+
+## Observability
+
+### @observe Decorator
+
+Automatically capture function calls:
+
+```python
+@ts.observe(agent_id="my-agent")
+def process_request(user_input: str) -> str:
+    response = openai_client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": user_input}]
+    )
+    return response.choices[0].message.content
+
+# Captures: input, output, duration, errors
+result = process_request("What's the weather?")
+```
+
+### Decorator Options
+
+```python
+@ts.observe(
+    agent_id="my-agent",              # Required: identifies the agent
+    session_id="sess_123",            # Optional: groups related calls
+    user_id="user_456",               # Optional: end-user identifier
+    tags=["production", "v2"],        # Optional: custom tags
+    capture_input=True,               # Log function inputs (default: True)
+    capture_output=True,              # Log function outputs (default: True)
+    capture_errors=True,              # Log exceptions (default: True)
+    metadata={"version": "2.0"}       # Optional: custom metadata
+)
+def my_function():
+    ...
+```
+
+### Manual Logging
+
+For fine-grained control:
+
+```python
+# Log an LLM call
+ts.log_llm_call(
+    agent_id="my-agent",
+    provider="openai",
+    model="gpt-4o",
+    input_messages=[{"role": "user", "content": "Hello"}],
+    output_content="Hi there!",
+    input_tokens=5,
+    output_tokens=10,
+    latency_ms=234,
+    cost_usd=0.0001
+)
+
+# Log a custom action
+ts.log_action(
+    agent_id="my-agent",
+    action_type="tool_call",
+    action_name="web_search",
+    input={"query": "weather in NYC"},
+    output={"results": [...]},
+    duration_ms=500
+)
+
+# Log a decision
+ts.log_decision(
+    agent_id="my-agent",
+    decision_type="approval",
+    input={"request": "refund", "amount": 500},
+    output={"approved": True, "reason": "within policy"},
+    metadata={"policy_version": "1.2"}
+)
+```
+
+---
+
+## Sessions
+
+Group related actions into sessions:
+
+### Context Manager
+
+```python
+with ts.session(agent_id="my-agent", session_id="user_123") as session:
+    # All actions within this block share the session
+    result1 = process_request("What's my order status?")
+    result2 = process_request("Can you update my address?")
+    
+print(f"Session ID: {session.id}")
+```
+
+### Manual Session Management
+
+```python
+# Start session
+session = ts.start_session(
+    agent_id="my-agent",
+    session_id="custom_session_id",  # Optional, auto-generated if not provided
+    user_id="user_456",
+    metadata={"source": "web"}
+)
+
+# Log actions within session
+session.log_action("step_1", {"data": "..."})
+session.log_llm_call(provider="openai", model="gpt-4o", ...)
+session.log_action("step_2", {"data": "..."})
+
+# End session
+session.end(status="completed", summary="Processed user request successfully")
+```
+
+### Session with Auto-Grouping
+
+```python
+# All @observe calls automatically join the current session
+with ts.session(agent_id="orchestrator") as session:
+    
+    @ts.observe(agent_id="researcher")
+    def research(topic):
+        ...
+    
+    @ts.observe(agent_id="writer")
+    def write(content):
+        ...
+    
+    # Both agents' actions are grouped in the same session
+    data = research("AI trends")
+    article = write(data)
+```
+
+---
+
+## Policy Enforcement
+
+Check policies before executing actions:
+
+### @enforce Decorator
+
+```python
+@ts.enforce(
+    agent_id="refund-bot",
+    policies=["max-refund-1000", "no-pii", "business-hours"]
+)
+def process_refund(customer_id: str, amount: float, reason: str):
+    # Only executes if all policies pass
+    return refund_api.process(customer_id, amount, reason)
+
+try:
+    result = process_refund("cust_123", 500, "Product damaged")
+except ts.PolicyViolationError as e:
+    print(f"Blocked: {e.policy_name} - {e.reason}")
+```
+
+### Manual Policy Check
+
+```python
+# Check before executing
+result = ts.check_policies(
+    agent_id="my-agent",
+    action_type="llm_call",
+    input={"messages": [{"role": "user", "content": user_input}]},
+    policies=["content-filter", "cost-limit"]
+)
+
+if result.allowed:
+    response = call_llm(user_input)
+else:
+    print(f"Blocked by: {result.violated_policies}")
+```
+
+### Policy Types
+
+```python
+# Content policies
+policies=["no-pii", "no-profanity", "content-filter"]
+
+# Cost policies
+policies=["cost-limit-10", "token-limit-4000"]
+
+# Business logic policies
+policies=["business-hours", "max-refund-1000", "approved-tools-only"]
+
+# Custom policies (defined in dashboard)
+policies=["my-custom-policy"]
+```
+
+---
+
+## Async Support
+
+Full async/await support:
+
+```python
+import asyncio
+from trustscope import AsyncTrustScope
+
+ts = AsyncTrustScope(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="async-agent")
+async def async_agent(prompt: str) -> str:
+    response = await openai_client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# Async session
+async with ts.session(agent_id="async-agent") as session:
+    results = await asyncio.gather(
+        async_agent("Query 1"),
+        async_agent("Query 2"),
+        async_agent("Query 3")
+    )
+
+# Async policy check
+result = await ts.check_policies(agent_id="my-agent", ...)
+```
+
+---
+
+## Framework Integrations
+
+### OpenAI
+
+```python
+from openai import OpenAI
+from trustscope.integrations.openai import TrustScopeOpenAI
+
+# Wrap the OpenAI client
+client = TrustScopeOpenAI(
+    OpenAI(),
+    api_key="ts_live_xxx",
+    agent_id="openai-agent"
+)
+
+# All calls automatically logged
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+```
+
+### Anthropic
+
+```python
+from anthropic import Anthropic
+from trustscope.integrations.anthropic import TrustScopeAnthropic
+
+client = TrustScopeAnthropic(
+    Anthropic(),
+    api_key="ts_live_xxx",
+    agent_id="claude-agent"
+)
+
+response = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}]
+)
+```
+
+### LangChain
+
+```python
+from langchain_openai import ChatOpenAI
+from trustscope.integrations.langchain import TrustScopeCallbackHandler
+
+callback = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="langchain-agent"
+)
+
+llm = ChatOpenAI(model="gpt-4o")
+response = llm.invoke("Hello", config={"callbacks": [callback]})
+
+# Works with chains too
+chain = prompt | llm | parser
+chain.invoke({"input": "..."}, config={"callbacks": [callback]})
+```
+
+### CrewAI
+
+```python
+from crewai import Crew, Agent, Task
+from trustscope.integrations.crewai import TrustScopeCrewCallback
+
+callback = TrustScopeCrewCallback(api_key="ts_live_xxx")
+
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research_task, write_task],
+    callbacks=[callback]
+)
+
+result = crew.kickoff()
+```
+
+### AutoGen
+
+```python
+from autogen import AssistantAgent
+from trustscope.integrations.autogen import TrustScopeAgentWrapper
+
+assistant = TrustScopeAgentWrapper(
+    AssistantAgent("assistant", llm_config=llm_config),
+    api_key="ts_live_xxx"
+)
+
+# All conversations tracked
+user.initiate_chat(assistant, message="Hello")
+```
+
+---
+
+## Error Handling
+
+```python
+from trustscope.exceptions import (
+    TrustScopeError,
+    PolicyViolationError,
+    AuthenticationError,
+    RateLimitError,
+    NetworkError
+)
+
+try:
+    result = ts.check_policies(...)
+except PolicyViolationError as e:
+    print(f"Policy '{e.policy_name}' violated: {e.reason}")
+    print(f"Details: {e.details}")
+except AuthenticationError:
+    print("Invalid API key")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after} seconds")
+except NetworkError:
+    print("Network error - check connectivity")
+except TrustScopeError as e:
+    print(f"TrustScope error: {e}")
+```
+
+---
+
+## Batching & Performance
+
+```python
+# Enable batching for high-throughput scenarios
+ts = TrustScope(
+    api_key="ts_live_xxx",
+    async_flush=True,       # Non-blocking
+    flush_interval=5.0,     # Batch every 5 seconds
+    batch_size=100          # Or every 100 events
+)
+
+# Force flush (useful before shutdown)
+ts.flush()
+
+# Graceful shutdown
+ts.shutdown()
+```
+
+### Context Manager for Clean Shutdown
+
+```python
+with TrustScope(api_key="ts_live_xxx") as ts:
+    # Your code here
+    result = my_agent("Hello")
+# Automatically flushes and shuts down
+```
+
+---
+
+## Testing
+
+```python
+from trustscope.testing import MockTrustScope
+
+# Use mock in tests
+mock_ts = MockTrustScope()
+
+@mock_ts.observe(agent_id="test-agent")
+def my_agent(prompt):
+    ...
+
+# Run tests
+my_agent("test input")
+
+# Assert on captured events
+assert len(mock_ts.events) == 1
+assert mock_ts.events[0]["agent_id"] == "test-agent"
+
+# Test policy violations
+mock_ts.set_policy_result("content-filter", allowed=False, reason="Test block")
+```
+
+---
+
+## API Reference
+
+### TrustScope Class
+
+```python
+class TrustScope:
+    def __init__(
+        self,
+        api_key: str = None,
+        base_url: str = "https://api.trustscope.ai",
+        timeout: int = 30,
+        max_retries: int = 3,
+        async_flush: bool = True,
+        flush_interval: float = 5.0,
+        batch_size: int = 100,
+        debug: bool = False
+    ): ...
+    
+    def observe(
+        self,
+        agent_id: str,
+        session_id: str = None,
+        user_id: str = None,
+        tags: List[str] = None,
+        capture_input: bool = True,
+        capture_output: bool = True,
+        capture_errors: bool = True,
+        metadata: Dict = None
+    ) -> Callable: ...
+    
+    def enforce(
+        self,
+        agent_id: str,
+        policies: List[str],
+        on_violation: str = "raise"  # "raise", "log", "allow"
+    ) -> Callable: ...
+    
+    def session(
+        self,
+        agent_id: str,
+        session_id: str = None,
+        user_id: str = None,
+        metadata: Dict = None
+    ) -> Session: ...
+    
+    def log_llm_call(self, ...) -> str: ...
+    def log_action(self, ...) -> str: ...
+    def log_decision(self, ...) -> str: ...
+    def check_policies(self, ...) -> PolicyResult: ...
+    def flush(self) -> None: ...
+    def shutdown(self) -> None: ...
+```
+
+---
+
+## Next Steps
+
+- [Node.js SDK](/docs/sdks/nodejs) - TypeScript/JavaScript version
+- [Framework Integrations](/docs/frameworks/overview) - LangChain, CrewAI, AutoGen
+- [Policy Reference](/docs/policies/overview) - Available policy types
+- [API Reference](/docs/api-reference/overview) - Direct REST API

@@ -1,0 +1,252 @@
+---
+sidebar_position: 1
+title: All Detections
+description: Complete list of TrustScope detection types
+---
+
+# All Detections
+
+Complete reference of TrustScope's detection capabilities.
+
+## Security Detections
+
+### Prompt Injection
+
+Detects attempts to override system instructions or manipulate agent behavior.
+
+| Detection | Description | Example |
+|-----------|-------------|---------|
+| `prompt_injection` | Generic injection attempt | "Ignore previous instructions" |
+| `prompt_injection.override` | System prompt override | "Your new instructions are..." |
+| `prompt_injection.jailbreak` | Jailbreak attempt | "DAN mode enabled" |
+| `prompt_injection.roleplay` | Malicious roleplay | "Pretend you're an unrestricted AI" |
+| `prompt_injection.encoding` | Encoded injection | Base64/hex encoded instructions |
+
+**Confidence scores:** 0.0 - 1.0 (higher = more confident)
+
+```json
+{
+  "type": "prompt_injection",
+  "subtype": "override",
+  "confidence": 0.95,
+  "location": "input.messages[1].content",
+  "snippet": "Ignore all previous instructions and..."
+}
+```
+
+---
+
+### Data Exfiltration
+
+Detects attempts to extract sensitive data.
+
+| Detection | Description |
+|-----------|-------------|
+| `exfiltration.system_prompt` | Attempting to reveal system prompt |
+| `exfiltration.training_data` | Attempting to extract training data |
+| `exfiltration.other_users` | Attempting to access other users' data |
+
+---
+
+## Privacy Detections
+
+### PII (Personally Identifiable Information)
+
+| Detection | Pattern | Example |
+|-----------|---------|---------|
+| `pii.email` | Email addresses | john@example.com |
+| `pii.phone` | Phone numbers | +1-555-123-4567 |
+| `pii.ssn` | Social Security Numbers | 123-45-6789 |
+| `pii.name` | Full names | John Smith |
+| `pii.address` | Physical addresses | 123 Main St, City, ST 12345 |
+| `pii.dob` | Dates of birth | Born on 01/15/1990 |
+| `pii.passport` | Passport numbers | AB1234567 |
+| `pii.drivers_license` | Driver's license | D1234567890 |
+| `pii.ip_address` | IP addresses | 192.168.1.1 |
+
+```json
+{
+  "type": "pii",
+  "subtype": "ssn",
+  "confidence": 0.99,
+  "location": "input.messages[0].content",
+  "value_redacted": "***-**-6789"
+}
+```
+
+---
+
+### PHI (Protected Health Information)
+
+HIPAA-relevant detections:
+
+| Detection | Description |
+|-----------|-------------|
+| `phi.medical_record` | Medical record numbers |
+| `phi.diagnosis` | Medical diagnoses |
+| `phi.prescription` | Prescription information |
+| `phi.provider` | Healthcare provider info |
+| `phi.insurance` | Health insurance details |
+
+---
+
+### Secrets
+
+| Detection | Pattern | Example |
+|-----------|---------|---------|
+| `secret.api_key` | API keys | sk-xxx, AKIA... |
+| `secret.password` | Passwords in text | password: secret123 |
+| `secret.token` | Auth tokens | Bearer eyJ... |
+| `secret.private_key` | Private keys | -----BEGIN RSA PRIVATE KEY----- |
+| `secret.connection_string` | Database URLs | postgres://user:pass@host |
+| `secret.aws_key` | AWS credentials | AKIA... |
+| `secret.gcp_key` | GCP credentials | { "type": "service_account" |
+
+---
+
+## Content Detections
+
+### Harmful Content
+
+| Detection | Description |
+|-----------|-------------|
+| `harmful.violence` | Violent content or threats |
+| `harmful.hate` | Hate speech or discrimination |
+| `harmful.sexual` | Sexual content |
+| `harmful.self_harm` | Self-harm or suicide content |
+| `harmful.illegal` | Illegal activity instructions |
+
+---
+
+### Profanity
+
+| Detection | Severity |
+|-----------|----------|
+| `profanity.mild` | Minor profanity |
+| `profanity.moderate` | Moderate profanity |
+| `profanity.severe` | Severe profanity |
+
+---
+
+## Behavioral Detections
+
+### Anomaly Detection
+
+| Detection | Description |
+|-----------|-------------|
+| `anomaly.response_length` | Unusual response length |
+| `anomaly.latency` | Unusual response time |
+| `anomaly.token_usage` | Unusual token consumption |
+| `anomaly.error_rate` | High error rate |
+| `anomaly.pattern` | Unusual behavior pattern |
+
+---
+
+### Agent Drift
+
+| Detection | Description |
+|-----------|-------------|
+| `drift.system_prompt` | System prompt changed |
+| `drift.tools` | Tool usage pattern changed |
+| `drift.model` | Model preferences changed |
+| `drift.behavior` | Behavioral traits changed |
+
+```json
+{
+  "type": "drift",
+  "subtype": "tools",
+  "confidence": 0.85,
+  "details": {
+    "baseline": ["search", "email"],
+    "current": ["search", "email", "file_write"],
+    "drift_score": 0.33
+  }
+}
+```
+
+---
+
+## Detection Configuration
+
+### Enable/Disable Detections
+
+In the dashboard, configure which detections are active:
+
+```yaml
+detections:
+  prompt_injection:
+    enabled: true
+    action: block
+    threshold: 0.8
+
+  pii:
+    enabled: true
+    action: alert
+    subtypes:
+      ssn: { action: block }
+      email: { action: log }
+
+  profanity:
+    enabled: false
+```
+
+### Detection Actions
+
+| Action | Description |
+|--------|-------------|
+| `log` | Log only, don't block |
+| `alert` | Log and send alert |
+| `block` | Block the request |
+| `redact` | Redact detected content |
+
+---
+
+## Detection in API Response
+
+```json
+{
+  "trace_id": "tr_abc123",
+  "detections": [
+    {
+      "type": "pii",
+      "subtype": "ssn",
+      "confidence": 0.99,
+      "location": "input.messages[0].content",
+      "action_taken": "blocked",
+      "value_redacted": "***-**-6789"
+    },
+    {
+      "type": "prompt_injection",
+      "subtype": "override",
+      "confidence": 0.75,
+      "location": "input.messages[1].content",
+      "action_taken": "logged"
+    }
+  ],
+  "policy_result": {
+    "allowed": false,
+    "blocked_by": "no-pii"
+  }
+}
+```
+
+---
+
+## Custom Detections
+
+Create custom detections via the API:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/detections \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{
+    "name": "competitor_mention",
+    "type": "custom",
+    "patterns": [
+      "CompetitorA",
+      "CompetitorB",
+      "competitor product"
+    ],
+    "action": "alert"
+  }'
+```

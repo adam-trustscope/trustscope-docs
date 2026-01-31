@@ -1,0 +1,308 @@
+---
+sidebar_position: 10
+title: Export API
+description: Generate compliance reports and data exports
+---
+
+# Export API
+
+Generate compliance reports and export trace data.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/export` | Create export job |
+| GET | `/v1/export/{id}` | Check export status |
+| GET | `/v1/export/{id}/download` | Download export |
+
+---
+
+## POST /export
+
+Create a new export job.
+
+### Request
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/export \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "format": "nist",
+    "from": "2026-01-01T00:00:00Z",
+    "to": "2026-01-31T23:59:59Z",
+    "agent_ids": ["support-bot", "research-agent"],
+    "include_evidence": true,
+    "include_traces": true
+  }'
+```
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `format` | string | Yes | Export format (see below) |
+| `from` | ISO date | Yes | Start timestamp |
+| `to` | ISO date | Yes | End timestamp |
+| `agent_ids` | array | No | Filter by agents (all if not specified) |
+| `session_ids` | array | No | Filter by sessions |
+| `include_evidence` | boolean | No | Include evidence artifacts |
+| `include_traces` | boolean | No | Include full trace data |
+
+### Export Formats
+
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| `json` | Raw JSON | Data analysis |
+| `csv` | CSV spreadsheet | Spreadsheet analysis |
+| `nist` | NIST AI RMF format | NIST compliance |
+| `eu-ai-act` | EU AI Act format | EU compliance |
+| `soc2` | SOC 2 evidence pack | SOC 2 audits |
+| `iso27001` | ISO 27001 format | ISO certification |
+| `owasp-agentic` | OWASP Agentic report | Security assessment |
+
+### Response
+
+```json
+{
+  "export_id": "exp_xyz789",
+  "status": "processing",
+  "format": "nist",
+  "created_at": "2026-01-31T12:00:00.000Z",
+  "estimated_completion_seconds": 30,
+  "download_url": null
+}
+```
+
+---
+
+## GET /export/{id}
+
+Check export job status.
+
+### Request
+
+```bash
+curl https://api.trustscope.ai/v1/export/exp_xyz789 \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+### Response (Processing)
+
+```json
+{
+  "export_id": "exp_xyz789",
+  "status": "processing",
+  "progress": 45,
+  "format": "nist",
+  "created_at": "2026-01-31T12:00:00.000Z",
+  "download_url": null
+}
+```
+
+### Response (Complete)
+
+```json
+{
+  "export_id": "exp_xyz789",
+  "status": "complete",
+  "format": "nist",
+  "created_at": "2026-01-31T12:00:00.000Z",
+  "completed_at": "2026-01-31T12:00:30.000Z",
+  "download_url": "https://api.trustscope.ai/v1/export/exp_xyz789/download",
+  "size_bytes": 1234567,
+  "expires_at": "2026-02-01T12:00:00.000Z",
+  "summary": {
+    "trace_count": 45678,
+    "session_count": 8901,
+    "agent_count": 2,
+    "date_range": {
+      "from": "2026-01-01T00:00:00.000Z",
+      "to": "2026-01-31T23:59:59.000Z"
+    }
+  }
+}
+```
+
+### Export Statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Job queued |
+| `processing` | Export in progress |
+| `complete` | Ready for download |
+| `failed` | Export failed |
+| `expired` | Download link expired |
+
+---
+
+## GET /export/{id}/download
+
+Download the export file.
+
+### Request
+
+```bash
+curl -OJ https://api.trustscope.ai/v1/export/exp_xyz789/download \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+The response includes appropriate `Content-Type` and `Content-Disposition` headers for the file download.
+
+---
+
+## Export Contents by Format
+
+### NIST AI RMF Format
+
+```json
+{
+  "framework": "NIST AI RMF 1.0",
+  "generated_at": "2026-01-31T12:00:00.000Z",
+  "organization": "Acme Corp",
+  "period": {
+    "from": "2026-01-01",
+    "to": "2026-01-31"
+  },
+  "functions": {
+    "govern": {
+      "status": "implemented",
+      "controls": [
+        {
+          "id": "GOVERN-1.1",
+          "description": "Policies and procedures",
+          "status": "compliant",
+          "evidence": ["policy-docs", "trace-logs"]
+        }
+      ]
+    },
+    "map": { ... },
+    "measure": { ... },
+    "manage": { ... }
+  },
+  "risk_summary": { ... },
+  "recommendations": [ ... ]
+}
+```
+
+### EU AI Act Format
+
+```json
+{
+  "framework": "EU AI Act",
+  "generated_at": "2026-01-31T12:00:00.000Z",
+  "ai_systems": [
+    {
+      "name": "support-bot",
+      "risk_classification": "limited",
+      "articles": {
+        "article_9": { "status": "compliant", "evidence": [...] },
+        "article_10": { "status": "compliant", "evidence": [...] },
+        "article_11": { "status": "compliant", "evidence": [...] },
+        "article_12": { "status": "compliant", "evidence": [...] },
+        "article_13": { "status": "compliant", "evidence": [...] }
+      }
+    }
+  ],
+  "incidents": [ ... ],
+  "technical_documentation": { ... }
+}
+```
+
+### SOC 2 Evidence Pack
+
+```json
+{
+  "framework": "SOC 2 Type II",
+  "period": { "from": "2026-01-01", "to": "2026-01-31" },
+  "trust_principles": {
+    "security": {
+      "controls": [
+        {
+          "id": "CC6.1",
+          "description": "Logical access controls",
+          "evidence": [
+            {
+              "type": "audit_log",
+              "description": "API authentication logs",
+              "sample_count": 45678
+            }
+          ]
+        }
+      ]
+    },
+    "availability": { ... },
+    "processing_integrity": { ... },
+    "confidentiality": { ... },
+    "privacy": { ... }
+  }
+}
+```
+
+---
+
+## SDK Usage
+
+### Python
+
+```python
+from trustscope import TrustScope
+import time
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+# Create export
+export = ts.create_export(
+    format="nist",
+    from_date="2026-01-01",
+    to_date="2026-01-31",
+    include_evidence=True
+)
+
+print(f"Export started: {export.id}")
+
+# Wait for completion
+while export.status == "processing":
+    time.sleep(5)
+    export = ts.get_export(export.id)
+    print(f"Progress: {export.progress}%")
+
+# Download
+if export.status == "complete":
+    ts.download_export(export.id, "compliance_report.json")
+    print("Downloaded!")
+```
+
+### Node.js
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// Create and wait for export
+const exportJob = await ts.createExport({
+  format: 'eu-ai-act',
+  from: '2026-01-01',
+  to: '2026-01-31',
+  includeEvidence: true
+});
+
+// Poll for completion
+const completed = await ts.waitForExport(exportJob.id);
+
+// Download
+const data = await ts.downloadExport(completed.id);
+```
+
+---
+
+## Limits
+
+| Limit | Value |
+|-------|-------|
+| Max concurrent exports | 10 |
+| Max date range | 365 days |
+| Max file size | 1 GB |
+| Download link expiry | 24 hours |

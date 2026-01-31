@@ -1,0 +1,256 @@
+---
+sidebar_position: 3
+title: AutoGen
+description: Monitor Microsoft AutoGen agents with TrustScope
+---
+
+# AutoGen Integration
+
+Monitor Microsoft AutoGen agents and multi-agent conversations with TrustScope.
+
+## Installation
+
+```bash
+pip install trustscope pyautogen
+```
+
+---
+
+## Quick Start
+
+```python
+from autogen import AssistantAgent, UserProxyAgent
+from trustscope.integrations.autogen import TrustScopeAgentWrapper
+
+# Create agents
+assistant = AssistantAgent(
+    name="assistant",
+    llm_config={"model": "gpt-4o"}
+)
+
+user_proxy = UserProxyAgent(
+    name="user_proxy",
+    code_execution_config={"work_dir": "coding"}
+)
+
+# Wrap with TrustScope monitoring
+monitored_assistant = TrustScopeAgentWrapper(
+    assistant,
+    api_key="ts_live_xxx"
+)
+
+# Start conversation - all interactions monitored
+user_proxy.initiate_chat(
+    monitored_assistant,
+    message="Write a Python function to calculate fibonacci numbers"
+)
+```
+
+---
+
+## What Gets Captured
+
+### Agent Messages
+- Every message between agents
+- Role (assistant, user, system)
+- Content and formatting
+
+### Code Execution
+- Generated code
+- Execution results
+- Errors and outputs
+
+### Multi-Agent Flow
+- Conversation turns
+- Agent handoffs
+- Termination conditions
+
+```json
+{
+  "session_id": "autogen_123",
+  "traces": [
+    {
+      "agent_id": "user_proxy",
+      "type": "message",
+      "content": "Write a fibonacci function"
+    },
+    {
+      "agent_id": "assistant",
+      "type": "llm_call",
+      "model": "gpt-4o",
+      "response": "```python\ndef fibonacci(n):..."
+    },
+    {
+      "agent_id": "user_proxy",
+      "type": "code_execution",
+      "code": "def fibonacci(n):...",
+      "result": "Success"
+    }
+  ]
+}
+```
+
+---
+
+## Group Chat Monitoring
+
+Monitor group chats with multiple agents:
+
+```python
+from autogen import GroupChat, GroupChatManager
+
+# Create multiple agents
+coder = AssistantAgent(name="coder", ...)
+reviewer = AssistantAgent(name="reviewer", ...)
+tester = AssistantAgent(name="tester", ...)
+
+# Wrap all agents
+monitored_coder = TrustScopeAgentWrapper(coder, api_key="ts_live_xxx")
+monitored_reviewer = TrustScopeAgentWrapper(reviewer, api_key="ts_live_xxx")
+monitored_tester = TrustScopeAgentWrapper(tester, api_key="ts_live_xxx")
+
+# Create group chat
+groupchat = GroupChat(
+    agents=[user_proxy, monitored_coder, monitored_reviewer, monitored_tester],
+    messages=[],
+    max_round=10
+)
+
+manager = GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+# All agent interactions tracked
+user_proxy.initiate_chat(manager, message="Build a REST API")
+```
+
+---
+
+## Code Execution Monitoring
+
+Track code generated and executed by agents:
+
+```python
+# TrustScope captures:
+# 1. Code generation by assistant
+# 2. Code sent for execution
+# 3. Execution stdout/stderr
+# 4. Success/failure status
+
+# Dashboard shows:
+# - Code diff between iterations
+# - Error patterns
+# - Execution time
+```
+
+**Security Note:** TrustScope can detect potentially dangerous code patterns:
+- File system access
+- Network calls
+- System commands
+- Imports of risky modules
+
+---
+
+## Session Management
+
+Group conversations into sessions:
+
+```python
+from trustscope.integrations.autogen import TrustScopeAgentWrapper
+
+# All agents share the same session
+session_id = "project_abc"
+
+assistant = TrustScopeAgentWrapper(
+    AssistantAgent(...),
+    api_key="ts_live_xxx",
+    session_id=session_id
+)
+
+# Multiple conversations in same session
+user_proxy.initiate_chat(assistant, message="First task...")
+user_proxy.initiate_chat(assistant, message="Follow-up task...")
+```
+
+---
+
+## Function Calling
+
+Monitor function calls made by agents:
+
+```python
+from autogen import register_function
+
+def search_web(query: str) -> str:
+    """Search the web for information"""
+    return search_api.search(query)
+
+# Register function
+register_function(
+    search_web,
+    caller=assistant,
+    executor=user_proxy,
+    description="Search the web"
+)
+
+# TrustScope captures:
+# - Function call decision
+# - Arguments passed
+# - Return value
+# - Execution time
+```
+
+---
+
+## Policy Enforcement
+
+Apply policies to AutoGen agents:
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+# Check policies before code execution
+@ts.enforce(policies=["no-file-write", "no-network"])
+def safe_execute(code: str):
+    return user_proxy.execute_code_blocks([("python", code)])
+```
+
+---
+
+## Configuration Options
+
+```python
+monitored_agent = TrustScopeAgentWrapper(
+    agent,
+    api_key="ts_live_xxx",
+    session_id="optional-session",
+    metadata={"project": "my-project"},
+    capture_code=True,           # Log generated code
+    capture_execution=True,      # Log execution results
+    capture_functions=True,      # Log function calls
+)
+```
+
+---
+
+## AutoGen 0.2 vs 0.3
+
+TrustScope supports both AutoGen versions:
+
+```python
+# AutoGen 0.2
+from autogen import AssistantAgent
+from trustscope.integrations.autogen import TrustScopeAgentWrapper
+
+# AutoGen 0.3 (new architecture)
+from autogen_agentchat.agents import AssistantAgent
+from trustscope.integrations.autogen_v3 import TrustScopeAgentWrapper
+```
+
+---
+
+## Next Steps
+
+- [LlamaIndex Integration](/docs/frameworks/llamaindex) - RAG pipelines
+- [LangChain Integration](/docs/frameworks/langchain) - LangChain agents
+- [Policies](/docs/concepts/policies) - Security enforcement

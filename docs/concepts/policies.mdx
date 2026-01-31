@@ -1,0 +1,52 @@
+---
+sidebar_position: 4
+title: Policies
+description: Define and enforce rules for AI agent behavior
+---
+
+# Policies
+
+Policies define rules that govern AI agent behavior. TrustScope enforces these in real-time.
+
+## Policy Types
+
+### Content Policies
+- `no-pii` - Block personally identifiable information
+- `no-profanity` - Filter inappropriate language
+- `content-filter` - General harmful content detection
+
+### Cost Policies
+- `cost-limit-{amount}` - Max cost per request
+- `token-limit-{count}` - Max tokens per request
+- `daily-budget-{amount}` - Daily spending cap
+
+### Business Logic Policies
+- `business-hours` - Only allow during work hours
+- `approved-tools-only` - Restrict tool usage
+- `max-refund-{amount}` - Limit financial actions
+
+## Using Policies
+
+### SDK Enforcement
+
+```python
+@ts.enforce(
+    agent_id="refund-bot",
+    policies=["max-refund-1000", "no-pii"]
+)
+def process_refund(customer_id: str, amount: float):
+    # Only executes if policies pass
+    ...
+```
+
+### Gateway Policies
+
+Configure default policies in the dashboard that apply to all Gateway traffic.
+
+## Policy Violations
+
+When a policy is violated:
+1. Action is blocked (configurable)
+2. Violation is logged
+3. Alert is triggered (optional)
+4. Response includes violation details

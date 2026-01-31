@@ -1,0 +1,572 @@
+---
+sidebar_position: 1
+title: Integration Overview
+description: Five ways to integrate TrustScope - Gateway, SDK, CLI, API, and Framework Callbacks
+---
+
+# Integration Overview
+
+TrustScope offers **five ingestion points** to capture AI agent activity. Choose based on your use case:
+
+## Quick Comparison
+
+| Method | Best For | Setup Time | Code Changes | Coverage |
+|--------|----------|------------|--------------|----------|
+| [**Gateway**](#gateway) | Existing apps, zero refactoring | 5 min | 1-2 lines | Automatic |
+| [**SDK**](#sdk) | New apps, fine-grained control | 15 min | Decorators | Selective |
+| [**CLI**](#cli) | Scripts, testing, CI/CD | 2 min | None | Per-command |
+| [**Direct API**](#direct-api) | Custom integrations, any language | 10 min | HTTP calls | Manual |
+| [**Frameworks**](#frameworks) | LangChain, CrewAI, AutoGen | 10 min | Callbacks | Automatic |
+
+---
+
+## Decision Tree
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   How should I integrate?                    │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │ Do you want to change your    │
+              │ existing LLM client code?     │
+              └───────────────────────────────┘
+                     │              │
+                    No             Yes
+                     │              │
+                     ▼              ▼
+              ┌──────────┐   ┌──────────────────┐
+              │ Gateway  │   │ Using a framework│
+              │ (proxy)  │   │ like LangChain?  │
+              └──────────┘   └──────────────────┘
+                                  │         │
+                                 Yes        No
+                                  │         │
+                                  ▼         ▼
+                           ┌──────────┐ ┌───────┐
+                           │ Framework│ │  SDK  │
+                           │ Callback │ │       │
+                           └──────────┘ └───────┘
+```
+
+---
+
+## Gateway
+
+**Proxy your LLM calls through TrustScope. Zero code refactoring.**
+
+### How It Works
+
+```
+┌─────────┐     ┌───────────────────┐     ┌──────────┐
+│ Your    │────▶│ TrustScope        │────▶│ OpenAI   │
+│ App     │     │ Gateway           │     │ Anthropic│
+└─────────┘     │ (captures + logs) │     │ Gemini   │
+                └───────────────────┘     └──────────┘
+```
+
+### When to Use
+- ✅ Existing applications (no refactoring)
+- ✅ Multiple LLM providers
+- ✅ Want automatic capture of everything
+- ✅ Quick proof-of-concept
+
+### Quick Start
+
+```python
+# Change 2 lines - that's it
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# All calls automatically captured
+response = client.chat.completions.create(...)
+```
+
+📖 **Full Guide:** [Gateway Integration](/docs/gateway/overview)
+
+---
+
+## SDK
+
+**Python and Node.js libraries with decorators and wrappers.**
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Your Application                                         │
+│  ┌──────────────────┐    ┌──────────────────────────┐  │
+│  │ @ts.observe()    │───▶│ TrustScope SDK           │  │
+│  │ def my_agent():  │    │ (captures, logs, checks) │  │
+│  │   ...            │    └──────────────────────────┘  │
+│  └──────────────────┘              │                    │
+└────────────────────────────────────│────────────────────┘
+                                     ▼
+                              ┌──────────────┐
+                              │ TrustScope   │
+                              │ API          │
+                              └──────────────┘
+```
+
+### When to Use
+- ✅ New applications
+- ✅ Want fine-grained control
+- ✅ Need to capture non-LLM actions (tool calls, decisions)
+- ✅ Building custom agent frameworks
+
+### Quick Start (Python)
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="my-agent")
+def process_request(user_input: str):
+    # Your agent logic
+    response = call_llm(user_input)
+    return response
+
+# Or wrap specific actions
+with ts.session(session_id="user_123") as session:
+    session.log_action("tool_call", {"tool": "search", "query": "..."})
+    result = execute_tool()
+    session.log_result(result)
+```
+
+### Quick Start (Node.js)
+
+```typescript
+import { TrustScope } from '@trustscope/sdk';
+
+const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+
+// Wrap functions
+const observedAgent = ts.observe(myAgentFunction, { agentId: 'my-agent' });
+
+// Or manual logging
+const session = ts.startSession({ sessionId: 'user_123' });
+await session.logAction('tool_call', { tool: 'search' });
+await session.end();
+```
+
+📖 **Full Guide:** [Python SDK](/docs/sdks/python) | [Node.js SDK](/docs/sdks/nodejs)
+
+---
+
+## CLI
+
+**Command-line interface for scripts, testing, and CI/CD.**
+
+### How It Works
+
+```bash
+# Wrap any command with TrustScope monitoring
+trustscope run -- python my_agent.py
+
+# Or use as a proxy for curl commands
+trustscope proxy --port 8080 &
+curl http://localhost:8080/v1/chat/completions ...
+```
+
+### When to Use
+- ✅ Testing and development
+- ✅ CI/CD pipelines
+- ✅ One-off scripts
+- ✅ Quick experiments
+
+### Installation
+
+```bash
+# Install via pip
+pip install trustscope-cli
+
+# Or npm
+npm install -g @trustscope/cli
+
+# Or brew
+brew install trustscope/tap/trustscope
+```
+
+### Quick Start
+
+```bash
+# Set API key
+export TRUSTSCOPE_API_KEY=ts_live_xxx
+
+# Run any script with monitoring
+trustscope run --agent-id "test-agent" -- python my_script.py
+
+# Watch traces in real-time
+trustscope tail
+
+# Check policy before running
+trustscope check "What's the weather?" --policy content-filter
+
+# Export recent traces
+trustscope export --last 24h --format json > traces.json
+```
+
+### CI/CD Integration
+
+```yaml
+# GitHub Actions
+- name: Run AI Agent Tests
+  env:
+    TRUSTSCOPE_API_KEY: ${{ secrets.TRUSTSCOPE_API_KEY }}
+  run: |
+    trustscope run --agent-id "ci-agent" --session-id "${{ github.run_id }}" \
+      -- pytest tests/agent_tests.py
+```
+
+📖 **Full Guide:** [CLI Reference](/docs/cli/overview)
+
+---
+
+## Direct API
+
+**REST API for custom integrations in any language.**
+
+### How It Works
+
+```
+┌─────────────┐     HTTPS POST      ┌──────────────────┐
+│ Your App    │────────────────────▶│ api.trustscope.ai│
+│ (any lang)  │  /v1/observe        │                  │
+└─────────────┘  /v1/enforce        └──────────────────┘
+```
+
+### When to Use
+- ✅ Languages without SDK (Go, Rust, Java, etc.)
+- ✅ Serverless functions
+- ✅ Custom frameworks
+- ✅ Maximum flexibility
+
+### Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/v1/observe` | POST | Log an action or LLM call |
+| `/v1/enforce` | POST | Check policy before action |
+| `/v1/sessions` | POST | Start a session |
+| `/v1/sessions/{id}/end` | POST | End a session |
+| `/v1/traces` | GET | List traces |
+| `/v1/traces/{id}` | GET | Get trace details |
+
+### Quick Start
+
+```bash
+# Log an observation
+curl -X POST https://api.trustscope.ai/v1/observe \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "action_type": "llm_call",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "input": {"messages": [{"role": "user", "content": "Hello"}]},
+    "output": {"content": "Hi there!"},
+    "metrics": {
+      "input_tokens": 5,
+      "output_tokens": 10,
+      "latency_ms": 234
+    }
+  }'
+```
+
+```bash
+# Check policy before action
+curl -X POST https://api.trustscope.ai/v1/enforce \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "action_type": "llm_call",
+    "input": {"messages": [{"role": "user", "content": "Hello"}]},
+    "policies": ["content-filter", "cost-limit"]
+  }'
+
+# Response
+{
+  "allowed": true,
+  "policy_results": [
+    {"policy": "content-filter", "passed": true},
+    {"policy": "cost-limit", "passed": true}
+  ]
+}
+```
+
+### Language Examples
+
+<details>
+<summary>Go</summary>
+
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "net/http"
+)
+
+func logObservation(agentID string, input, output map[string]interface{}) error {
+    payload := map[string]interface{}{
+        "agent_id":    agentID,
+        "action_type": "llm_call",
+        "input":       input,
+        "output":      output,
+    }
+    
+    body, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", "https://api.trustscope.ai/v1/observe", bytes.NewBuffer(body))
+    req.Header.Set("Authorization", "Bearer ts_live_xxx")
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    _, err := client.Do(req)
+    return err
+}
+```
+
+</details>
+
+<details>
+<summary>Rust</summary>
+
+```rust
+use reqwest::Client;
+use serde_json::json;
+
+async fn log_observation(agent_id: &str, input: &str, output: &str) -> Result<(), reqwest::Error> {
+    let client = Client::new();
+    
+    client.post("https://api.trustscope.ai/v1/observe")
+        .header("Authorization", "Bearer ts_live_xxx")
+        .json(&json!({
+            "agent_id": agent_id,
+            "action_type": "llm_call",
+            "input": {"content": input},
+            "output": {"content": output}
+        }))
+        .send()
+        .await?;
+    
+    Ok(())
+}
+```
+
+</details>
+
+<details>
+<summary>Java</summary>
+
+```java
+import java.net.http.*;
+import java.net.URI;
+
+public class TrustScopeClient {
+    private static final String API_URL = "https://api.trustscope.ai/v1/observe";
+    private final String apiKey;
+    
+    public void logObservation(String agentId, String input, String output) throws Exception {
+        String json = String.format("""
+            {
+                "agent_id": "%s",
+                "action_type": "llm_call",
+                "input": {"content": "%s"},
+                "output": {"content": "%s"}
+            }
+            """, agentId, input, output);
+        
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(API_URL))
+            .header("Authorization", "Bearer " + apiKey)
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+        
+        HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+}
+```
+
+</details>
+
+📖 **Full Guide:** [API Reference](/docs/api-reference/overview)
+
+---
+
+## Framework Integrations
+
+**Native callbacks for popular AI frameworks.**
+
+### Supported Frameworks
+
+| Framework | Integration Type | Status |
+|-----------|-----------------|--------|
+| [LangChain](/docs/frameworks/langchain) | Callback Handler | ✅ GA |
+| [CrewAI](/docs/frameworks/crewai) | Callback Handler | ✅ GA |
+| [AutoGen](/docs/frameworks/autogen) | Agent Wrapper | ✅ GA |
+| [LlamaIndex](/docs/frameworks/llamaindex) | Callback Handler | ✅ GA |
+| [Google ADK](/docs/frameworks/google-adk) | A2A Protocol | ✅ GA |
+| [Haystack](/docs/frameworks/haystack) | Pipeline Hook | 🔜 Beta |
+
+### LangChain Example
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain.callbacks import BaseCallbackHandler
+from trustscope.langchain import TrustScopeCallbackHandler
+
+# Create callback
+callback = TrustScopeCallbackHandler(
+    api_key="ts_live_xxx",
+    agent_id="langchain-agent"
+)
+
+# Add to LLM
+llm = ChatOpenAI(model="gpt-4o", callbacks=[callback])
+
+# Or add to chain
+chain = prompt | llm | parser
+chain.invoke({"input": "Hello"}, config={"callbacks": [callback]})
+```
+
+### CrewAI Example
+
+```python
+from crewai import Agent, Task, Crew
+from trustscope.crewai import TrustScopeCallback
+
+callback = TrustScopeCallback(api_key="ts_live_xxx")
+
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research_task, write_task],
+    callbacks=[callback]  # Monitors all agent interactions
+)
+
+result = crew.kickoff()
+```
+
+### AutoGen Example
+
+```python
+from autogen import AssistantAgent, UserProxyAgent
+from trustscope.autogen import TrustScopeWrapper
+
+# Wrap agents
+assistant = TrustScopeWrapper(
+    AssistantAgent("assistant", llm_config=llm_config),
+    api_key="ts_live_xxx"
+)
+
+user = UserProxyAgent("user", code_execution_config={"work_dir": "coding"})
+
+# Conversations are automatically tracked
+user.initiate_chat(assistant, message="Write a Python function")
+```
+
+📖 **Full Guide:** [Framework Integrations](/docs/frameworks/overview)
+
+---
+
+## MCP Server (Claude Code / Cursor)
+
+**Model Context Protocol server for IDE integrations.**
+
+### When to Use
+- ✅ Claude Code users
+- ✅ Cursor IDE users
+- ✅ Any MCP-compatible client
+
+### Setup
+
+```bash
+# Install MCP server
+npm install -g @trustscope/mcp-server
+
+# Add to Claude Code config (~/.claude/config.json)
+{
+  "mcpServers": {
+    "trustscope": {
+      "command": "trustscope-mcp",
+      "env": {
+        "TRUSTSCOPE_API_KEY": "ts_live_xxx"
+      }
+    }
+  }
+}
+```
+
+### What Gets Captured
+- All tool invocations
+- File read/write operations
+- Command executions
+- Conversation context
+
+📖 **Full Guide:** [MCP Integration](/docs/protocols/mcp)
+
+---
+
+## Combining Ingestion Points
+
+You can use multiple ingestion points together:
+
+```python
+# Gateway for LLM calls
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+
+# SDK for custom actions
+ts = TrustScope(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="hybrid-agent")
+def my_agent(user_input: str):
+    # LLM call goes through Gateway (automatic)
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": user_input}]
+    )
+    
+    # Custom action logged via SDK (manual)
+    ts.log_action("business_logic", {"decision": "approved"})
+    
+    return response
+```
+
+---
+
+## Feature Comparison by Ingestion Point
+
+| Feature | Gateway | SDK | CLI | API | Frameworks |
+|---------|---------|-----|-----|-----|------------|
+| Auto LLM capture | ✅ | ❌ | ✅ | ❌ | ✅ |
+| Custom actions | ❌ | ✅ | ❌ | ✅ | ⚠️ |
+| Policy enforcement | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Streaming support | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Session tracking | ⚠️ | ✅ | ⚠️ | ✅ | ✅ |
+| Agent fingerprinting | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Async support | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+⚠️ = Requires additional headers/configuration
+
+---
+
+## Next Steps
+
+Choose your integration path:
+
+- **Fastest:** [Gateway Quickstart](/docs/gateway/quickstart) (5 minutes)
+- **Most control:** [Python SDK](/docs/sdks/python) (15 minutes)
+- **Any language:** [Direct API](/docs/api-reference/overview) (10 minutes)
+- **Framework user:** [LangChain](/docs/frameworks/langchain) | [CrewAI](/docs/frameworks/crewai)
