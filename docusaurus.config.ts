@@ -31,8 +31,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/trustscope-ai/docs/tree/main/',
-          showLastUpdateTime: true,
+          editUrl: 'https://github.com/adam-trustscope/trustscope-docs/tree/main/',
         },
         blog: false,
         theme: {
