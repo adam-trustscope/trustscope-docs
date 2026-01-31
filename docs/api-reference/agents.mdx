@@ -13,10 +13,10 @@ Manage agents, view fingerprints, and detect behavioral drift.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/v1/agents` | List agents |
-| GET | `/v1/agents/{id}` | Get agent details |
-| GET | `/v1/agents/{id}/fingerprint` | Get agent fingerprint |
-| POST | `/v1/agents/{id}/lock` | Lock agent fingerprint |
-| GET | `/v1/agents/{id}/drift` | Check for behavioral drift |
+| GET | `/v1/agents/:id` | Get agent details |
+| GET | `/v1/agents/:id/fingerprint` | Get agent fingerprint |
+| POST | `/v1/agents/:id/lock` | Lock agent fingerprint |
+| GET | `/v1/agents/:id/drift` | Check for behavioral drift |
 
 ---
 
@@ -72,7 +72,7 @@ curl "https://api.trustscope.ai/v1/agents?status=active" \
 
 ---
 
-## GET /agents/{id}
+## GET /agents/:id
 
 Get detailed agent information.
 
@@ -122,7 +122,7 @@ curl https://api.trustscope.ai/v1/agents/support-bot \
 
 ---
 
-## GET /agents/{id}/fingerprint
+## GET /agents/:id/fingerprint
 
 Get the behavioral fingerprint for an agent.
 
@@ -171,7 +171,7 @@ curl https://api.trustscope.ai/v1/agents/support-bot/fingerprint \
 
 ---
 
-## POST /agents/{id}/lock
+## POST /agents/:id/lock
 
 Lock an agent's fingerprint to enable drift detection.
 
@@ -214,7 +214,7 @@ curl -X POST https://api.trustscope.ai/v1/agents/support-bot/lock \
 
 ---
 
-## GET /agents/{id}/drift
+## GET /agents/:id/drift
 
 Check for behavioral drift from locked fingerprint.
 

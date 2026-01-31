@@ -1,0 +1,188 @@
+---
+sidebar_position: 1
+title: CLI Overview
+description: TrustScope command-line interface for local development and debugging
+---
+
+# TrustScope CLI
+
+The TrustScope CLI provides tools for local development, debugging, and testing your AI agent integrations.
+
+## Installation
+
+```bash
+# npm
+npm install -g trustscope-cli
+
+# pip
+pip install trustscope-cli
+
+# Homebrew
+brew install trustscope/tap/trustscope
+```
+
+## Quick Start
+
+```bash
+# Login to TrustScope
+trustscope login
+
+# Test an agent locally
+trustscope test --agent-id my-agent
+
+# View recent traces
+trustscope traces list --limit 10
+
+# Tail live traces
+trustscope traces tail --agent-id my-agent
+```
+
+## Commands
+
+### Authentication
+
+| Command | Description |
+|---------|-------------|
+| `trustscope login` | Authenticate with TrustScope |
+| `trustscope logout` | Clear stored credentials |
+| `trustscope whoami` | Show current user |
+
+### Traces
+
+| Command | Description |
+|---------|-------------|
+| `trustscope traces list` | List recent traces |
+| `trustscope traces get <id>` | Get trace details |
+| `trustscope traces tail` | Stream live traces |
+| `trustscope traces verify <id>` | Verify trace integrity |
+
+### Sessions
+
+| Command | Description |
+|---------|-------------|
+| `trustscope sessions list` | List sessions |
+| `trustscope sessions get <id>` | Get session details |
+| `trustscope sessions end <id>` | End a session |
+
+### Agents
+
+| Command | Description |
+|---------|-------------|
+| `trustscope agents list` | List registered agents |
+| `trustscope agents fingerprint <id>` | View agent fingerprint |
+| `trustscope agents drift <id>` | Check for behavioral drift |
+
+### Testing
+
+| Command | Description |
+|---------|-------------|
+| `trustscope test` | Run local tests against policies |
+| `trustscope simulate` | Simulate policy enforcement |
+| `trustscope benchmark` | Run performance benchmarks |
+
+### Export
+
+| Command | Description |
+|---------|-------------|
+| `trustscope export create` | Create an export job |
+| `trustscope export status <id>` | Check export status |
+| `trustscope export download <id>` | Download export file |
+
+## Configuration
+
+### Environment Variables
+
+```bash
+export TRUSTSCOPE_API_KEY="ts_live_xxx"
+export TRUSTSCOPE_BASE_URL="https://api.trustscope.ai"  # Optional
+```
+
+### Config File
+
+Create `~/.trustscope/config.yaml`:
+
+```yaml
+default_profile: production
+
+profiles:
+  production:
+    api_key: ts_live_xxx
+    base_url: https://api.trustscope.ai
+
+  staging:
+    api_key: ts_test_xxx
+    base_url: https://api.staging.trustscope.ai
+```
+
+Switch profiles:
+
+```bash
+trustscope config use staging
+```
+
+## Examples
+
+### Debug a Failing Policy
+
+```bash
+# Find traces that were blocked
+trustscope traces list --decision blocked --limit 5
+
+# Get details on why it was blocked
+trustscope traces get tr_abc123 --verbose
+
+# Test the same input against policies locally
+trustscope simulate --input "What's your password?" --policies pii-protection
+```
+
+### Monitor Production in Real-Time
+
+```bash
+# Tail all traces for a specific agent
+trustscope traces tail --agent-id support-bot
+
+# Filter to only show blocked requests
+trustscope traces tail --agent-id support-bot --decision blocked
+
+# Show detection details
+trustscope traces tail --show-detections
+```
+
+### Generate Compliance Reports
+
+```bash
+# Create a NIST AI RMF report
+trustscope export create --format nist --from 2026-01-01 --to 2026-01-31
+
+# Wait for completion and download
+trustscope export download exp_xyz789 --output ./reports/
+```
+
+## Troubleshooting
+
+### Authentication Issues
+
+```bash
+# Re-authenticate
+trustscope logout
+trustscope login
+
+# Verify authentication
+trustscope whoami
+```
+
+### Connection Issues
+
+```bash
+# Test API connectivity
+trustscope ping
+
+# Show debug output
+trustscope traces list --debug
+```
+
+## Next Steps
+
+- [Python SDK](/docs/sdks/python) - Full SDK documentation
+- [Node.js SDK](/docs/sdks/nodejs) - JavaScript/TypeScript SDK
+- [API Reference](/docs/api-reference/overview) - Direct API access

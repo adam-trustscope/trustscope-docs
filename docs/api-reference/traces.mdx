@@ -13,8 +13,8 @@ Query trace data for analysis, debugging, and compliance.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/v1/traces` | List traces |
-| GET | `/v1/traces/{id}` | Get trace details |
-| GET | `/v1/traces/{id}/verify` | Verify trace integrity |
+| GET | `/v1/traces/:id` | Get trace details |
+| GET | `/v1/traces/:id/verify` | Verify trace integrity |
 | POST | `/v1/traces/search` | Search traces |
 
 ---
@@ -76,7 +76,7 @@ curl "https://api.trustscope.ai/v1/traces?agent_id=my-agent&limit=20" \
 
 ---
 
-## GET /traces/{id}
+## GET /traces/:id
 
 Get full trace details.
 
@@ -138,7 +138,7 @@ curl https://api.trustscope.ai/v1/traces/tr_abc123 \
 
 ---
 
-## GET /traces/{id}/verify
+## GET /traces/:id/verify
 
 Verify trace integrity using cryptographic hash chain.
 

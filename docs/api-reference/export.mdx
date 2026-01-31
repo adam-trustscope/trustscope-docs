@@ -13,8 +13,8 @@ Generate compliance reports and export trace data.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/v1/export` | Create export job |
-| GET | `/v1/export/{id}` | Check export status |
-| GET | `/v1/export/{id}/download` | Download export |
+| GET | `/v1/export/:id` | Check export status |
+| GET | `/v1/export/:id/download` | Download export |
 
 ---
 
@@ -77,7 +77,7 @@ curl -X POST https://api.trustscope.ai/v1/export \
 
 ---
 
-## GET /export/{id}
+## GET /export/:id
 
 Check export job status.
 
@@ -137,7 +137,7 @@ curl https://api.trustscope.ai/v1/export/exp_xyz789 \
 
 ---
 
-## GET /export/{id}/download
+## GET /export/:id/download
 
 Download the export file.
 

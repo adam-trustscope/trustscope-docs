@@ -1,0 +1,185 @@
+---
+sidebar_position: 1
+title: Framework Integrations
+description: Integrate TrustScope with popular AI agent frameworks
+---
+
+# Framework Integrations
+
+TrustScope provides native integrations with popular AI agent frameworks, enabling automatic observability and policy enforcement without modifying your agent code.
+
+## Supported Frameworks
+
+| Framework | Status | Features |
+|-----------|--------|----------|
+| [LangChain](/docs/frameworks/langchain) | GA | Callbacks, tracing, tool monitoring |
+| [CrewAI](/docs/frameworks/crewai) | GA | Multi-agent tracking, task governance |
+| [AutoGen](/docs/frameworks/autogen) | GA | Conversation monitoring, agent identity |
+| [LlamaIndex](/docs/frameworks/llamaindex) | GA | Query tracing, retrieval monitoring |
+| Haystack | Beta | Pipeline tracing |
+| Google ADK | Beta | Agent governance |
+
+## Integration Methods
+
+### 1. Callback-Based (Recommended)
+
+Add TrustScope as a callback handler for automatic tracing:
+
+```python
+from langchain_openai import ChatOpenAI
+from trustscope.langchain import TrustScopeCallback
+
+llm = ChatOpenAI()
+callback = TrustScopeCallback(
+    api_key="ts_live_xxx",
+    agent_id="my-agent"
+)
+
+response = llm.invoke("Hello", config={"callbacks": [callback]})
+```
+
+### 2. Gateway Proxy
+
+Route LLM calls through the TrustScope Gateway:
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+```
+
+### 3. SDK Decorators
+
+Wrap framework functions with TrustScope decorators:
+
+```python
+import trustscope as ts
+from crewai import Agent, Task, Crew
+
+ts.init(api_key="ts_live_xxx")
+
+@ts.observe(agent_id="research-crew")
+def run_research():
+    crew = Crew(agents=[...], tasks=[...])
+    return crew.kickoff()
+```
+
+## Feature Comparison
+
+| Feature | Callbacks | Gateway | Decorators |
+|---------|-----------|---------|------------|
+| Automatic tracing | ✅ | ✅ | ✅ |
+| Tool call capture | ✅ | ✅ | ✅ |
+| Multi-agent tracking | ✅ | ⚠️ Manual | ✅ |
+| Real-time blocking | ❌ | ✅ | ✅ |
+| Policy enforcement | ⚠️ Async | ✅ | ✅ |
+| Code changes | Minimal | None | Moderate |
+
+## Quick Start Guides
+
+- [LangChain Integration](/docs/frameworks/langchain)
+- [CrewAI Integration](/docs/frameworks/crewai)
+- [AutoGen Integration](/docs/frameworks/autogen)
+- [LlamaIndex Integration](/docs/frameworks/llamaindex)
+
+## Best Practices
+
+### 1. Set Agent IDs
+
+Always assign unique agent IDs for tracking:
+
+```python
+callback = TrustScopeCallback(
+    agent_id="customer-support-v2",
+    metadata={"environment": "production"}
+)
+```
+
+### 2. Use Session IDs
+
+Group related interactions with session IDs:
+
+```python
+session_id = f"session_{user_id}_{timestamp}"
+callback = TrustScopeCallback(
+    agent_id="my-agent",
+    session_id=session_id
+)
+```
+
+### 3. Enable Policy Enforcement
+
+For real-time blocking, use the Gateway or SDK enforce mode:
+
+```python
+@ts.enforce(
+    agent_id="my-agent",
+    policies=["content-safety", "pii-protection"]
+)
+def process_query(query: str):
+    # Will raise PolicyViolation if blocked
+    return llm.invoke(query)
+```
+
+## Framework-Specific Features
+
+### LangChain
+
+- Chain tracing with parent-child relationships
+- Tool call monitoring
+- Retrieval augmented generation (RAG) observability
+
+### CrewAI
+
+- Multi-agent crew tracking
+- Task assignment and completion monitoring
+- Inter-agent communication logging
+
+### AutoGen
+
+- Conversation flow visualization
+- Agent role identification
+- Group chat governance
+
+### LlamaIndex
+
+- Query pipeline tracing
+- Node retrieval monitoring
+- Response synthesis tracking
+
+## Troubleshooting
+
+### Traces Not Appearing
+
+1. Verify API key is correct
+2. Ensure callback is registered properly
+3. Check network connectivity to TrustScope
+
+### Missing Tool Calls
+
+Some frameworks require additional configuration:
+
+```python
+# LangChain: Enable verbose mode
+callback = TrustScopeCallback(verbose=True)
+```
+
+### Performance Issues
+
+Use async callbacks for high-throughput applications:
+
+```python
+callback = TrustScopeCallback(
+    async_mode=True,
+    batch_size=10
+)
+```
+
+## Next Steps
+
+- [Gateway Quickstart](/docs/get-started/quickstarts/gateway) - Simplest integration
+- [Python SDK](/docs/sdks/python) - Full SDK documentation
+- [Policies](/docs/concepts/policies) - Configure governance rules

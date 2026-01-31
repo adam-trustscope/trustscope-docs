@@ -200,7 +200,7 @@ curl -X POST https://api.trustscope.ai/v1/sessions \
 
 ---
 
-### POST /sessions/{id}/end
+### POST /sessions/:id/end
 
 End a session.
 
@@ -286,7 +286,7 @@ curl "https://api.trustscope.ai/v1/traces?agent_id=my-agent&limit=20" \
 
 ---
 
-### GET /traces/{id}
+### GET /traces/:id
 
 Get trace details.
 
@@ -341,7 +341,7 @@ curl https://api.trustscope.ai/v1/traces/tr_abc123 \
 
 ---
 
-### GET /traces/{id}/verify
+### GET /traces/:id/verify
 
 Verify trace integrity.
 
@@ -410,7 +410,7 @@ curl https://api.trustscope.ai/v1/agents \
 
 ---
 
-### GET /agents/{id}/fingerprint
+### GET /agents/:id/fingerprint
 
 Get agent DNA (behavioral fingerprint).
 
@@ -484,7 +484,7 @@ curl -X POST https://api.trustscope.ai/v1/export \
 
 ---
 
-### GET /export/{id}
+### GET /export/:id
 
 Check export status and download.
 
@@ -775,4 +775,4 @@ public class TrustScopeClient {
 - [Python SDK](/docs/sdks/python) - Python integration
 - [Node.js SDK](/docs/sdks/nodejs) - JavaScript/TypeScript
 - [CLI Reference](/docs/cli/overview) - Command-line interface
-- [Gateway Quickstart](/docs/gateway/quickstart) - Proxy integration
+- [Gateway Quickstart](/docs/get-started/quickstarts/gateway) - Proxy integration

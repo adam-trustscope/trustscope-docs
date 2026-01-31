@@ -95,9 +95,18 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'CLI',
+      collapsed: false,
+      items: [
+        'cli/overview',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Frameworks',
       collapsed: false,
       items: [
+        'frameworks/overview',
         'frameworks/langchain',
         'frameworks/crewai',
         'frameworks/autogen',
