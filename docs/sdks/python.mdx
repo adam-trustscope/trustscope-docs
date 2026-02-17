@@ -81,7 +81,7 @@ Automatically capture function calls:
 @ts.observe(agent_id="my-agent")
 def process_request(user_input: str) -> str:
     response = openai_client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5.2",
         messages=[{"role": "user", "content": user_input}]
     )
     return response.choices[0].message.content
@@ -116,7 +116,7 @@ For fine-grained control:
 ts.log_llm_call(
     agent_id="my-agent",
     provider="openai",
-    model="gpt-4o",
+    model="gpt-5.2",
     input_messages=[{"role": "user", "content": "Hello"}],
     output_content="Hi there!",
     input_tokens=5,
@@ -175,7 +175,7 @@ session = ts.start_session(
 
 # Log actions within session
 session.log_action("step_1", {"data": "..."})
-session.log_llm_call(provider="openai", model="gpt-4o", ...)
+session.log_llm_call(provider="openai", model="gpt-5.2", ...)
 session.log_action("step_2", {"data": "..."})
 
 # End session
@@ -241,21 +241,23 @@ else:
     print(f"Blocked by: {result.violated_policies}")
 ```
 
-### Policy Types
+### Policy Names
+
+Reference policies by their **name** (created in dashboard or via API):
 
 ```python
-# Content policies
+# Reference your named policies
 policies=["no-pii", "no-profanity", "content-filter"]
-
-# Cost policies
 policies=["cost-limit-10", "token-limit-4000"]
-
-# Business logic policies
-policies=["business-hours", "max-refund-1000", "approved-tools-only"]
-
-# Custom policies (defined in dashboard)
-policies=["my-custom-policy"]
+policies=["business-hours", "max-refund-1000"]
 ```
+
+:::info Policy Names vs Types
+In `@ts.enforce()`, you reference policies by **name** (e.g., `"cost-limit-10"`).
+When creating policies, you specify a **type** (e.g., `max_value`).
+
+See [Policy Types](/docs/reference/policy-types) for available types.
+:::
 
 ---
 
@@ -272,7 +274,7 @@ ts = AsyncTrustScope(api_key="ts_live_xxx")
 @ts.observe(agent_id="async-agent")
 async def async_agent(prompt: str) -> str:
     response = await openai_client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5.2",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
@@ -308,7 +310,7 @@ client = TrustScopeOpenAI(
 
 # All calls automatically logged
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="gpt-5.2",
     messages=[{"role": "user", "content": "Hello"}]
 )
 ```
@@ -326,7 +328,7 @@ client = TrustScopeAnthropic(
 )
 
 response = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
+    model="claude-sonnet-4-5-20251124",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hello"}]
 )
@@ -343,7 +345,7 @@ callback = TrustScopeCallbackHandler(
     agent_id="langchain-agent"
 )
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-5.2")
 response = llm.invoke("Hello", config={"callbacks": [callback]})
 
 # Works with chains too

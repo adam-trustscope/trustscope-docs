@@ -31,7 +31,7 @@ callback = TrustScopeCallbackHandler(
 )
 
 # Add to LLM
-llm = ChatOpenAI(model="gpt-4o", callbacks=[callback])
+llm = ChatOpenAI(model="gpt-5.2", callbacks=[callback])
 
 # All calls automatically monitored
 response = llm.invoke("What is machine learning?")
@@ -182,7 +182,7 @@ from trustscope.integrations.langchain import TrustScopeCallbackHandler
 
 # Gateway for LLM calls
 llm = ChatOpenAI(
-    model="gpt-4o",
+    model="gpt-5.2",
     base_url="https://gateway.trustscope.ai/v1",
     default_headers={"X-TrustScope-Key": "ts_live_xxx"}
 )

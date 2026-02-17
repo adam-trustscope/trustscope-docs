@@ -1,68 +1,63 @@
 ---
 sidebar_position: 2
 title: Node.js SDK
-description: TypeScript-first Node.js SDK for TrustScope with full type safety
+description: TypeScript-first Node.js SDK with OpenTelemetry support
 ---
 
 # Node.js SDK
 
-The TrustScope Node.js SDK provides TypeScript-first integration with full type safety, async/await support, and framework integrations.
+The TrustScope Node.js SDK provides TypeScript-first integration with full type safety, OpenTelemetry support, and framework integrations.
 
 ## Installation
 
 ```bash
-npm install @trustscope/sdk
+npm install @trustscope/node
 # or
-yarn add @trustscope/sdk
+yarn add @trustscope/node
 # or
-pnpm add @trustscope/sdk
+pnpm add @trustscope/node
+
+# For OpenTelemetry support:
+npm install @opentelemetry/api @opentelemetry/sdk-trace-base
 ```
 
 **Requirements:** Node.js 18+
 
+---
+
 ## Quick Start
 
 ```typescript
-import { TrustScope } from '@trustscope/sdk';
+import { TrustScope } from '@trustscope/node';
 
-const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
+const ts = new TrustScope({ apiKey: 'ts_live_...' });
 
-// Wrap a function
-const observedAgent = ts.observe(myAgentFunction, { agentId: 'my-agent' });
-const result = await observedAgent('Hello!');
-
-// Or use manually
-await ts.logAction({
+// Create a trace
+const trace = await ts.traces.create({
   agentId: 'my-agent',
-  actionType: 'llm_call',
-  provider: 'openai',
-  model: 'gpt-4o',
-  input: { messages: [...] },
-  output: { content: '...' }
+  action: 'llm_call',
+  input: { prompt: '...' },
+  output: { response: '...' }
 });
+
+console.log(trace.id, trace.outcome);
 ```
 
 ---
 
-## Configuration
-
-### Initialize Client
+## Client Configuration
 
 ```typescript
-import { TrustScope } from '@trustscope/sdk';
+import { TrustScope } from '@trustscope/node';
 
-// Basic
-const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
-
-// Full configuration
 const ts = new TrustScope({
-  apiKey: 'ts_live_xxx',
+  apiKey: 'ts_live_...',           // Required
+  environment: 'live',              // live or test
   baseUrl: 'https://api.trustscope.ai',
-  timeout: 30000,           // ms
-  maxRetries: 3,
-  asyncFlush: true,         // Non-blocking
-  flushInterval: 5000,      // ms
-  batchSize: 100,
+  timeout: 30000,                   // milliseconds
+  retryCount: 3,
+  retryDelay: 1000,
+  failOpen: true,                   // Allow on error
   debug: false
 });
 ```
@@ -70,346 +65,456 @@ const ts = new TrustScope({
 ### Environment Variables
 
 ```bash
-export TRUSTSCOPE_API_KEY=ts_live_xxx
+export TRUSTSCOPE_API_KEY="ts_live_..."
+export TRUSTSCOPE_ENVIRONMENT="live"
 ```
 
 ```typescript
-// Reads from environment automatically
+// Auto-configure from environment
 const ts = new TrustScope();
 ```
 
 ---
 
-## Observability
+## OpenTelemetry Integration
 
-### Function Wrapper
+TrustScope SDK can emit OpenTelemetry spans for compatibility with existing observability infrastructure.
+
+### OTel Exporter
 
 ```typescript
-import { TrustScope } from '@trustscope/sdk';
-import OpenAI from 'openai';
+import { TrustScope } from '@trustscope/node';
+import { OTelExporter, withOTel } from '@trustscope/node/otel';
 
-const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
-const openai = new OpenAI();
+// Configure OTel to send to TrustScope
+const exporter = new OTelExporter({ apiKey: 'ts_live_...' });
+await exporter.start();
 
-// Define your agent function
-async function myAgent(prompt: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }]
-  });
-  return response.choices[0].message.content ?? '';
-}
-
-// Wrap it
-const observedAgent = ts.observe(myAgent, {
-  agentId: 'my-agent',
-  sessionId: 'sess_123',       // Optional
-  userId: 'user_456',          // Optional
-  tags: ['production'],        // Optional
-  metadata: { version: '2.0' } // Optional
-});
-
-// Use it
-const result = await observedAgent('What is the weather?');
+// Get tracer and use OTel API
+const tracer = await exporter.getTracer();
+const span = tracer.startSpan('process-request');
+span.setAttribute('user_id', '123');
+span.end();
 ```
 
-### Manual Logging
+### Wrap Client with OTel Emission
 
 ```typescript
-// Log an LLM call
-await ts.logLLMCall({
-  agentId: 'my-agent',
-  provider: 'openai',
-  model: 'gpt-4o',
-  inputMessages: [{ role: 'user', content: 'Hello' }],
-  outputContent: 'Hi there!',
-  inputTokens: 5,
-  outputTokens: 10,
-  latencyMs: 234,
-  costUsd: 0.0001
+import { TrustScope } from '@trustscope/node';
+import { withOTel } from '@trustscope/node/otel';
+
+// Wrap client to emit OTel spans
+const client = withOTel(new TrustScope({ apiKey: 'ts_live_...' }));
+
+// Calls emit both TrustScope traces and OTel spans
+await client.monitor({ agentId: 'my-agent', action: 'process' });
+```
+
+### OTel Configuration
+
+```typescript
+import { OTelExporter } from '@trustscope/node/otel';
+
+const exporter = new OTelExporter({
+  apiKey: 'ts_live_...',
+  serviceName: 'my-ai-service',
+  endpoint: 'https://api.trustscope.ai/otel/v1/traces',
+  batchSize: 512,
+  exportIntervalMs: 5000,
 });
 
-// Log a custom action
-await ts.logAction({
-  agentId: 'my-agent',
-  actionType: 'tool_call',
-  actionName: 'web_search',
-  input: { query: 'weather in NYC' },
-  output: { results: [...] },
-  durationMs: 500
-});
+await exporter.start();
 
-// Log a decision
-await ts.logDecision({
-  agentId: 'my-agent',
-  decisionType: 'approval',
-  input: { request: 'refund', amount: 500 },
-  output: { approved: true },
-  metadata: { policyVersion: '1.2' }
-});
+// Cleanup on shutdown
+process.on('SIGTERM', () => exporter.shutdown());
 ```
 
 ---
 
-## Sessions
+## TypeScript Support
 
-### Using startSession
-
-```typescript
-const session = ts.startSession({
-  agentId: 'my-agent',
-  sessionId: 'user_123',  // Optional, auto-generated if not provided
-  userId: 'user_456',
-  metadata: { source: 'web' }
-});
-
-// Log actions within the session
-await session.logAction('step_1', { data: '...' });
-
-const llmResult = await callLLM(prompt);
-await session.logLLMCall({
-  provider: 'openai',
-  model: 'gpt-4o',
-  inputMessages: [...],
-  outputContent: llmResult
-});
-
-await session.logAction('step_2', { data: '...' });
-
-// End session
-await session.end({
-  status: 'completed',
-  summary: 'Processed user request successfully'
-});
-```
-
-### Session Context
-
-```typescript
-// Create session context that auto-tags all operations
-const sessionContext = ts.createSessionContext({
-  agentId: 'orchestrator',
-  sessionId: 'workflow_123'
-});
-
-// All calls within context are grouped
-await sessionContext.run(async () => {
-  const data = await researchAgent('AI trends');
-  const article = await writerAgent(data);
-  return article;
-});
-```
-
----
-
-## Policy Enforcement
-
-### Enforce Wrapper
-
-```typescript
-// Wrap function with policy enforcement
-const enforcedRefund = ts.enforce(processRefund, {
-  agentId: 'refund-bot',
-  policies: ['max-refund-1000', 'no-pii', 'business-hours']
-});
-
-try {
-  const result = await enforcedRefund('cust_123', 500, 'Product damaged');
-} catch (error) {
-  if (error instanceof PolicyViolationError) {
-    console.log(`Blocked: ${error.policyName} - ${error.reason}`);
-  }
-}
-```
-
-### Manual Policy Check
-
-```typescript
-const result = await ts.checkPolicies({
-  agentId: 'my-agent',
-  actionType: 'llm_call',
-  input: { messages: [{ role: 'user', content: userInput }] },
-  policies: ['content-filter', 'cost-limit']
-});
-
-if (result.allowed) {
-  const response = await callLLM(userInput);
-} else {
-  console.log(`Blocked by: ${result.violatedPolicies.join(', ')}`);
-}
-```
-
----
-
-## Framework Integrations
-
-### OpenAI
-
-```typescript
-import OpenAI from 'openai';
-import { wrapOpenAI } from '@trustscope/sdk/integrations/openai';
-
-const openai = wrapOpenAI(new OpenAI(), {
-  apiKey: 'ts_live_xxx',
-  agentId: 'openai-agent'
-});
-
-// All calls automatically logged
-const response = await openai.chat.completions.create({
-  model: 'gpt-4o',
-  messages: [{ role: 'user', content: 'Hello' }]
-});
-```
-
-### Anthropic
-
-```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { wrapAnthropic } from '@trustscope/sdk/integrations/anthropic';
-
-const anthropic = wrapAnthropic(new Anthropic(), {
-  apiKey: 'ts_live_xxx',
-  agentId: 'claude-agent'
-});
-
-const response = await anthropic.messages.create({
-  model: 'claude-3-5-sonnet-20241022',
-  max_tokens: 1024,
-  messages: [{ role: 'user', content: 'Hello' }]
-});
-```
-
-### LangChain.js
-
-```typescript
-import { ChatOpenAI } from '@langchain/openai';
-import { TrustScopeCallbackHandler } from '@trustscope/sdk/integrations/langchain';
-
-const callback = new TrustScopeCallbackHandler({
-  apiKey: 'ts_live_xxx',
-  agentId: 'langchain-agent'
-});
-
-const llm = new ChatOpenAI({ model: 'gpt-4o' });
-
-const response = await llm.invoke('Hello', {
-  callbacks: [callback]
-});
-```
-
-### Vercel AI SDK
-
-```typescript
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import { TrustScopeMiddleware } from '@trustscope/sdk/integrations/vercel-ai';
-
-const middleware = new TrustScopeMiddleware({
-  apiKey: 'ts_live_xxx',
-  agentId: 'vercel-ai-agent'
-});
-
-const { text } = await generateText({
-  model: openai('gpt-4o'),
-  prompt: 'Hello',
-  experimental_telemetry: { middleware }
-});
-```
-
----
-
-## TypeScript Types
-
-Full type definitions included:
-
-```typescript
-import type {
-  TrustScopeConfig,
-  ObserveOptions,
-  EnforceOptions,
-  SessionConfig,
-  LogLLMCallParams,
-  LogActionParams,
-  PolicyCheckResult,
-  PolicyViolationError
-} from '@trustscope/sdk';
-
-// All parameters are fully typed
-const config: TrustScopeConfig = {
-  apiKey: 'ts_live_xxx',
-  timeout: 30000
-};
-
-const observeOptions: ObserveOptions = {
-  agentId: 'my-agent',
-  captureInput: true,
-  captureOutput: true
-};
-```
-
----
-
-## Error Handling
+Full TypeScript support with type definitions:
 
 ```typescript
 import {
-  TrustScopeError,
-  PolicyViolationError,
-  AuthenticationError,
-  RateLimitError,
-  NetworkError
-} from '@trustscope/sdk';
+  TrustScope,
+  Trace,
+  Agent,
+  Policy,
+  Session,
+  GovernanceReceipt
+} from '@trustscope/node';
 
-try {
-  const result = await ts.checkPolicies({ ... });
-} catch (error) {
-  if (error instanceof PolicyViolationError) {
-    console.log(`Policy '${error.policyName}' violated: ${error.reason}`);
-  } else if (error instanceof AuthenticationError) {
-    console.log('Invalid API key');
-  } else if (error instanceof RateLimitError) {
-    console.log(`Rate limited. Retry after ${error.retryAfter}ms`);
-  } else if (error instanceof NetworkError) {
-    console.log('Network error');
-  } else if (error instanceof TrustScopeError) {
-    console.log(`TrustScope error: ${error.message}`);
+const ts = new TrustScope({ apiKey: 'ts_live_...' });
+
+const trace: Trace = await ts.traces.create({
+  agentId: 'my-agent',
+  action: 'llm_call',
+  input: { prompt: '...' },
+  output: { response: '...' }
+});
+```
+
+---
+
+## Traces API
+
+### Create Trace
+
+```typescript
+const trace = await ts.traces.create({
+  agentId: 'my-agent',
+  action: 'llm_call',
+  input: { prompt: '...' },
+  output: { response: '...' },
+  metadata: {
+    model: 'gpt-4',
+    tokensIn: 150,
+    tokensOut: 200,
+    costUsd: 0.012
+  },
+  sessionId: 'sess_...'
+});
+
+console.log(trace.id);              // tr_xyz789
+console.log(trace.outcome);         // success, blocked, alerted
+console.log(trace.governanceReceipt);
+```
+
+### List Traces
+
+```typescript
+const traces = await ts.traces.list({
+  agentId: 'my-agent',
+  outcome: 'blocked',
+  startDate: '2026-02-01',
+  endDate: '2026-02-09',
+  limit: 50,
+  offset: 0
+});
+
+for (const trace of traces) {
+  console.log(`${trace.id}: ${trace.outcome}`);
+}
+```
+
+### Get Trace
+
+```typescript
+const trace = await ts.traces.get('tr_xyz789');
+console.log(trace.detections);
+console.log(trace.policyEvaluations);
+```
+
+### Get Receipt (Govern)
+
+```typescript
+const receipt = await ts.traces.getReceipt('tr_xyz789');
+console.log(receipt.checksRequired);
+console.log(receipt.checksExecuted);
+console.log(receipt.coverageScore);
+```
+
+---
+
+## Agents API
+
+### Create Agent
+
+```typescript
+const agent = await ts.agents.create({
+  name: 'Customer Support Bot',
+  metadata: { team: 'support' }
+});
+
+console.log(agent.id);
+console.log(agent.fingerprint);
+```
+
+### List Agents
+
+```typescript
+const agents = await ts.agents.list({
+  status: 'connected_live',
+  limit: 50
+});
+
+for (const agent of agents) {
+  console.log(`${agent.name}: ${agent.status}`);
+}
+```
+
+### Get Agent
+
+```typescript
+const agent = await ts.agents.get('agent_abc123');
+console.log(agent.dna);
+console.log(agent.traceCount);
+```
+
+### Lock/Unlock (Enforce+)
+
+```typescript
+await ts.agents.lock('agent_abc123');
+await ts.agents.unlock('agent_abc123');
+```
+
+### Agent DNA (Protect+)
+
+```typescript
+const dna = await ts.agents.getDna('agent_abc123');
+console.log(dna.strands);
+
+// Freeze DNA baseline
+await ts.agents.freezeDna('agent_abc123');
+
+// Get drift
+const drift = await ts.agents.getDrift('agent_abc123');
+console.log(drift.score);
+```
+
+---
+
+## Policies API
+
+### Create Policy (Protect+)
+
+```typescript
+const policy = await ts.policies.create({
+  name: 'Daily Cost Limit',
+  type: 'max_value',
+  agents: ['agent_abc123'],
+  config: {
+    field: 'daily_cost_usd',
+    max: 100.00,
+    action: 'block'
+  }
+});
+
+console.log(policy.id);
+```
+
+:::tip PII Protection
+To block PII, configure the `pii_scanner` **detection engine** (not a policy).
+See [Detection Engines](/docs/reference/detections) for configuration.
+:::
+
+### List Policies
+
+```typescript
+const policies = await ts.policies.list({
+  type: 'max_value',
+  enabled: true
+});
+```
+
+### Enable/Disable
+
+```typescript
+await ts.policies.enable('pol_abc123');
+await ts.policies.disable('pol_abc123');
+```
+
+### Test Policy
+
+```typescript
+const result = await ts.policies.test({
+  policyId: 'pol_abc123',
+  testData: {
+    input: 'My SSN is 123-45-6789',
+    agentId: 'agent_abc123'
+  }
+});
+
+console.log(result.wouldBlock);     // true
+console.log(result.detections);
+```
+
+---
+
+## Sessions API
+
+### Create Session
+
+```typescript
+const session = await ts.sessions.create({
+  agents: ['agent_abc123'],
+  metadata: { conversationId: '...' }
+});
+```
+
+### End Session
+
+```typescript
+await ts.sessions.end('sess_abc123');
+```
+
+### Get Chain (Enforce+)
+
+```typescript
+const chain = await ts.sessions.getChain('sess_abc123');
+
+for (const step of chain.steps) {
+  console.log(`${step.agent} -> ${step.action}`);
+}
+```
+
+---
+
+## Governance API (Govern)
+
+### Verify Coverage
+
+```typescript
+const verification = await ts.governance.verify('tr_xyz789');
+
+console.log(verification.checksRequired);
+console.log(verification.checksExecuted);
+console.log(verification.coverageScore);
+```
+
+### Sign Receipt
+
+```typescript
+const signed = await ts.governance.signReceipt({
+  receiptId: 'rcp_abc123',
+  keyId: 'key_xyz789'
+});
+
+console.log(signed.signature);
+```
+
+---
+
+## ZKP API (Govern)
+
+### List Circuits
+
+```typescript
+const circuits = await ts.zkp.listCircuits();
+
+for (const circuit of circuits) {
+  console.log(`${circuit.id}: ${circuit.description}`);
+}
+```
+
+### Generate Proof
+
+```typescript
+const proof = await ts.zkp.prove({
+  circuit: 'pii_compliance',
+  inputs: {
+    traceIds: ['tr_abc123', 'tr_def456']
+  }
+});
+
+console.log(proof.id);
+console.log(proof.proof);
+console.log(proof.publicInputs);
+```
+
+### Verify Proof
+
+```typescript
+const result = await ts.zkp.verify('prf_abc123');
+console.log(result.valid);
+```
+
+---
+
+## Evidence API (Govern)
+
+### Create Evidence Pack
+
+```typescript
+const pack = await ts.evidence.createPack({
+  name: 'Q1 2026 SOC 2 Evidence',
+  framework: 'soc2_type2',
+  dateRange: {
+    start: '2026-01-01',
+    end: '2026-03-31'
+  },
+  agents: ['agent_abc123']
+});
+```
+
+### Finalize Pack
+
+```typescript
+const finalized = await ts.evidence.finalizePack('evp_abc123');
+console.log(finalized.hash);
+```
+
+### Download Pack
+
+```typescript
+const buffer = await ts.evidence.downloadPack('evp_abc123');
+fs.writeFileSync('./evidence_pack.zip', buffer);
+```
+
+---
+
+## MCP Integration (Enforce+)
+
+### List Servers
+
+```typescript
+const servers = await ts.mcp.listServers();
+
+for (const server of servers) {
+  console.log(`${server.name}: ${server.status}`);
+}
+```
+
+### Register Server
+
+```typescript
+const server = await ts.mcp.registerServer({
+  name: 'filesystem',
+  command: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-filesystem'],
+  allowed: true
+});
+```
+
+### Approve/Deny
+
+```typescript
+const approvals = await ts.mcp.listPendingApprovals();
+
+for (const approval of approvals) {
+  if (shouldApprove(approval)) {
+    await ts.mcp.approve(approval.id);
+  } else {
+    await ts.mcp.deny(approval.id, 'Not authorized');
   }
 }
 ```
 
 ---
 
-## Batching & Performance
+## Webhooks
+
+### Create Webhook
 
 ```typescript
-// Enable batching for high-throughput
-const ts = new TrustScope({
-  apiKey: 'ts_live_xxx',
-  asyncFlush: true,
-  flushInterval: 5000,  // 5 seconds
-  batchSize: 100
+const webhook = await ts.webhooks.create({
+  url: 'https://example.com/webhook',
+  events: ['trace.blocked', 'alert.triggered'],
+  secret: 'your_secret'
 });
-
-// Force flush
-await ts.flush();
-
-// Graceful shutdown
-await ts.shutdown();
 ```
 
-### Using with Process Lifecycle
+### Verify Webhook Signature
 
 ```typescript
-// Flush on shutdown
-process.on('SIGTERM', async () => {
-  await ts.shutdown();
-  process.exit(0);
-});
+import { verifyWebhookSignature } from '@trustscope/node';
 
-process.on('SIGINT', async () => {
-  await ts.shutdown();
-  process.exit(0);
-});
+const isValid = verifyWebhookSignature(
+  payload,
+  signature,
+  secret
+);
 ```
 
 ---
@@ -418,68 +523,81 @@ process.on('SIGINT', async () => {
 
 ```typescript
 import express from 'express';
-import { TrustScope, expressMiddleware } from '@trustscope/sdk';
+import { trustscopeMiddleware } from '@trustscope/node/express';
 
 const app = express();
-const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
 
-// Add middleware - creates session per request
-app.use(expressMiddleware(ts, {
-  agentId: 'api-agent',
-  extractUserId: (req) => req.headers['x-user-id'] as string,
-  extractSessionId: (req) => req.headers['x-session-id'] as string
+app.use(trustscopeMiddleware({
+  apiKey: 'ts_live_...',
+  agentId: 'api-server',
+  // Reference policies by name (created in dashboard)
+  policies: ['cost-limit-api', 'rate-limit-100']
 }));
 
-app.post('/chat', async (req, res) => {
-  // req.trustscope contains session
-  const { session } = req.trustscope;
-  
-  await session.logAction('user_message', { content: req.body.message });
-  
-  const response = await processMessage(req.body.message);
-  
-  await session.logAction('bot_response', { content: response });
-  
-  res.json({ response });
+app.post('/api/chat', async (req, res) => {
+  // Request automatically traced and policies enforced
+  // ...
 });
 ```
 
 ---
 
-## Next.js Integration
+## Error Handling
 
 ```typescript
-// app/api/chat/route.ts
-import { NextResponse } from 'next/server';
-import { TrustScope } from '@trustscope/sdk';
+import {
+  TrustScope,
+  TrustScopeError,
+  AuthenticationError,
+  RateLimitError,
+  TierRequiredError,
+  ValidationError
+} from '@trustscope/node';
 
-const ts = new TrustScope({ apiKey: process.env.TRUSTSCOPE_API_KEY });
-
-export async function POST(request: Request) {
-  const { message, sessionId } = await request.json();
-  
-  const session = ts.startSession({
-    agentId: 'nextjs-agent',
-    sessionId
-  });
-  
-  try {
-    await session.logAction('user_message', { content: message });
-    
-    const response = await generateResponse(message);
-    
-    await session.logLLMCall({
-      provider: 'openai',
-      model: 'gpt-4o',
-      inputMessages: [{ role: 'user', content: message }],
-      outputContent: response
-    });
-    
-    return NextResponse.json({ response });
-  } finally {
-    await session.end();
+try {
+  const trace = await ts.traces.create({...});
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.log('Invalid API key');
+  } else if (error instanceof RateLimitError) {
+    console.log(`Retry after ${error.retryAfter}s`);
+  } else if (error instanceof TierRequiredError) {
+    console.log(`Requires ${error.requiredTier} tier`);
+  } else if (error instanceof ValidationError) {
+    console.log(`Invalid: ${error.errors}`);
+  } else if (error instanceof TrustScopeError) {
+    console.log(`Error: ${error.message}`);
   }
 }
+```
+
+---
+
+## Configuration Options
+
+```typescript
+const ts = new TrustScope({
+  apiKey: 'ts_live_...',
+
+  // Connection
+  baseUrl: 'https://api.trustscope.ai',
+  timeout: 30000,
+
+  // Retry
+  retryCount: 3,
+  retryDelay: 1000,
+  retryBackoff: 2,
+
+  // Behavior
+  failOpen: true,
+  debug: false,
+
+  // BYOLLM
+  byollm: {
+    provider: 'openai',
+    apiKey: 'your_openai_key'
+  }
+});
 ```
 
 ---
@@ -487,79 +605,24 @@ export async function POST(request: Request) {
 ## Testing
 
 ```typescript
-import { MockTrustScope } from '@trustscope/sdk/testing';
+import { MockTrustScope } from '@trustscope/node/testing';
 
-describe('MyAgent', () => {
-  let mockTs: MockTrustScope;
-  
-  beforeEach(() => {
-    mockTs = new MockTrustScope();
-  });
-  
-  it('should log LLM calls', async () => {
-    const agent = mockTs.observe(myAgentFunction, { agentId: 'test-agent' });
-    
-    await agent('test input');
-    
-    expect(mockTs.events).toHaveLength(1);
-    expect(mockTs.events[0].agentId).toBe('test-agent');
-  });
-  
-  it('should handle policy violations', async () => {
-    mockTs.setPolicyResult('content-filter', {
-      allowed: false,
-      reason: 'Test block'
-    });
-    
-    const enforced = mockTs.enforce(myFunction, {
-      agentId: 'test',
-      policies: ['content-filter']
-    });
-    
-    await expect(enforced('bad input')).rejects.toThrow(PolicyViolationError);
-  });
+const ts = new MockTrustScope();
+
+ts.mockTraceCreate({
+  outcome: 'blocked',
+  detections: [{ type: 'pii', value: 'ssn' }]
 });
-```
 
----
-
-## API Reference
-
-### TrustScope Class
-
-```typescript
-class TrustScope {
-  constructor(config?: TrustScopeConfig);
-  
-  observe<T extends (...args: any[]) => any>(
-    fn: T,
-    options: ObserveOptions
-  ): T;
-  
-  enforce<T extends (...args: any[]) => any>(
-    fn: T,
-    options: EnforceOptions
-  ): T;
-  
-  startSession(config: SessionConfig): Session;
-  createSessionContext(config: SessionConfig): SessionContext;
-  
-  logLLMCall(params: LogLLMCallParams): Promise<string>;
-  logAction(params: LogActionParams): Promise<string>;
-  logDecision(params: LogDecisionParams): Promise<string>;
-  
-  checkPolicies(params: PolicyCheckParams): Promise<PolicyCheckResult>;
-  
-  flush(): Promise<void>;
-  shutdown(): Promise<void>;
-}
+const trace = await ts.traces.create({...});
+expect(trace.outcome).toBe('blocked');
 ```
 
 ---
 
 ## Next Steps
 
-- [Python SDK](/docs/sdks/python) - Python version
-- [CLI Reference](/docs/cli/overview) - Command-line interface
+- [Python SDK](/docs/sdks/python) - Python integration
+- [React Native SDK](/docs/sdks/react-native) - Mobile SDK
 - [API Reference](/docs/api-reference/overview) - Direct REST API
 - [Framework Integrations](/docs/frameworks/overview) - LangChain, etc.

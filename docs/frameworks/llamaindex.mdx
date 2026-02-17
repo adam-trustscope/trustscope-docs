@@ -78,7 +78,7 @@ response = query_engine.query("What is machine learning?")
       "latency_ms": 45
     },
     "synthesis": {
-      "model": "gpt-4o",
+      "model": "gpt-5.2",
       "prompt_tokens": 1200,
       "completion_tokens": 150,
       "latency_ms": 890
@@ -246,7 +246,7 @@ from llama_index.llms.openai import OpenAI
 
 # Route LLM calls through Gateway
 llm = OpenAI(
-    model="gpt-4o",
+    model="gpt-5.2",
     api_base="https://gateway.trustscope.ai/v1",
     default_headers={"X-TrustScope-Key": "ts_live_xxx"}
 )

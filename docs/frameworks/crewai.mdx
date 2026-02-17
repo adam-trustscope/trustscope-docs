@@ -134,12 +134,12 @@ writer = Agent(
 ```
 Session: crew_abc123
 ├─ researcher: Research AI governance
-│  └─ LLM call (gpt-4o, 234ms, $0.003)
+│  └─ LLM call (gpt-5.2, 234ms, $0.003)
 │  └─ Tool: web_search
 │  └─ Output: "AI governance involves..."
 ├─ writer: Write article
 │  └─ Context received from: researcher
-│  └─ LLM call (gpt-4o, 456ms, $0.005)
+│  └─ LLM call (gpt-5.2, 456ms, $0.005)
 │  └─ Output: "# AI Governance Guide..."
 └─ Crew complete (total: $0.008, 12s)
 ```
@@ -182,7 +182,7 @@ crew = Crew(
     agents=[manager, worker1, worker2],
     tasks=[complex_task],
     process=Process.hierarchical,
-    manager_llm=ChatOpenAI(model="gpt-4o"),
+    manager_llm=ChatOpenAI(model="gpt-5.2"),
     callbacks=[callback]
 )
 

@@ -1,0 +1,420 @@
+---
+sidebar_position: 1
+title: Implementation Guide
+description: Step-by-step guide to implementing TrustScope from signup to full governance
+---
+
+# Implementation Guide
+
+This guide walks you through implementing TrustScope from first signup to full governance coverage.
+
+## What You'll Set Up
+
+| Step | What You Get |
+|------|-------------|
+| 1. Account Setup | Dashboard access, API keys |
+| 2. First Integration | Traces flowing into TrustScope |
+| 3. Enable Detection | 11-25 engines watching your agents |
+| 4. Configure Alerts | Notifications when issues detected |
+| 5. Create Policies | Active enforcement (Protect+) |
+| 6. Simulate Higher Tiers | Preview what you'd catch with more engines |
+
+---
+
+## Step 1: Account Setup
+
+### Sign Up
+1. Visit https://app.trustscope.ai/signup
+2. Create your organization
+3. You start on the **Monitor** tier (free)
+
+### Get Your API Keys
+1. Navigate to Settings → API Keys
+2. You'll see two keys:
+   - `ts_live_...` — Production traffic
+   - `ts_test_...` — Test traffic (doesn't count toward billing)
+
+### Understand Your Tier
+
+| Tier | Price | What You Get |
+|------|-------|-------------|
+| **Monitor** | Free | 11 detection engines, alerts, 3-day retention |
+| **Protect** | $49/mo | +7 engines, blocking, BYOLLM, 30-day retention |
+| **Enforce** | $249/mo | +7 AI engines, 26 policies, 1-year retention |
+| **Govern** | Contact Sales | Evidence Room, ZKP, Docker, BYOK, 7-year retention |
+
+---
+
+## Step 2: Choose Your Integration Method
+
+TrustScope offers 8 ingestion methods at every tier. Choose based on your architecture:
+
+### Option A: Gateway Proxy (Recommended — Zero Code)
+
+The fastest path. Point your LLM client to TrustScope and we intercept every call.
+
+```bash
+# Just change your base URL
+export OPENAI_BASE_URL="https://api.trustscope.ai/gateway"
+export TRUSTSCOPE_API_KEY="ts_live_..."
+
+# Your existing code works unchanged
+```
+
+**Supports:** OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, Google Vertex AI
+
+**Governance depth:** Full inline (actions + prevention evidence)
+
+### Option B: Python SDK
+
+```bash
+pip install trustscope
+```
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_...")
+
+# Monitor mode — detect and alert
+@ts.monitor(agent_id="my-agent")
+def agent_action(prompt):
+    return openai.chat.completions.create(
+        model="gpt-5.2",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+# Enforce mode — detect, alert, and block (Protect+)
+@ts.enforce(policies=["pii_block", "cost_limit"])
+def protected_action(prompt):
+    return openai.chat.completions.create(
+        model="gpt-5.2",
+        messages=[{"role": "user", "content": prompt}]
+    )
+```
+
+### Option C: Node.js SDK
+
+```bash
+npm install @trustscope/node
+```
+
+```typescript
+import { TrustScope } from '@trustscope/node';
+
+const ts = new TrustScope({ apiKey: 'ts_live_...' });
+
+const trace = await ts.traces.create({
+  agentId: 'my-agent',
+  action: 'llm_call',
+  input: { prompt: userMessage },
+  output: { response: llmResponse }
+});
+```
+
+### Option D: Framework Callbacks
+
+```python
+# LangChain
+from trustscope.callbacks import LangChainCallback
+handler = LangChainCallback(api_key="ts_live_...", agent_id="my-agent")
+chain.invoke(input, config={"callbacks": [handler]})
+
+# CrewAI
+from trustscope.callbacks import CrewAICallback
+callback = CrewAICallback(api_key="ts_live_...", agent_id="my-crew")
+crew = Crew(agents=[...], callbacks=[callback])
+
+# AutoGen
+from trustscope.callbacks import AutoGenCallback
+callback = AutoGenCallback(api_key="ts_live_...", agent_id="my-autogen")
+```
+
+### Option E: MCP Server (Claude Desktop / Cursor)
+
+```json
+{
+  "mcpServers": {
+    "trustscope": {
+      "command": "npx",
+      "args": ["@trustscope/mcp-server"],
+      "env": { "TRUSTSCOPE_API_KEY": "ts_live_..." }
+    }
+  }
+}
+```
+
+### Option F: OpenTelemetry
+
+```python
+from trustscope.otel import OTelExporter
+
+exporter = OTelExporter(api_key="ts_live_...")
+exporter.start()
+# All OTel spans now go to TrustScope
+```
+
+### Option G: CLI
+
+```bash
+npm install -g trustscope-cli
+trustscope auth login
+trustscope watch ./src --live
+```
+
+### Option H: Event API (Direct POST)
+
+```bash
+curl -X POST https://api.trustscope.ai/api/v1/traces \
+  -H "Authorization: Bearer ts_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my-agent",
+    "action_type": "llm_call",
+    "input": {"prompt": "..."},
+    "output": {"response": "..."}
+  }'
+```
+
+### Governance Depth by Method
+
+| Method | Detection | Blocking | Prevention Evidence |
+|--------|-----------|----------|-------------------|
+| Gateway | Yes | Yes | Full inline |
+| SDK (enforce) | Yes | Yes | Full inline |
+| SDK (monitor) | Yes | No | Detect + alert |
+| Callbacks | Yes | No | Detect + alert |
+| MCP | Yes | Yes | Per-tool |
+| OTel | Yes | No | Visibility only |
+| CLI | Yes | No | Detect + alert |
+| Event API | Yes | No | Visibility only |
+
+---
+
+## Step 3: Verify Traces Are Flowing
+
+### Quick Test
+
+```bash
+# Send a test trace
+trustscope test-trace --agent my-agent
+```
+
+### Dashboard Check
+1. Open https://app.trustscope.ai/dashboard
+2. Toggle to **Test** environment (orange badge)
+3. You should see your test trace appear within seconds
+4. Switch to **Production** environment (green badge) for live traffic
+
+### Verify in CLI
+
+```bash
+trustscope traces list --last 5
+```
+
+---
+
+## Step 4: Enable Detection Engines
+
+### Monitor Tier (Free) — 11 Engines
+
+All 11 engines are **enabled by default** in alert mode:
+
+**Rate Limits (6):** Loop Killer, Velocity Limit, Cost Velocity, Budget Caps, Token Growth, Context Expansion
+
+**Behavioral (4):** Oscillation, Error Rate, Session Duration, Session Action Limit
+
+**Content Safety (1):** PII Scanner (alert only — blocking requires Protect)
+
+### Configure Engine Sensitivity
+
+```bash
+# Via CLI
+trustscope engines list
+trustscope engines configure loop_killer --threshold 3 --window 20
+```
+
+Or in Dashboard → Configuration → Detections.
+
+### Engine Modes
+
+Each engine has four modes:
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Disabled |
+| `simulate` | Runs and logs, no enforcement (Monitor: 10/month cap) |
+| `alert` | Runs, logs, sends notification |
+| `block` | Prevents the action (Protect+ only) |
+
+---
+
+## Step 5: Configure Alerts
+
+### Free Tier Alerts
+- Dashboard notifications (always on)
+- Discord webhook
+- Telegram bot
+
+### Protect+ Alerts
+- Everything above plus Slack integration
+
+### Enforce+ Alerts
+- Everything above plus Microsoft Teams
+
+### Setup (Dashboard → Settings → Alerts)
+
+```json
+{
+  "channels": {
+    "slack": {
+      "webhook_url": "https://hooks.slack.com/services/...",
+      "events": ["trace.blocked", "alert.triggered", "agent.drift"]
+    }
+  }
+}
+```
+
+---
+
+## Step 6: Create Policies (Protect+)
+
+### Your First Policy
+
+```bash
+# Block PII in agent outputs
+trustscope policies create \
+  --type pii_block \
+  --name "Block PII" \
+  --agents "*" \
+  --mode simulate
+```
+
+### Policy Lifecycle
+
+```
+disabled → simulate → active
+```
+
+1. Create policy in `disabled` or `simulate` mode
+2. Review simulate results (what would have been caught)
+3. Activate when confident in thresholds
+
+### Common First Policies
+
+| Policy | Type | What It Does |
+|--------|------|-------------|
+| Block PII | `pii_block` | Blocks SSN, credit cards in output |
+| Cost Limit | `cost_limit` | Caps spend per agent per day |
+| Injection Block | `prompt_injection_block` | Blocks known injection patterns |
+| Command Firewall | `command_firewall` | Blocks destructive system commands |
+
+---
+
+## Step 7: Try Simulate Mode
+
+Preview what higher-tier engines would catch on your real traffic:
+
+```bash
+# Simulate an Enforce-tier engine on a historical trace
+trustscope simulate --engine prompt_injection_ai --trace tr_abc123
+```
+
+Or in Dashboard → Simulate:
+1. Select an engine from a higher tier
+2. Choose a trace or agent to simulate against
+3. See results: what would have been detected/blocked
+
+**Monitor tier:** 10 simulations/month (upgrade to Protect+ for unlimited)
+
+---
+
+## Step 8: BYOLLM Configuration (Optional — Protect+)
+
+By default, TrustScope provides AI analysis using our own API keys. For data sovereignty, you can bring your own LLM:
+
+### Dashboard → Settings → AI Configuration
+
+```json
+{
+  "byollm": {
+    "enabled": true,
+    "provider": "openai",
+    "model": "gpt-4o",
+    "api_key": "sk-your-key-here"
+  }
+}
+```
+
+**Supported providers:** OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, Google Vertex AI
+
+---
+
+## Step 9: Discovery — Find Unmanaged Agents
+
+### Monitor Tier: Repository Scanning
+
+```bash
+trustscope scan --repo https://github.com/your-org/your-repo
+```
+
+Dashboard → Discovery → Connections → Connect GitHub/GitLab
+
+### Protect Tier: Cloud + Messaging
+
+Connect cloud platforms (AWS, Azure, GCP) and messaging (Slack, Teams, Discord) to discover agents running in your infrastructure.
+
+### Enforce Tier: Enterprise OAuth
+
+Connect Salesforce, ServiceNow, and Microsoft Copilot Studio to find enterprise platform agents.
+
+### Coverage Readiness Meter
+
+Dashboard → Coverage shows:
+- **Agent Coverage:** Governed agents / total discovered agents
+- **Feature Utilization:** % of TrustScope capabilities you're using
+- **Recommended next steps** to increase coverage
+
+---
+
+## Step 10: Upgrade Path
+
+### Monitor → Protect ($49/mo)
+**Unlock:** Blocking, BYOLLM, +7 content/security engines, Slack alerts, 30-day retention
+
+**When:** You need to actually stop bad actions, not just detect them
+
+### Protect → Enforce ($249/mo)
+**Unlock:** +7 AI-hybrid engines, 26 policy types, human approvals, MCP governance, 1-year retention
+
+**When:** You need policy enforcement, AI-powered detection, compliance evidence
+
+### Enforce → Govern (Contact Sales)
+**Unlock:** Evidence Room (AIUC-1), ZKP proofs, Docker deployment, BYOK, SIEM, 7-year retention
+
+**When:** You need audit-ready evidence, data sovereignty, regulatory certification
+
+---
+
+## Troubleshooting
+
+### "No traces appearing"
+1. Check API key is correct and matches environment (`ts_live_` vs `ts_test_`)
+2. Verify dashboard is on correct environment toggle
+3. Check `trustscope auth status` for CLI
+4. Test with `trustscope test-trace`
+
+### "Detection not firing"
+1. Verify engine is in `alert` or `block` mode (not `off` or `simulate`)
+2. Check threshold configuration — defaults may be too permissive
+3. Ensure the engine is available at your tier
+
+### "Gateway timeout"
+1. TrustScope Gateway has a default 30s timeout
+2. For long-running LLM calls, increase via `X-TrustScope-Timeout: 60`
+3. Gateway fails open — if TrustScope is unavailable, your LLM call goes through
+
+### "Policy not blocking"
+1. Verify policy mode is `active` (not `disabled` or `simulate`)
+2. Ensure you're on Protect+ tier (blocking not available on Monitor)
+3. Check policy agent targeting — is it applied to the right agents?

@@ -1,22 +1,29 @@
 ---
 sidebar_position: 2
-title: OWASP Agentic Top 10
-description: How TrustScope addresses the OWASP Agentic Security Top 10
+title: OWASP Top 10 for Agentic Applications
+description: How TrustScope addresses the OWASP Top 10 for Agentic Applications (2026)
 ---
 
-# OWASP Agentic Top 10
+# OWASP Top 10 for Agentic Applications
 
-The OWASP Agentic Security Top 10 identifies critical security risks in AI agent systems. Here's how TrustScope addresses each.
+The OWASP Top 10 for Agentic Applications (2026) identifies critical security risks in AI agent systems. TrustScope provides 20 detection engines and multiple governance controls mapped to each category.
 
-## AG01: Prompt Injection
+## ASI01: Agent Goal Hijack
 
-**Risk:** Attackers manipulate agent behavior through malicious inputs.
+**Risk:** Attackers manipulate agent objectives, task selection, or decision pathways through prompt injection, deceptive tool outputs, or poisoned data.
 
-**TrustScope Protection:**
-- Real-time prompt injection detection
-- Pattern matching for known injection techniques
-- Anomaly detection for unusual prompts
-- Automatic blocking or alerting
+**Active Detections:**
+- **Prompt Injection** — 40+ patterns across 8 languages, confidence scoring (Enforce+)
+- **Jailbreak Detector** — 35+ patterns with known jailbreak database (DAN, STAN, etc.) (Enforce+)
+- **Semantic Firewall** — LiteLLM embedding similarity for hidden instruction detection (Enforce+)
+- **Oscillation Detection** — A-B-A-B goal confusion pattern detection (All tiers)
+- **Hallucination Detection** — 3-layer pipeline: ground truth, behavioral anomaly, LLM verification (Enforce+)
+- **Reasoning Drift** — LLM-powered logical fallacy and goal drift detection (Enforce+)
+
+**Controls:**
+- Agent DNA behavioral baselines (Enforce+)
+- Approval workflows for high-impact actions (Enforce+)
+- Hash Chain tamper-evident audit trail (Govern)
 
 ```python
 # Automatic detection in Gateway
@@ -34,39 +41,49 @@ client = OpenAI(base_url="https://gateway.trustscope.ai/v1", ...)
 
 ---
 
-## AG02: Insecure Output Handling
+## ASI02: Tool Misuse & Exploitation
 
-**Risk:** Agent outputs executed without validation, leading to code injection.
+**Risk:** Agents invoke tools in unintended or harmful ways, or attackers exploit tool capabilities to execute malicious actions.
 
-**TrustScope Protection:**
-- Output content scanning
-- Code pattern detection
-- Structured output validation
-- Response sanitization alerts
+**Active Detections:**
+- **Command Firewall** — 97 regex patterns across shell, SQL, code execution, and secrets categories (Protect+)
+- **Blocked Phrases** — Custom literal + regex deny-lists for tool invocations (Protect+)
 
----
-
-## AG03: Supply Chain Vulnerabilities
-
-**Risk:** Compromised tools, plugins, or dependencies.
-
-**TrustScope Protection:**
-- Tool usage logging
-- Plugin behavior monitoring
-- Dependency integrity verification
-- Third-party API tracking
+**Controls:**
+- MCP Server Allowlisting with fail-closed access control and SHA256 manifest hashing (Protect+)
+- Policy engine with per-action authorization (Protect+)
+- Approval workflows for high-risk tool actions (Enforce+)
+- Full audit trail of tool invocations (All tiers)
 
 ---
 
-## AG04: Excessive Agency
+## ASI03: Identity & Privilege Abuse
 
-**Risk:** Agent has more permissions than necessary.
+**Risk:** Agents operating with excessive privileges, impersonating identities, or escalating access through credential theft or delegation abuse.
 
-**TrustScope Protection:**
-- Tool access policies
-- Action rate limiting
-- Privilege escalation detection
-- Least-privilege enforcement
+**Active Detections:**
+- **PII Scanner** — 70 patterns with Luhn, IBAN, and SSN validation (All tiers)
+- **Secrets Scanner** — 52 patterns across cloud, AI/ML, payment, and database credentials (Protect+)
+- **Behavioral Anomaly** — Statistical deviation detection for agent behavior changes (Enforce+)
+
+**Controls:**
+- Agent DNA identity fingerprinting with 8-strand synthesis (Enforce+)
+- Drift detection with weighted 3-metric scoring (Enforce+)
+- Policy engine per-action authorization (Protect+)
+- Approval workflows for privilege escalation (Enforce+)
+- RBAC with 4 roles: viewer, member, admin, owner (All tiers)
+
+---
+
+## ASI04: Agentic Supply Chain Vulnerabilities
+
+**Risk:** Risks from untrusted or compromised tools, plugins, MCP servers, packages, and dependencies.
+
+**Controls:**
+- MCP Server Allowlisting — fail-closed with `auto_block_unknown_tools=True`, SHA256 manifest hashing (Protect+)
+- Tool provenance policy — SHA256 tool baselines with tamper detection (Govern)
+- Agent DNA tool fingerprinting — capability expansion alerts on new tools (Enforce+)
+- Agent Lock — freeze agent behavior, block drift (Enforce+)
 
 ```python
 @ts.enforce(
@@ -79,80 +96,122 @@ def support_agent(query: str):
 
 ---
 
-## AG05: Improper Error Handling
+## ASI05: Unexpected Code Execution (RCE)
 
-**Risk:** Errors expose sensitive information or system details.
+**Risk:** Agents generate or execute code leading to remote code execution, sandbox escape, or system compromise.
 
-**TrustScope Protection:**
-- Error response monitoring
-- Sensitive data in errors detection
-- Stack trace exposure alerts
-- Error pattern analysis
+**Active Detections:**
+- **Command Firewall** — Blocks shell injection (25 patterns), SQL injection (16 patterns), code execution (24 patterns), and secrets access (32 patterns) (Protect+)
+- **Blocked Phrases** — Custom deny-lists for dangerous code patterns (Protect+)
 
----
+**Controls:**
+- Hash Chain tamper-evident audit trail of all execution attempts (Govern)
 
-## AG06: Unauthorized Actions
-
-**Risk:** Agent performs actions beyond intended scope.
-
-**TrustScope Protection:**
-- Action whitelisting
-- Business hours enforcement
-- Monetary limits
-- Human-in-the-loop triggers
+:::note
+Sandbox enforcement is customer responsibility. TrustScope provides monitoring and pattern-based blocking.
+:::
 
 ---
 
-## AG07: Data Poisoning
+## ASI06: Memory & Context Poisoning
 
-**Risk:** Malicious data corrupts agent behavior or training.
+**Risk:** Adversaries corrupt agent memory, context, embeddings, or persistent state to influence future reasoning.
 
-**TrustScope Protection:**
-- Input validation logging
-- Anomalous data pattern detection
-- Source verification
-- Data lineage tracking
+**Active Detections:**
+- **Token Growth** — Detects context window inflation attacks via percentage growth rate (All tiers)
+- **Context Expansion** — Monitors context size anomalies with absolute threshold (50K tokens) and growth rate (1.5x) (All tiers)
+- **Ground Truth** — Validates factual claims in responses against tool result data with numeric comparison (Enforce+)
 
----
-
-## AG08: Inadequate Sandboxing
-
-**Risk:** Agent escapes containment to access unauthorized resources.
-
-**TrustScope Protection:**
-- Resource access monitoring
-- File system access tracking
-- Network call logging
-- Container escape detection
+:::note
+Content-level memory scanning and RAG poisoning detection are on the roadmap.
+:::
 
 ---
 
-## AG09: Insufficient Logging
+## ASI07: Insecure Inter-Agent Communication
 
-**Risk:** Lack of visibility into agent actions for forensics.
+**Risk:** Attacks on agent-to-agent communication channels, message integrity, delegation chains, and discovery.
 
-**TrustScope Protection:**
-- Comprehensive trace logging
-- Immutable audit trail
-- Cryptographic verification
-- Long-term retention
+**Active Detections:**
+- **A2A Depth** — Configurable max delegation depth with parent chain walk and cycle detection (Enforce+)
+- **Semantic Firewall** — Hidden instruction detection in inter-agent messages (Enforce+)
+
+**Controls:**
+- Hash Chain message integrity — SHA256 chain with prev_hash linkage (Govern)
+- Policy engine chain depth limits (Enforce+)
+- A2A session tracking with agent chain recording (Enforce+)
 
 ---
 
-## AG10: Model Denial of Service
+## ASI08: Cascading Failures
 
-**Risk:** Resource exhaustion attacks against AI infrastructure.
+**Risk:** Single faults propagate across autonomous agents, compounding into system-wide harm.
 
-**TrustScope Protection:**
-- Rate limiting
-- Token budgets
-- Cost caps
-- Anomaly detection for usage spikes
+**Active Detections:**
+- **Error Rate** — Circuit breaker detecting error propagation patterns (All tiers)
+- **Loop Killer** — SHA256 request hashing to terminate infinite loops (All tiers)
+- **Velocity** — Time-windowed request rate control (All tiers)
+- **Cost Velocity** — Decimal-precision runaway cost detection with 60s window (All tiers)
+- **Budget Caps** — 3-level hard spending limits: session, daily, monthly (All tiers)
+- **Oscillation** — A-B-A-B behavioral feedback loop detection (All tiers)
+- **A2A Depth** — Prevents cascading delegation chains (Enforce+)
+
+**Controls:**
+- Immutable audit logs via Hash Chain + OpenTimestamps Bitcoin anchoring (Govern)
 
 ```python
 # Cost and rate policies
 policies=["cost-limit-10", "rate-limit-100-per-minute"]
 ```
+
+---
+
+## ASI09: Human-Agent Trust Exploitation
+
+**Risk:** Attackers exploit trust between humans and agents through manipulation, deceptive outputs, or social engineering.
+
+**Active Detections:**
+- **Hallucination Detection** — 3-layer pipeline: ground truth comparison (provable, 100% confidence), behavioral anomaly (statistical), LLM semantic verification (Enforce+)
+- **Reasoning Drift** — Detects logical fallacies, non-sequiturs, self-contradictions, and goal drift (Enforce+)
+- **Ground Truth** — Validates numeric claims against tool results with >10% deviation detection (Enforce+)
+- **Blocked Phrases** — Custom deny-lists for social engineering patterns (Protect+)
+
+**Controls:**
+- Approval workflows — human-in-the-loop for sensitive actions (Enforce+)
+- Hash Chain accountability with non-repudiation (Govern)
+- Ed25519 signed check receipts (Govern)
+- OpenTimestamps Bitcoin-anchored timestamps (Govern)
+
+---
+
+## ASI10: Rogue Agents
+
+**Risk:** Agents acting autonomously beyond intended scope — self-replicating, pursuing misaligned goals, or operating as persistent threats.
+
+**Active Detections:**
+- **Behavioral Anomaly** — Statistical deviation from agent baseline (2+ of 5 anomaly checks) (Enforce+)
+- **Loop Killer** — Stops runaway autonomous loops (All tiers)
+- **Velocity** — Constrains agent action rate (All tiers)
+- **Budget Caps** — Hard resource consumption limits (All tiers)
+
+**Controls:**
+- Agent DNA behavioral baselines with 8-strand fingerprinting (Enforce+)
+- Drift detection with weighted scoring (capabilities 40%, pattern 40%, model 20%) (Enforce+)
+- Agent Lock — freeze behavior and block drift (Enforce+)
+- Immutable audit logs (Govern)
+
+---
+
+## Detection Coverage Summary
+
+TrustScope provides **20 detection engines** mapped across the OWASP Agentic Top 10:
+
+| Tier | Detections | Mode |
+|------|------------|------|
+| **Observe** (Free) | 8 anomaly detections + PII scanner | Alert only |
+| **Protect** ($29/mo) | + Command Firewall, Blocked Phrases, Secrets Scanner | Can block |
+| **Enforce** ($99/mo) | + Prompt Injection, Jailbreak, Semantic Firewall, A2A Depth, Hallucination, Behavioral Anomaly, Ground Truth, Reasoning Drift | Can block + policies |
+| **Govern** ($499/mo) | All 20 detections + governance evidence | Block + certificates |
 
 ---
 
@@ -171,7 +230,7 @@ curl -X POST https://api.trustscope.ai/v1/export \
 ```
 
 The report includes:
-- Coverage assessment for each AG item
+- Coverage assessment for each ASI category
 - Detected incidents by category
 - Remediation recommendations
 - Evidence for each control

@@ -1,0 +1,282 @@
+---
+sidebar_position: 6
+title: Agent DNA
+description: Behavioral fingerprinting and trust scoring for AI agents
+---
+
+# Agent DNA
+
+Agent DNA is TrustScope's behavioral fingerprinting system that creates a unique "genetic" profile for each AI agent based on its observed behavior patterns.
+
+---
+
+## Overview
+
+Every agent monitored by TrustScope develops a DNA profile composed of three strands:
+
+| Strand | What It Captures | Example Traits |
+|--------|------------------|----------------|
+| **Static** | Configuration and identity | Model, system prompt hash, tools enabled |
+| **Functional** | Capabilities and permissions | API access, file operations, cost limits |
+| **Dynamic** | Behavioral patterns over time | Response patterns, tool usage frequency, error rates |
+
+The DNA profile enables:
+- **Trust Scoring** — Quantified reliability (0-100)
+- **Drift Detection** — Alerts when behavior deviates from baseline
+- **Freeze/Unfreeze** — Lock agent configuration to prevent changes
+- **Verification** — Cryptographic attestation of agent identity
+
+---
+
+## Trust Score
+
+Each agent receives a trust score from 0-100 based on:
+
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| History | 30% | Track record of compliant behavior |
+| Stability | 25% | Consistency of behavior patterns |
+| Configuration | 20% | Security of setup (tools, permissions) |
+| Drift | 15% | Deviation from baseline behavior |
+| Incidents | 10% | Past policy violations or blocks |
+
+### Score Ranges
+
+| Score | Rating | Meaning |
+|-------|--------|---------|
+| 90-100 | Excellent | Highly trusted, minimal oversight needed |
+| 70-89 | Good | Normal operation, standard monitoring |
+| 50-69 | Fair | Increased monitoring recommended |
+| 30-49 | Poor | Restricted operations, review needed |
+| 0-29 | Critical | Immediate attention required |
+
+---
+
+## DNA Strands
+
+### Static Strand
+
+Fixed characteristics that define the agent's identity:
+
+```json
+{
+  "strand": "static",
+  "traits": {
+    "model": "gpt-4-turbo",
+    "system_prompt_hash": "sha256:abc123...",
+    "tools_enabled": ["web_search", "file_read", "calculator"],
+    "created_at": "2026-01-15T10:30:00Z",
+    "version": "1.2.0"
+  }
+}
+```
+
+### Functional Strand
+
+Capabilities and operational boundaries:
+
+```json
+{
+  "strand": "functional",
+  "traits": {
+    "api_access": ["openai", "anthropic"],
+    "file_operations": ["read"],
+    "network_access": true,
+    "cost_limit_daily": 50.00,
+    "max_tokens_per_request": 4096,
+    "allowed_domains": ["api.company.com"]
+  }
+}
+```
+
+### Dynamic Strand
+
+Behavioral patterns observed over time:
+
+```json
+{
+  "strand": "dynamic",
+  "traits": {
+    "avg_response_time_ms": 1250,
+    "avg_tokens_per_response": 450,
+    "tool_usage_distribution": {
+      "web_search": 0.45,
+      "file_read": 0.35,
+      "calculator": 0.20
+    },
+    "error_rate": 0.02,
+    "peak_usage_hours": [9, 10, 14, 15]
+  }
+}
+```
+
+---
+
+## Drift Detection
+
+TrustScope continuously compares agent behavior against its DNA baseline. When drift is detected, you receive alerts.
+
+### Drift Score
+
+The drift score (0.0 - 1.0) measures behavioral deviation:
+
+| Score | Level | Action |
+|-------|-------|--------|
+| 0.0 - 0.2 | Normal | No action |
+| 0.2 - 0.5 | Elevated | Monitor closely |
+| 0.5 - 0.8 | High | Review agent configuration |
+| 0.8 - 1.0 | Critical | Consider freezing agent |
+
+### Drift Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `tools` | Tool usage pattern changed | Started using `file_write` when baseline only showed `file_read` |
+| `model` | Model preferences changed | Switched from GPT-4 to GPT-3.5 |
+| `behavior` | Response patterns changed | Significant change in response length or style |
+| `cost` | Cost patterns changed | 3x increase in token usage |
+| `errors` | Error patterns changed | New error types appearing |
+
+### API: Get Drift
+
+```bash
+curl https://api.trustscope.ai/v1/agents/{agent_id}/drift \
+  -H "Authorization: Bearer ts_live_..."
+```
+
+Response:
+```json
+{
+  "agent_id": "agent_abc123",
+  "drift_score": 0.35,
+  "drift_details": [
+    {
+      "type": "tools",
+      "baseline": ["web_search", "file_read"],
+      "current": ["web_search", "file_read", "file_write"],
+      "severity": "elevated"
+    }
+  ],
+  "last_baseline_update": "2026-02-01T00:00:00Z"
+}
+```
+
+---
+
+## DNA Freeze
+
+Freeze an agent's DNA to lock its configuration. Frozen agents cannot:
+- Change their system prompt
+- Add new tools
+- Modify permissions
+- Update model versions
+
+### Freeze Agent
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/agents/{agent_id}/freeze \
+  -H "Authorization: Bearer ts_live_..." \
+  -d '{"reason": "Production deployment lock"}'
+```
+
+### Unfreeze Agent
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/agents/{agent_id}/unfreeze \
+  -H "Authorization: Bearer ts_live_..." \
+  -d '{"reason": "Authorized update", "approver": "admin@company.com"}'
+```
+
+### SDK Usage
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_...")
+
+# Freeze agent
+ts.agents.freeze("agent_abc123", reason="Production lock")
+
+# Check freeze status
+agent = ts.agents.get("agent_abc123")
+print(agent.frozen)  # True
+print(agent.frozen_at)  # 2026-02-10T14:30:00Z
+
+# Unfreeze agent
+ts.agents.unfreeze("agent_abc123", reason="Authorized update")
+```
+
+```typescript
+import { TrustScope } from '@trustscope/node';
+
+const ts = new TrustScope({ apiKey: 'ts_live_...' });
+
+// Freeze agent
+await ts.agents.freeze('agent_abc123');
+
+// Get DNA profile
+const dna = await ts.agents.getDna('agent_abc123');
+console.log(dna.strands);
+console.log(dna.trustScore);
+
+// Get drift analysis
+const drift = await ts.agents.getDrift('agent_abc123');
+console.log(drift.score);
+```
+
+---
+
+## Baseline Management
+
+### Update Baseline
+
+When you intentionally change an agent's behavior, update its baseline to prevent false drift alerts:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/agents/{agent_id}/baseline \
+  -H "Authorization: Bearer ts_live_..." \
+  -d '{"reason": "Added new tool capability"}'
+```
+
+### Baseline History
+
+```bash
+curl https://api.trustscope.ai/v1/agents/{agent_id}/baseline/history \
+  -H "Authorization: Bearer ts_live_..."
+```
+
+---
+
+## Tier Availability
+
+| Feature | Monitor | Protect | Enforce | Govern |
+|---------|---------|---------|---------|--------|
+| Basic DNA Profile | - | Yes | Yes | Yes |
+| Trust Score | - | Yes | Yes | Yes |
+| Drift Detection | - | Yes | Yes | Yes |
+| DNA Freeze | - | - | Yes | Yes |
+| Baseline Management | - | - | Yes | Yes |
+| Cryptographic Attestation | - | - | - | Yes |
+| DNA History (7 years) | - | - | - | Yes |
+
+---
+
+## Best Practices
+
+1. **Establish baselines early** — Let agents run for 24-48 hours before freezing to capture accurate behavioral patterns.
+
+2. **Review drift before freezing** — High drift scores may indicate legitimate changes that should update the baseline, not trigger a freeze.
+
+3. **Use freeze for production** — Freeze agents deployed to production to prevent unauthorized changes.
+
+4. **Monitor trust scores** — Set alerts for trust score drops below your threshold.
+
+5. **Document unfreeze reasons** — Always provide clear reasons when unfreezing agents for audit trails.
+
+---
+
+## Related
+
+- [Agents](/docs/concepts/agents) — Agent management overview
+- [Detection Engines](/docs/reference/detections) — Automated threat detection
+- [Policy Types](/docs/reference/policy-types) — Configurable enforcement rules

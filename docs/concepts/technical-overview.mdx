@@ -1,0 +1,283 @@
+---
+sidebar_position: 2
+title: Technical Overview
+description: Complete platform overview - tiers, detection engines, policy types, SDKs, and compliance frameworks
+---
+
+# Technical Overview
+
+This document provides a bird's-eye view of TrustScope's capabilities: tier structure, detection engines, policy types, SDKs, and compliance frameworks.
+
+## Tier Structure
+
+| Tier | Price | Retention | Key Capabilities |
+|------|-------|-----------|-----------------|
+| **Monitor** | Free | 3 days | 11 detection engines, alerts, 8 ingestion methods |
+| **Protect** | $49/mo | 30 days | +7 engines, blocking, BYOLLM, Agent DNA |
+| **Enforce** | $249/mo | 1 year | +7 AI engines, 26 policies, human approvals, MCP |
+| **Govern** | Contact Sales | 7 years | Evidence Room, ZKP, Docker, BYOK, SIEM |
+
+**Retention Add-Ons:** Protect +$29/mo → 1 year. Enforce +$29/mo → 3 years.
+
+**Deployment Models:** Cloud (all tiers) · Local Docker (Govern) · Air-Gapped+ZKP (Govern)
+
+---
+
+## API Endpoints (417+)
+
+### Core APIs
+
+| Module | Endpoints | Description |
+|--------|-----------|-------------|
+| Traces | 6 | Trace ingestion, listing, verification |
+| Agents | 15 | Agent management, DNA, lock/unlock |
+| Policies | 6 | Policy CRUD, SDK policy sync |
+| Sessions | 8 | Session management, A2A chains |
+| Governance | 16 | Coverage, certificates, timestamps |
+
+### Detection & Enforcement
+
+| Module | Endpoints | Tier | Description |
+|--------|-----------|------|-------------|
+| Detection | 3 | All | Detection events, stats, testing |
+| Simulate | 5 | All | Run simulations without enforcement |
+
+### Discovery
+
+| Module | Endpoints | Description |
+|--------|-----------|-------------|
+| Discovery | 19 | Agent discovery, clustering, drift |
+| Discovery Registry | 14 | Platform connectors (GitHub, cloud, SaaS) |
+
+**Discovery Connectors by Tier:**
+- **Monitor:** CLI scan, GitHub, GitLab, Bitbucket
+- **Protect:** + AWS, Azure, GCP, HuggingFace, Slack, Teams, Discord
+- **Enforce:** + Salesforce, ServiceNow, Microsoft Copilot Studio
+- **Govern:** + Shadow AI Executive Report, custom connectors
+
+### MCP (Model Context Protocol)
+
+| Module | Endpoints | Tier | Description |
+|--------|-----------|------|-------------|
+| MCP Servers | 7 | Enforce | Server registration, manifests |
+| MCP Registry | 12 | Enforce | Registry sync, allowlisting |
+| MCP Proxy | 8 | Enforce | Proxy sessions, approvals |
+| MCP Tools | 7 | Enforce | Tool baselines, change detection |
+
+### Gateway
+
+| Module | Endpoints | Tier | Description |
+|--------|-----------|------|-------------|
+| Gateway | 18 | All/Protect | LLM proxy (OpenAI, Anthropic, Azure, Bedrock, Vertex) |
+| OpenTelemetry | 3 | Protect | OTLP trace ingestion |
+
+### Evidence & Compliance
+
+| Module | Endpoints | Tier | Description |
+|--------|-----------|------|-------------|
+| ZKP | 10 | Govern | Commitments, proofs, redaction |
+| Evidence | 19 | Govern | Packs, frameworks, certificates |
+| Federation | 8 | Govern | Cross-org proofs |
+| Compliance | 12 | Govern | Exports (GDPR, HIPAA, SOX) |
+| DSR | 7 | Govern | Data subject requests |
+
+---
+
+## Detection Engines (25)
+
+### Rate Limits (6) — Monitor
+
+| Engine | Method | Default Threshold |
+|--------|--------|-------------------|
+| Loop Killer | Semantic similarity between actions | >0.85 similarity, >3 repetitions |
+| Velocity Limit | Actions per minute vs baseline | >3x baseline |
+| Cost Velocity | Spend rate anomaly | >3x baseline spend rate |
+| Budget Caps | Remaining budget percentage | &lt;10% remaining |
+| Token Growth | Output token count anomaly | >3x mean for agent |
+| Context Expansion | Context utilization tracking | >90% window consumed |
+
+### Behavioral (6) — Mixed
+
+| Engine | Method | Tier | Default |
+|--------|--------|------|---------|
+| Oscillation | State flip-flop patterns | Monitor | >4 reversals in 10 actions |
+| Error Rate | Sequential error monitoring | Monitor | >5 consecutive errors |
+| Session Duration | Abnormal session length | Monitor | >2x mean session |
+| Session Action Limit | Actions per session anomaly | Monitor | >3x mean count |
+| Reasoning Drift | Reasoning chain coherence | Enforce (AI) | Coherence &lt;0.6 |
+| Hallucination | Output grounding verification | Enforce (AI) | Grounding &lt;0.7 |
+
+### Content Safety (6) — Mixed
+
+| Engine | Method | Tier | Action |
+|--------|--------|------|--------|
+| PII Scanner | ML (88 patterns) | Monitor | Alert only |
+| Secrets Scanner | API keys, tokens, passwords | Protect | Redact or block |
+| Command Firewall | Dangerous commands (rm -rf, DROP TABLE) | Protect | Block |
+| Blocked Phrases | Configurable phrase blocklist | Protect | Block |
+| Toxicity Filter | Harmful content detection | Protect | Block |
+| Data Exfiltration | Sensitive data leaving perimeter | Protect | Block |
+
+### Security (7) — Protect & Enforce
+
+| Engine | Method | Tier | Action |
+|--------|--------|------|--------|
+| Prompt Injection Pattern | Pattern matching | Protect | Block |
+| Jailbreak Pattern | Pattern matching | Protect | Block |
+| Prompt Injection AI | LLM verification | Enforce | Block |
+| Jailbreak Detect AI | LLM classification | Enforce | Block |
+| Semantic Firewall | Embedding-based intent classification | Enforce | Block |
+| A2A Depth | Cross-agent privilege escalation | Enforce | Block |
+| Tool Parameter Validator | Tool call parameter validation | Enforce | Block |
+
+### Engine Totals by Tier
+
+- **Monitor:** 11 engines
+- **Protect:** +7 engines (18 total)
+- **Enforce:** +7 AI-hybrid engines (25 total)
+
+### Engine Modes
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Engine disabled |
+| `simulate` | Runs, logs results, does NOT enforce |
+| `alert` | Runs, logs, sends notification |
+| `block` | Runs, blocks the action (Protect+) |
+
+---
+
+## Policy Types (26)
+
+| Category | Policies | Tier |
+|----------|----------|------|
+| Rate Limiting | rate_limit, concurrent_limit | Protect+ |
+| Content | blocked_phrases, pii_redaction | Protect+ |
+| Cost | cost_limit, cost_per_action | Protect+ |
+| Command | command_firewall | Protect+ |
+| Secrets | secrets_scanning | Protect+ |
+| Approval | human_approval, manager_approval | Enforce+ |
+| AI Safety | prompt_injection_block, jailbreak_block | Enforce+ |
+| Semantic | semantic_boundary, intent_enforcement | Enforce+ |
+| MCP | mcp_allowlist, mcp_trust_threshold | Enforce+ |
+| Delegation | delegation_restriction, delegation_limits | Enforce+ |
+| Agent | agent_freeze, capability_lock | Enforce+ |
+| Evidence | evidence_required, hash_chain_enforcement | Govern |
+| Encryption | byok_encryption, cmek_enforcement | Govern |
+| Governance | governance_level, negligence_threshold | Govern |
+
+### Policy Modes
+
+| Mode | Behavior |
+|------|----------|
+| `disabled` | Policy not evaluated |
+| `simulate` | Evaluates, logs what would happen, no enforcement |
+| `active` | Evaluates and enforces |
+
+---
+
+## SDKs
+
+### Python SDK
+
+```python
+from trustscope import TrustScope
+ts = TrustScope(api_key="ts_live_...")
+
+@ts.monitor(agent_id="my-agent")
+def agent_action(input):
+    return llm.complete(input)
+
+@ts.enforce(policies=["pii_block"])
+def protected_action(input):
+    return llm.complete(input)
+```
+
+### Node.js SDK
+
+```typescript
+import { TrustScope } from '@trustscope/node';
+const ts = new TrustScope({ apiKey: 'ts_live_...' });
+
+const result = await ts.traces.create({
+  agentId: 'my-agent',
+  action: 'chat_completion',
+  input: { prompt: userMessage },
+  output: { response: llmResponse }
+});
+```
+
+### React Native SDK
+
+```typescript
+import { TrustScopeProvider, useTrustScope } from '@trustscope/react-native';
+
+function ChatScreen() {
+  const { trace, enforce } = useTrustScope();
+  // Offline queue with automatic sync
+}
+```
+
+### CLI
+
+```bash
+trustscope scan --agent my-agent          # Discover agent configuration
+trustscope watch --agent my-agent --live  # Real-time monitoring
+trustscope evidence export --framework aiuc-1 --format pdf
+trustscope zkp prove --circuit cost_bound --window 30d
+trustscope simulate --engine prompt_injection --trace tr_abc123
+```
+
+---
+
+## MCP Server Tools (9)
+
+| Tool | Tier | Purpose |
+|------|------|---------|
+| trustscope_check_risk | All | Assess action risk level |
+| trustscope_enforce_policy | Protect+ | Evaluate against policies |
+| trustscope_log_action | All | Log agent action |
+| trustscope_validate_tool_output | Enforce+ | Prevent prompt injection via tools |
+| trustscope_verify_delegation | Enforce+ | A2A privilege escalation prevention |
+| trustscope_log_cost_event | All | Real-time budget tracking |
+| trustscope_get_session_context | Protect+ | Retrieve session context |
+| trustscope_request_approval | Enforce+ | Human-in-the-loop approval |
+| trustscope_governance_status | Govern | Check governance coverage |
+
+---
+
+## ZKP Circuits (10)
+
+| Circuit | What It Proves |
+|---------|---------------|
+| governance_coverage | Required checks executed |
+| pii_compliance | PII scan ran, no violations |
+| cost_budget | Costs within budget |
+| policy_enforcement | Policies evaluated correctly |
+| detection_coverage | Required engines executed |
+| hash_chain_integrity | Chain intact |
+| agent_identity | Correct fingerprint |
+| time_bounds | Within period |
+| aggregate_stats | Stats without data |
+| threshold_proof | Threshold met |
+
+**Proving cost:** $0.21 per full audit (10 circuits via Sindri)
+
+---
+
+## Compliance Frameworks
+
+### Primary Framework: AIUC-1
+
+Evidence Room organized by AIUC-1 domains A through F. Per-control mapping. Validation Runner produces B001 readiness evidence.
+
+### OWASP Agentic Top 10
+
+25 engines mapped to 10 ASI categories. Average coverage: ~61%.
+
+### 14 Export Templates
+
+| Category | Frameworks |
+|----------|-----------|
+| Enterprise | NIST AI RMF, ISO 42001, EU AI Act, SOC 2 Type II, SOC 2 Type I, ISO 27001, NAIC, GDPR, HIPAA |
+| Government | OMB M-25-21, OMB M-25-22, GAO AI Guidance, Colorado SB 205, Texas TRAIGA |

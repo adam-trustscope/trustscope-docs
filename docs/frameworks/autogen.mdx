@@ -25,7 +25,7 @@ from trustscope.integrations.autogen import TrustScopeAgentWrapper
 # Create agents
 assistant = AssistantAgent(
     name="assistant",
-    llm_config={"model": "gpt-4o"}
+    llm_config={"model": "gpt-5.2"}
 )
 
 user_proxy = UserProxyAgent(
@@ -77,7 +77,7 @@ user_proxy.initiate_chat(
     {
       "agent_id": "assistant",
       "type": "llm_call",
-      "model": "gpt-4o",
+      "model": "gpt-5.2",
       "response": "```python\ndef fibonacci(n):..."
     },
     {

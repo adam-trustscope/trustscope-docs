@@ -52,11 +52,18 @@ TrustScope works with **all major LLM providers** through our Gateway proxy. You
 
 | Provider | Model | Input/1M | Output/1M |
 |----------|-------|----------|-----------|
-| OpenAI | GPT-4o | $2.50 | $10.00 |
-| Anthropic | Claude 3.5 Sonnet | $3.00 | $15.00 |
-| Google | Gemini 1.5 Pro | $1.25 | $5.00 |
+| OpenAI | GPT-5.2 | $3.00 | $12.00 |
+| Anthropic | Claude Opus 4.6 | $15.00 | $75.00 |
+| Anthropic | Claude Sonnet 4.5 | $3.00 | $15.00 |
+| Google | Gemini 3 Pro | $1.50 | $6.00 |
+| Google | Gemini 2.5 Flash | $0.15 | $0.60 |
 | Mistral | Mistral Large | $2.00 | $6.00 |
-| Groq | Llama 3.1 70B | $0.59 | $0.79 |
+| Groq | Llama 3.3 70B | $0.59 | $0.79 |
+
+:::warning Model Retirements
+**OpenAI**: GPT-4o, GPT-4.1, o4-mini retired February 13, 2026. Use GPT-5.2.
+**Google**: Gemini 2.0 Flash deprecated, shutting down March 31, 2026.
+:::
 
 ---
 
@@ -149,10 +156,10 @@ All providers appear in the same dashboard:
 ┌────────────────────────────────────────────────────────────┐
 │  Traces                                        [Filter ▾]  │
 ├────────────────────────────────────────────────────────────┤
-│  🟢 tr_abc123  │ anthropic │ claude-3.5  │ 234ms │ $0.002 │
-│  🟢 tr_def456  │ openai    │ gpt-4o      │ 456ms │ $0.003 │
-│  🟢 tr_ghi789  │ google    │ gemini-1.5  │ 189ms │ $0.001 │
-│  🔴 tr_jkl012  │ anthropic │ claude-3.5  │ 123ms │ BLOCKED│
+│  🟢 tr_abc123  │ anthropic │ sonnet-4.5  │ 234ms │ $0.002 │
+│  🟢 tr_def456  │ openai    │ gpt-5.2     │ 456ms │ $0.003 │
+│  🟢 tr_ghi789  │ google    │ gemini-2.5  │ 189ms │ $0.001 │
+│  🔴 tr_jkl012  │ anthropic │ opus-4.6    │ 123ms │ BLOCKED│
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -202,19 +209,19 @@ Current roadmap:
 <div className="card-grid">
   <a href="/docs/get-started/quickstarts/gateway" className="card">
     <h3>OpenAI</h3>
-    <p>GPT-4o, GPT-4, o1, DALL-E</p>
+    <p>GPT-5.2, o3, o1, DALL-E 3</p>
   </a>
   <a href="/docs/gateway/anthropic" className="card">
     <h3>Anthropic</h3>
-    <p>Claude 3.5, Claude 3, Computer Use</p>
+    <p>Claude Opus 4.6, Sonnet 4.5, Computer Use</p>
   </a>
   <a href="/docs/gateway/google-gemini" className="card">
     <h3>Google Gemini</h3>
-    <p>Gemini 1.5/2.0, 2M context, video</p>
+    <p>Gemini 3, Gemini 2.5, 1M context, video</p>
   </a>
   <a href="/docs/get-started/quickstarts/gateway" className="card">
     <h3>Mistral</h3>
-    <p>Mistral Large, Codestral</p>
+    <p>Mistral Large 2, Codestral</p>
   </a>
   <a href="/docs/get-started/quickstarts/gateway" className="card">
     <h3>Azure OpenAI</h3>
@@ -222,6 +229,6 @@ Current roadmap:
   </a>
   <a href="/docs/get-started/quickstarts/gateway" className="card">
     <h3>AWS Bedrock</h3>
-    <p>Claude, Titan, Llama on AWS</p>
+    <p>Claude 4.5, Titan, Llama 3.3 on AWS</p>
   </a>
 </div>

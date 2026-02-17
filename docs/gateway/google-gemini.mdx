@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: Google Gemini
-description: Monitor Gemini models through TrustScope - Gemini 1.5 Pro, Flash, and Gemini 2.0
+description: Monitor Gemini models through TrustScope - Gemini 3, Gemini 2.5, and more
 ---
 
 # Google Gemini Integration
@@ -10,13 +10,27 @@ TrustScope provides full support for Google's Gemini models through an **OpenAI-
 
 ## Supported Models
 
+### Current Models (Recommended)
+
 | Model | Model ID | Context | Best For |
 |-------|----------|---------|----------|
-| Gemini 2.0 Flash | `gemini-2.0-flash-exp` | 1M | Latest, experimental |
-| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | Long context, reasoning |
-| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | Fast, cost-effective |
-| Gemini 1.5 Flash-8B | `gemini-1.5-flash-8b` | 1M | Fastest, cheapest |
-| Gemini 1.0 Pro | `gemini-1.0-pro` | 32K | Legacy support |
+| Gemini 3 Pro | `gemini-3-pro` | 1M | Complex reasoning, agentic workflows |
+| Gemini 3 Flash | `gemini-3-flash` | 1M | Multimodal, coding, fast |
+| Gemini 2.5 Pro | `gemini-2.5-pro` | 1M | Adaptive thinking, complex reasoning |
+| Gemini 2.5 Flash | `gemini-2.5-flash` | 1M | Fast, controllable thinking |
+| Gemini 2.5 Flash-Lite | `gemini-2.5-flash-lite` | 1M | Low cost, high volume |
+
+### Legacy Models
+
+| Model | Model ID | Context | Status |
+|-------|----------|---------|--------|
+| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | Deprecated, ends March 31, 2026 |
+| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | Legacy support |
+| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | Legacy support |
+
+:::warning Gemini 2.0 Deprecation
+Gemini 2.0 Flash is deprecated and will be shut down on **March 31, 2026**. Migrate to Gemini 2.5 or Gemini 3 models.
+:::
 
 ---
 
@@ -418,6 +432,6 @@ TrustScope translates between OpenAI and Gemini formats:
 
 ## Next Steps
 
-- [Add Cost Limits](/docs/concepts/policies#cost-limits) - Prevent runaway Gemini costs
+- [Add Cost Policies](/docs/concepts/policies#cost-policies) - Prevent runaway Gemini costs
 - [LangChain + Gemini](/docs/frameworks/langchain) - Use Gemini with LangChain
 - [Long Context Best Practices](/docs/concepts/sessions) - Optimize 2M token usage

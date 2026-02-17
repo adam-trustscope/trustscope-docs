@@ -1,0 +1,236 @@
+---
+sidebar_position: 3
+title: Evidence Framework
+description: How TrustScope generates cryptographic evidence for AI governance
+---
+
+# Evidence Framework
+
+TrustScope generates evidence. We do not determine compliance. Courts, auditors, and regulators interpret the evidence — we generate it.
+
+**What we say:** "Here is cryptographic proof that 5 governance checks ran on this action."
+
+**What we don't say:** "Your system is compliant."
+
+---
+
+## Evidence Hierarchy
+
+| Level | Type | Assurance | How It Works |
+|-------|------|-----------|-------------|
+| **Level 1** | Traditional | Trust the logger | JSON logs, timestamps |
+| **Level 2** | Signed | Cryptographic integrity | Ed25519 signatures + SHA-256 hash chain |
+| **Level 3** | Timestamped | Independent temporal proof | + OpenTimestamps Bitcoin anchoring |
+| **Level 4** | ZKP-Proven | Mathematical proof without data | + Zero-knowledge proofs |
+
+Each level builds on the previous. Level 4 (ZKP) is the highest assurance and resolves the compliance paradox.
+
+---
+
+## Evidence Types
+
+### Governance Traces (All Tiers)
+
+Every agent action captured with:
+- agent_id, action_type, timestamp
+- input/output (if permitted)
+- detection results
+- policy evaluations
+- session context
+
+### Detection Events (All Tiers)
+
+Every detection engine result:
+- engine_name
+- result (pass/fail/alert)
+- confidence
+- details, timestamp
+
+### Policy Evaluations (Protect+)
+
+Every policy check:
+- policy_id
+- action evaluated
+- result (allow/block/escalate)
+- reasoning
+
+### Governance Verification Reports (Govern)
+
+14-layer analysis results:
+- per-layer pass/fail
+- evidence collected
+- overall governance score
+- negligence indicators
+
+### Evidence Packs (Govern)
+
+Framework-mapped evidence bundles containing:
+- selected traces
+- detection events
+- policy evaluations
+- governance reports
+- hash chain verification
+- timestamp proofs
+- AI-generated control narratives
+
+### ZK Proofs (Govern)
+
+Zero-knowledge proofs over committed evidence:
+- circuit type
+- public inputs
+- proof data
+- verification status
+
+---
+
+## 6-Status Evidence Model
+
+| Status | Meaning |
+|--------|---------|
+| **Evidence Ready** | TrustScope generates automatically |
+| **Conditional** | Available IF traffic routed through TrustScope |
+| **Integration Required** | Need external integration (Okta, Jira) |
+| **Customer Provided** | Customer owns (HR policies, training) |
+| **Organizational Exclusion** | HR/culture control, not software |
+| **Out of Scope** | Not our domain (bias testing, training data) |
+
+---
+
+## Evidence Trust Model
+
+### Who Trusts What
+
+| Audience | Minimum Level | Why |
+|----------|---------------|-----|
+| Internal team | Level 1 | Trust their own systems |
+| External auditor | Level 2 | Need tamper-evidence |
+| Regulator | Level 3 | Need independent temporal proof |
+| Opposing counsel | Level 3 | Need non-repudiation |
+| Privacy-restricted | Level 4 | Cannot see underlying data |
+| Classified/CUI | Level 4 | Cannot share operational details |
+
+### The Compliance Paradox
+
+Some regulations create a paradox: proving compliance requires sharing the data you're protecting.
+
+| Regulation | Paradox | ZKP Resolution |
+|-----------|---------|---------------|
+| HIPAA | Proving PHI handling requires sharing PHI | ZK proof of PHI scan results without PHI |
+| AML/BSA | Proving monitoring reveals monitoring patterns | ZK proof of coverage without patterns |
+| FERPA | Proving student data protection requires data | ZK proof of handling without records |
+| Classified | Proving compliance requires sharing classified info | ZK proof of compliance without details |
+
+---
+
+## Evidence Pack Structure
+
+```json
+{
+  "pack_id": "ep_...",
+  "framework": "nist-ai-rmf",
+  "time_window": { "start": "...", "end": "..." },
+  "organization": "org_...",
+  "artifacts": [
+    {
+      "control_id": "GOVERN 1.1",
+      "evidence_type": "policy_config",
+      "status": "evidence_ready",
+      "data": { ... },
+      "commitment": "0x...",
+      "merkle_proof": { ... }
+    }
+  ],
+  "hash_chain": {
+    "first_entry": "...",
+    "last_entry": "...",
+    "chain_length": 1247,
+    "integrity": "verified"
+  },
+  "timestamp_anchor": {
+    "bitcoin_txid": "...",
+    "confirmation_height": 879234
+  },
+  "merkle_root": "0x...",
+  "signature": "...",
+  "zkp_proofs": [
+    {
+      "circuit": "pii_non_detection",
+      "proof_id": "prf_...",
+      "verified": true,
+      "public_inputs": { ... }
+    }
+  ]
+}
+```
+
+---
+
+## Compliance Escrow
+
+Single evidence dataset → multiple audience views:
+
+| Audience | Sees | Redacted | ZK-Proven |
+|----------|------|----------|-----------|
+| Internal | Everything | Nothing | Optional |
+| Auditor | Most artifacts | Trade secrets | Redacted properties |
+| Regulator | Framework-specific | Operational details | Compliance properties |
+| Insurer | Fleet aggregates | All individual data | Fleet compliance |
+| Board | Summary + trends | All operational detail | Improvement trends |
+
+All views provably derive from the same Merkle root → same dataset → provably consistent.
+
+---
+
+## Federated Evidence
+
+Multiple organizations contribute ZK proofs → industry-level compliance statistics.
+
+**Requirements:**
+- Minimum K=5 participants (k-anonymity)
+- Individual ZK proof verification
+- Pedersen homomorphic aggregation
+
+**Output:** "Across N organizations, metric X averaged Y" — proved mathematically, no individual data revealed.
+
+---
+
+## Cryptographic Components
+
+### Signatures
+
+**Ed25519** for all signed evidence:
+- TrustScope-signed at Enforce tier
+- Customer BYOK (Bring Your Own Key) at Govern tier
+
+### Hash Chain
+
+**SHA-256** hash chain for tamper evidence:
+- Each trace includes hash of previous trace
+- Chain verification detects gaps or modifications
+- Anti-rollback protection
+
+### Timestamping
+
+**OpenTimestamps** Bitcoin anchoring (Govern only):
+- Independent third-party temporal proof
+- Bitcoin blockchain as timestamp authority
+- Merkle tree aggregation for efficiency
+
+### Zero-Knowledge Proofs
+
+**10 Noir circuits** via Sindri proving service:
+
+| Circuit | Proves |
+|---------|--------|
+| governance_coverage | Required checks executed |
+| pii_compliance | PII scan ran, no violations |
+| cost_budget | Costs within budget |
+| policy_enforcement | Policies evaluated correctly |
+| detection_coverage | Required engines executed |
+| hash_chain_integrity | Chain intact |
+| agent_identity | Correct fingerprint |
+| time_bounds | Within period |
+| aggregate_stats | Stats without data |
+| threshold_proof | Threshold met |
+
+**Cost:** $0.21 per full audit (all 10 circuits)

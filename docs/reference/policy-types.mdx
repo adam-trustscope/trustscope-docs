@@ -1,375 +1,645 @@
 ---
 sidebar_position: 2
 title: Policy Types
-description: Complete reference of TrustScope policy types
+description: Complete reference of 26 TrustScope policy types for AI governance
 ---
 
 # Policy Types
 
-Complete reference of available policy types in TrustScope.
+TrustScope provides 26 policy types — configurable rules you define to govern agent behavior.
 
-## Content Policies
+:::info Policies vs Detection Engines
+**Policy Types** are rules you configure (rate limits, approvals, allowlists).
+**Detection Engines** run automatically (PII scanning, injection detection). See [Detection Engines](/docs/reference/detections).
 
-### no-pii
-
-Block personally identifiable information in inputs or outputs.
-
-**Configuration:**
-```json
-{
-  "name": "no-pii",
-  "type": "content",
-  "detections": ["pii.*"],
-  "action": "block",
-  "scan": ["input", "output"]
-}
-```
-
-**Subtypes blocked:**
-- Email addresses
-- Phone numbers
-- SSN
-- Names
-- Addresses
-- IP addresses
+To block PII, use the `pii_scanner` **detection engine**, not a policy type.
+To enforce a spending limit, use the `max_value` **policy type**.
+:::
 
 ---
 
-### no-phi
+## Policy Types by Tier
 
-Block protected health information (HIPAA compliance).
-
-**Configuration:**
-```json
-{
-  "name": "no-phi",
-  "type": "content",
-  "detections": ["phi.*"],
-  "action": "block"
-}
-```
+| Tier | Count | Policy Types |
+|------|-------|--------------|
+| **Discover** | 4 | max_value, min_value, allowed_values, blocked_values |
+| **Protect** | +10 | rate_limit, time_window, require_field, recipient_allowlist, amount_limit, require_approval, block_action, sla_monitor, blocked_phrases, cumulative_limit |
+| **Enforce** | +9 | human_approval, chain_depth_limit, external_check, per_entity_limit, custom_logic, semantic_rule, delegation_restriction, delegation_limits, exposure_threshold |
+| **Govern** | +3 | custom_function, multi_approval, tool_provenance |
 
 ---
 
-### no-secrets
+## Discover Tier (4 Types)
 
-Block credentials and secrets.
+### Max Value (`max_value`)
 
-**Configuration:**
+Enforce maximum threshold on any numeric parameter.
+
 ```json
 {
-  "name": "no-secrets",
-  "type": "content",
-  "detections": ["secret.*"],
-  "action": "block"
-}
-```
-
----
-
-### content-filter
-
-Block harmful or inappropriate content.
-
-**Configuration:**
-```json
-{
-  "name": "content-filter",
-  "type": "content",
-  "detections": ["harmful.*", "profanity.severe"],
-  "action": "block"
-}
-```
-
----
-
-### prompt-injection
-
-Block prompt injection attempts.
-
-**Configuration:**
-```json
-{
-  "name": "prompt-injection",
-  "type": "security",
-  "detections": ["prompt_injection.*"],
-  "action": "block",
-  "threshold": 0.8
-}
-```
-
----
-
-## Cost Policies
-
-### cost-limit-:n
-
-Block requests estimated to exceed $n.
-
-**Examples:**
-- `cost-limit-1` - Max $1 per request
-- `cost-limit-10` - Max $10 per request
-- `cost-limit-100` - Max $100 per request
-
-**Configuration:**
-```json
-{
-  "name": "cost-limit-10",
-  "type": "cost",
-  "max_cost_usd": 10,
-  "action": "block"
-}
-```
-
----
-
-### token-limit-:n
-
-Block requests exceeding n tokens.
-
-**Examples:**
-- `token-limit-1000` - Max 1,000 tokens
-- `token-limit-4000` - Max 4,000 tokens
-- `token-limit-128000` - Max 128,000 tokens
-
-**Configuration:**
-```json
-{
-  "name": "token-limit-4000",
-  "type": "cost",
-  "max_tokens": 4000,
-  "scope": "input+output",
-  "action": "block"
-}
-```
-
----
-
-### daily-budget-:n
-
-Block when daily spending exceeds $n.
-
-**Configuration:**
-```json
-{
-  "name": "daily-budget-100",
-  "type": "budget",
-  "max_daily_usd": 100,
-  "action": "block",
-  "reset": "midnight_utc"
-}
-```
-
----
-
-### monthly-budget-:n
-
-Block when monthly spending exceeds $n.
-
-**Configuration:**
-```json
-{
-  "name": "monthly-budget-1000",
-  "type": "budget",
-  "max_monthly_usd": 1000,
-  "action": "block"
-}
-```
-
----
-
-## Rate Policies
-
-### rate-limit-:n-per-minute
-
-Limit to n requests per minute per agent.
-
-**Configuration:**
-```json
-{
-  "name": "rate-limit-100-per-minute",
-  "type": "rate",
-  "max_requests": 100,
-  "window": "1m",
-  "scope": "agent",
-  "action": "block"
-}
-```
-
----
-
-### rate-limit-:n-per-user
-
-Limit to n requests per minute per user.
-
-**Configuration:**
-```json
-{
-  "name": "rate-limit-10-per-user",
-  "type": "rate",
-  "max_requests": 10,
-  "window": "1m",
-  "scope": "user",
-  "action": "block"
-}
-```
-
----
-
-## Business Logic Policies
-
-### business-hours
-
-Only allow during specified hours.
-
-**Configuration:**
-```json
-{
-  "name": "business-hours",
-  "type": "schedule",
-  "hours": {
-    "start": "09:00",
-    "end": "17:00",
-    "timezone": "America/New_York",
-    "days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
-  },
-  "action": "block"
-}
-```
-
----
-
-### approved-tools-only
-
-Only allow specified tools.
-
-**Configuration:**
-```json
-{
-  "name": "approved-tools-only",
-  "type": "whitelist",
-  "allowed_tools": [
-    "search_knowledge_base",
-    "create_ticket",
-    "send_email"
-  ],
-  "action": "block"
-}
-```
-
----
-
-### approved-models-only
-
-Only allow specified models.
-
-**Configuration:**
-```json
-{
-  "name": "approved-models-only",
-  "type": "whitelist",
-  "allowed_models": [
-    "gpt-4o",
-    "gpt-4o-mini",
-    "claude-3-5-sonnet-20241022"
-  ],
-  "action": "block"
-}
-```
-
----
-
-### require-human-approval
-
-Require human approval for certain actions.
-
-**Configuration:**
-```json
-{
-  "name": "require-human-approval-high-value",
-  "type": "approval",
-  "conditions": {
-    "action_type": "decision",
-    "metadata.amount": { "gt": 1000 }
-  },
-  "action": "hold",
-  "timeout": "1h"
-}
-```
-
----
-
-## Custom Policies
-
-Create custom policies via API:
-
-```bash
-curl -X POST https://api.trustscope.ai/v1/policies \
-  -H "Authorization: Bearer ts_live_xxx" \
-  -d '{
-    "name": "no-competitor-mentions",
-    "type": "custom",
-    "rules": [
-      {
-        "field": "output.content",
-        "operator": "not_contains",
-        "values": ["CompetitorA", "CompetitorB"]
-      }
-    ],
+  "type": "max_value",
+  "config": {
+    "field": "cost_usd",
+    "max": 100.00,
     "action": "block"
-  }'
+  }
+}
+```
+
+Use cases: Cost limits, token limits, request limits.
+
+---
+
+### Min Value (`min_value`)
+
+Enforce minimum threshold on any numeric parameter.
+
+```json
+{
+  "type": "min_value",
+  "config": {
+    "field": "confidence_score",
+    "min": 0.8,
+    "action": "block"
+  }
+}
 ```
 
 ---
 
-## Policy Combinations
+### Allowed Values (`allowed_values`)
 
-Combine multiple policies for defense in depth:
+Whitelist allowed parameter values.
 
-```python
-@ts.enforce(
-    agent_id="production-agent",
-    policies=[
-        # Security
-        "prompt-injection",
-        "no-secrets",
+```json
+{
+  "type": "allowed_values",
+  "config": {
+    "field": "model",
+    "allowed": ["gpt-4", "gpt-4-turbo", "claude-3-opus"],
+    "action": "block"
+  }
+}
+```
 
-        # Privacy
-        "no-pii",
+Use cases: Model allowlists, tool allowlists, action allowlists.
 
-        # Cost control
-        "cost-limit-10",
-        "daily-budget-100",
+---
 
-        # Business rules
-        "approved-tools-only",
-        "business-hours"
-    ]
-)
-def production_handler(request):
-    ...
+### Blocked Values (`blocked_values`)
+
+Blacklist specific parameter values.
+
+```json
+{
+  "type": "blocked_values",
+  "config": {
+    "field": "action_type",
+    "blocked": ["delete", "drop_table", "rm_rf"],
+    "action": "block"
+  }
+}
 ```
 
 ---
 
-## Policy Actions
+## Protect Tier (+10 Types)
 
-| Action | Behavior |
-|--------|----------|
-| `log` | Log violation but allow |
-| `alert` | Log + send alert, allow |
-| `block` | Block the request |
-| `hold` | Hold for human approval |
-| `redact` | Redact violating content |
+### Rate Limit (`rate_limit`)
+
+Limit request count per time window.
+
+```json
+{
+  "type": "rate_limit",
+  "config": {
+    "limit": 1000,
+    "window_seconds": 3600,
+    "per": "agent",
+    "action": "block"
+  }
+}
+```
+
+**Per options:** `agent`, `session`, `organization`, `user`
 
 ---
 
-## Policy Evaluation Order
+### Time Window (`time_window`)
 
-1. **Rate policies** - Check first to prevent abuse
-2. **Cost policies** - Check budget before processing
-3. **Security policies** - Block attacks
-4. **Content policies** - Check for violations
-5. **Business policies** - Apply business rules
+Restrict operations to specific hours/days.
 
-First policy to block stops evaluation.
+```json
+{
+  "type": "time_window",
+  "config": {
+    "allowed_days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    "allowed_hours": { "start": "09:00", "end": "17:00" },
+    "timezone": "America/New_York",
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Require Field (`require_field`)
+
+Require specific fields in requests.
+
+```json
+{
+  "type": "require_field",
+  "config": {
+    "required_fields": ["user_id", "session_id", "correlation_id"],
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Recipient Allowlist (`recipient_allowlist`)
+
+Whitelist allowed recipients for communications.
+
+```json
+{
+  "type": "recipient_allowlist",
+  "config": {
+    "allowed_domains": ["@company.com", "@partner.com"],
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Amount Limit (`amount_limit`)
+
+Limit transaction amounts.
+
+```json
+{
+  "type": "amount_limit",
+  "config": {
+    "max_amount": 10000,
+    "currency": "USD",
+    "per_transaction": true,
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Require Approval (`require_approval`)
+
+Require manual approval for specific actions (basic).
+
+```json
+{
+  "type": "require_approval",
+  "config": {
+    "actions": ["external_api", "file_write"],
+    "timeout_minutes": 5,
+    "fallback_action": "block"
+  }
+}
+```
+
+---
+
+### Block Action (`block_action`)
+
+Block specific action types entirely.
+
+```json
+{
+  "type": "block_action",
+  "config": {
+    "blocked_actions": ["shell_execute", "database_write", "file_delete"],
+    "action": "block"
+  }
+}
+```
+
+---
+
+### SLA Monitor (`sla_monitor`)
+
+Monitor service level agreements.
+
+```json
+{
+  "type": "sla_monitor",
+  "config": {
+    "max_latency_ms": 5000,
+    "max_error_rate": 0.05,
+    "window_minutes": 15,
+    "action": "alert"
+  }
+}
+```
+
+---
+
+### Blocked Phrases (`blocked_phrases`)
+
+Organization-specific keyword blocklist.
+
+```json
+{
+  "type": "blocked_phrases",
+  "config": {
+    "phrases": ["competitor_name", "internal_codename", "unreleased_product"],
+    "case_sensitive": false,
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Cumulative Limit (`cumulative_limit`)
+
+Track cumulative totals over time.
+
+```json
+{
+  "type": "cumulative_limit",
+  "config": {
+    "field": "tokens_used",
+    "max_cumulative": 1000000,
+    "period": "monthly",
+    "per": "organization",
+    "action": "block"
+  }
+}
+```
+
+---
+
+## Enforce Tier (+9 Types)
+
+### Human Approval (`human_approval`)
+
+Require human approval with full workflow.
+
+```json
+{
+  "type": "human_approval",
+  "config": {
+    "require_for": ["external_api", "file_write", "delete"],
+    "timeout_minutes": 5,
+    "fallback_action": "block",
+    "approvers": ["admin", "manager"],
+    "notification_channels": ["slack", "email"]
+  }
+}
+```
+
+Creates an ApprovalRequest record for tracking.
+
+---
+
+### Chain Depth Limit (`chain_depth_limit`)
+
+Limit agent-to-agent delegation depth.
+
+```json
+{
+  "type": "chain_depth_limit",
+  "config": {
+    "max_depth": 3,
+    "action": "block"
+  }
+}
+```
+
+Prevents runaway A2A delegation chains.
+
+---
+
+### External Check (`external_check`)
+
+Call external API for approval decisions.
+
+```json
+{
+  "type": "external_check",
+  "config": {
+    "endpoint": "https://approval.internal.com/check",
+    "timeout_ms": 5000,
+    "headers": { "X-API-Key": "${APPROVAL_API_KEY}" },
+    "fallback_action": "block"
+  }
+}
+```
+
+---
+
+### Per Entity Limit (`per_entity_limit`)
+
+Limit actions per customer/entity.
+
+```json
+{
+  "type": "per_entity_limit",
+  "config": {
+    "entity_field": "customer_id",
+    "limit": 100,
+    "window_hours": 24,
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Custom Logic (`custom_logic`)
+
+Build IF/THEN rules with conditions.
+
+```json
+{
+  "type": "custom_logic",
+  "config": {
+    "condition": {
+      "and": [
+        { "field": "agent.risk_score", "operator": ">", "value": 0.7 },
+        { "field": "trace.action", "operator": "in", "value": ["external_api", "file_write"] }
+      ]
+    },
+    "action": "require_approval"
+  }
+}
+```
+
+**Operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `in`, `not_in`, `contains`, `regex`
+
+---
+
+### Semantic Rule (`semantic_rule`)
+
+Block requests matching semantic patterns.
+
+```json
+{
+  "type": "semantic_rule",
+  "config": {
+    "blocked_intents": ["competitor_discussion", "price_negotiation", "legal_advice"],
+    "threshold": 0.8,
+    "action": "block"
+  }
+}
+```
+
+Uses embedding similarity for intent matching.
+
+---
+
+### Delegation Restriction (`delegation_restriction`)
+
+Control which agents can delegate to which.
+
+```json
+{
+  "type": "delegation_restriction",
+  "config": {
+    "allowed_delegates": ["agent_worker_1", "agent_worker_2"],
+    "prohibited_delegates": ["agent_admin"],
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Delegation Limits (`delegation_limits`)
+
+Limit child agent cost/time.
+
+```json
+{
+  "type": "delegation_limits",
+  "config": {
+    "max_cost_per_delegate": 10.00,
+    "max_time_per_delegate_minutes": 30,
+    "max_delegates_per_session": 5,
+    "action": "block"
+  }
+}
+```
+
+---
+
+### Exposure Threshold (`exposure_threshold`)
+
+Block if agent risk score exceeds threshold.
+
+```json
+{
+  "type": "exposure_threshold",
+  "config": {
+    "max_risk_score": 0.7,
+    "risk_factors": ["pii_exposure", "cost_anomaly", "drift_score"],
+    "action": "block"
+  }
+}
+```
+
+---
+
+## Govern Tier (+3 Types)
+
+### Custom Function (`custom_function`)
+
+Complex DSL validation rules with 20+ operators.
+
+```json
+{
+  "type": "custom_function",
+  "config": {
+    "function": "validate_compliance",
+    "code": "if (trace.cost > 100 && agent.environment == 'production') { require_approval() }",
+    "language": "dsl"
+  }
+}
+```
+
+---
+
+### Multi Approval (`multi_approval`)
+
+Require multiple approvers.
+
+```json
+{
+  "type": "multi_approval",
+  "config": {
+    "required_approvers": 2,
+    "approver_groups": ["security", "compliance"],
+    "timeout_minutes": 30,
+    "fallback_action": "block"
+  }
+}
+```
+
+---
+
+### Tool Provenance (`tool_provenance`)
+
+Verify tool publisher and block recent changes.
+
+```json
+{
+  "type": "tool_provenance",
+  "config": {
+    "allowed_publishers": ["verified", "internal"],
+    "min_age_days": 7,
+    "block_unverified": true,
+    "action": "block"
+  }
+}
+```
+
+Prevents supply chain attacks via recently modified tools.
+
+---
+
+## Policy Configuration
+
+### Policy Structure
+
+```json
+{
+  "id": "pol_abc123",
+  "name": "Cost Control Policy",
+  "type": "max_value",
+  "enabled": true,
+  "mode": "active",
+  "agents": ["agent_id_1", "agent_id_2"],
+  "config": {
+    "field": "cost_usd",
+    "max": 100.00,
+    "action": "block"
+  }
+}
+```
+
+### Policy Modes
+
+| Mode | Description |
+|------|-------------|
+| `disabled` | Policy not evaluated |
+| `simulate` | Evaluates, logs what would happen, does NOT enforce |
+| `active` | Evaluates and enforces |
+
+### Policy Lifecycle
+
+```
+disabled → simulate → active
+```
+
+1. **Create policy** in `disabled` mode — no impact on traffic
+2. **Enable simulate** — policy evaluates, logs results, no enforcement
+3. **Review simulate results** — confirm no false positives
+4. **Activate** — policy enforces on live traffic
+
+### Agent Targeting
+
+```json
+// Specific agents
+{
+  "agents": ["agent_id_1", "agent_id_2"]
+}
+
+// All agents
+{
+  "agents": ["*"]
+}
+
+// By tag
+{
+  "agent_tags": ["production", "customer-facing"]
+}
+```
+
+---
+
+## Policy Ordering
+
+Policies are evaluated in order:
+
+1. Security policies (block immediately if triggered)
+2. Cost policies
+3. Content policies
+4. Access policies
+5. Approval policies
+6. Compliance policies
+7. Advanced policies
+
+**First matching block/require wins.**
+
+---
+
+## Policy Templates
+
+Pre-built policy sets:
+
+| Template | Policies Included | Use Case |
+|----------|------------------|----------|
+| `hipaa_basic` | PII, PHI detection, audit logging | Healthcare |
+| `pci_dss` | Credit card blocking, encryption | Payments |
+| `gdpr_compliant` | PII, consent tracking, retention | EU operations |
+| `high_security` | All blocking policies, human approval | Sensitive ops |
+| `development` | Relaxed limits, monitoring only | Dev/test |
+| `cost_control` | All cost policies | Budget management |
+
+---
+
+## API Reference
+
+### Create Policy
+
+```http
+POST /api/v1/policies
+Content-Type: application/json
+
+{
+  "name": "Daily Cost Limit",
+  "type": "max_value",
+  "agents": ["*"],
+  "config": {
+    "field": "daily_cost_usd",
+    "max": 100.00,
+    "action": "block"
+  }
+}
+```
+
+### Enable/Disable
+
+```http
+POST /api/v1/policies/{policy_id}/enable
+POST /api/v1/policies/{policy_id}/disable
+```
+
+### Test Policy
+
+```http
+POST /api/v1/policies/{policy_id}/test
+Content-Type: application/json
+
+{
+  "test_data": {
+    "cost_usd": 150.00,
+    "agent_id": "agent_abc123"
+  }
+}
+```
+
+:::tip Testing PII Detection
+To test PII detection, use the `/api/v1/simulate` endpoint with the `pii_scanner` detection engine, not a policy.
+:::

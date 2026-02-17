@@ -26,18 +26,33 @@ def handle_customer_query(query: str):
     ...
 ```
 
-## Agent Fingerprinting
+## Agent DNA
 
-TrustScope automatically builds a behavioral fingerprint for each agent based on:
-- System prompts used
-- Tools available
-- Response patterns
-- Model preferences
+TrustScope automatically builds a behavioral "DNA" profile for each agent. This genetic fingerprint captures:
 
-This fingerprint enables:
-- **Drift detection** - Alert when agent behavior changes
-- **Identity verification** - Ensure the right agent is running
-- **Anomaly detection** - Spot unusual activity
+| Strand | What It Captures |
+|--------|------------------|
+| **Static** | Model, system prompt hash, tools enabled |
+| **Functional** | API access, file operations, cost limits |
+| **Dynamic** | Response patterns, tool usage, error rates |
+
+Agent DNA enables:
+- **Trust Scoring** — Quantified reliability (0-100)
+- **Drift Detection** — Alerts when behavior deviates from baseline
+- **Freeze/Unfreeze** — Lock agent configuration (Enforce+)
+- **Verification** — Cryptographic attestation (Govern)
+
+```python
+# Get agent DNA profile
+agent = ts.agents.get("customer-support-bot")
+print(agent.trust_score)  # 87
+print(agent.drift_score)  # 0.12
+
+# Freeze agent to prevent changes
+ts.agents.freeze("customer-support-bot")
+```
+
+For complete DNA documentation, see [Agent DNA](/docs/concepts/agent-dna).
 
 ## Multi-Agent Systems
 

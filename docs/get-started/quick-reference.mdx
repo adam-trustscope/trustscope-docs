@@ -1,0 +1,266 @@
+---
+sidebar_position: 3
+title: Quick Reference
+description: Developer cheat sheet for TrustScope integration
+---
+
+# Quick Reference
+
+Developer cheat sheet for TrustScope integration.
+
+---
+
+## Integration (5 Minutes)
+
+### Gateway (Zero Code)
+
+```bash
+export OPENAI_BASE_URL="https://api.trustscope.ai/gateway"
+export TRUSTSCOPE_API_KEY="ts_live_..."
+```
+
+### Python SDK
+
+```bash
+pip install trustscope
+```
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(api_key="ts_live_...")
+
+@ts.monitor(agent_id="my-agent")
+def agent_action():
+    # Your agent code — detect + alert
+    pass
+
+@ts.enforce(policies=["pii_block", "cost_limit"])
+def protected_action():
+    # Full inline — intercept + block
+    pass
+```
+
+### Node.js SDK
+
+```bash
+npm install @trustscope/node
+```
+
+```typescript
+import { TrustScope } from '@trustscope/node';
+
+const ts = new TrustScope({ apiKey: 'ts_live_...' });
+
+const trace = await ts.traces.create({
+  agentId: 'my-agent',
+  action: 'llm_call',
+  input: { prompt: '...' },
+  output: { response: '...' }
+});
+```
+
+### CLI
+
+```bash
+npm install -g trustscope-cli
+trustscope auth login
+trustscope watch ./src
+```
+
+### MCP Server (Claude Desktop/Cursor)
+
+```json
+{
+  "mcpServers": {
+    "trustscope": {
+      "command": "npx",
+      "args": ["@trustscope/mcp-server"],
+      "env": { "TRUSTSCOPE_API_KEY": "ts_live_..." }
+    }
+  }
+}
+```
+
+### OpenTelemetry
+
+```python
+from trustscope.otel import OTelExporter
+
+exporter = OTelExporter(api_key="ts_live_...")
+exporter.start()
+# All OTel spans now go to TrustScope
+```
+
+### Framework Callbacks (LangChain/CrewAI/AutoGen)
+
+```python
+from trustscope.callbacks import LangChainCallback
+handler = LangChainCallback(api_key="ts_live_...", agent_id="my-agent")
+chain.invoke(input, config={"callbacks": [handler]})
+```
+
+### Event API (POST)
+
+```bash
+curl -X POST https://api.trustscope.ai/api/v1/traces \
+  -H "Authorization: Bearer ts_live_..." \
+  -d '{"agent_id": "my-agent", "action_type": "llm_call", ...}'
+```
+
+---
+
+## Three Governance Depths
+
+| Depth | Methods | What You Get |
+|-------|---------|-------------|
+| **Full Inline** | Gateway, SDK enforce, CLI wrap | Actions + prevention evidence |
+| **Detect + Alert** | SDK monitor, callbacks, MCP | Detection without blocking |
+| **Visibility Only** | Event API, OTel | Trace logging only |
+
+---
+
+## API Keys
+
+| Type | Prefix | Use |
+|------|--------|-----|
+| Live | `ts_live_` | Production |
+| Test | `ts_test_` | Testing |
+| Agent | `ts_agent_` | Per-agent |
+| CLI | `ts_cli_` | CLI auth |
+
+---
+
+## Key Endpoints
+
+### Traces
+
+```http
+POST /api/v1/traces              # Ingest trace
+GET  /api/v1/traces              # List traces
+GET  /api/v1/traces/{id}         # Get trace
+POST /api/v1/traces/verify-chain # Verify hash chain
+```
+
+### Agents
+
+```http
+GET  /api/v1/agents              # List agents
+GET  /api/v1/agents/{id}         # Get agent
+GET  /api/v1/agents/{id}/dna     # Get DNA profile
+POST /api/v1/agents/{id}/lock    # Lock agent
+```
+
+### Policies
+
+```http
+GET  /api/v1/policies            # List policies
+POST /api/v1/policies            # Create policy
+PUT  /api/v1/policies/{id}       # Update policy
+```
+
+### Simulate
+
+```http
+POST /api/v1/simulate/run        # Run simulation
+GET  /api/v1/simulate/{id}       # Get results
+POST /api/v1/simulate/replay     # Replay historical traces
+```
+
+### Gateway
+
+```http
+POST /api/v1/gateway/openai/v1/chat/completions
+POST /api/v1/gateway/anthropic/v1/messages
+POST /api/v1/gateway/azure/{resource}/openai/deployments/{deployment}/chat/completions
+POST /api/v1/gateway/bedrock/{region}/model/{model_id}/invoke
+POST /api/v1/gateway/vertex/{project}/{region}/publishers/google/models/{model}:generateContent
+```
+
+### ZKP
+
+```http
+GET  /api/v1/zkp/circuits        # List circuits
+POST /api/v1/zkp/prove           # Generate proof
+POST /api/v1/zkp/verify          # Verify proof
+```
+
+### Evidence
+
+```http
+POST /api/v1/evidence/packs      # Generate Evidence Pack
+GET  /api/v1/evidence/frameworks # List frameworks
+GET  /api/v1/evidence/hash-chain # Verify hash chain
+```
+
+---
+
+## Pricing
+
+| Tier | Price | Retention | Key Features |
+|------|-------|-----------|-------------|
+| Monitor | Free | 3 days | 11 engines, 8 ingestion methods |
+| Protect | $49/mo | 30 days | +7 engines, blocking, BYOLLM |
+| Enforce | $249/mo | 1 year | +7 AI engines, 26 policies |
+| Govern | Contact | 7 years | Evidence Room, ZKP, Docker, BYOK |
+
+---
+
+## CLI Commands
+
+```bash
+# Authentication
+trustscope auth login
+trustscope auth status
+
+# Agents & Monitoring
+trustscope agents list
+trustscope watch ./src --live
+trustscope scan --agent my-agent
+
+# Evidence & Compliance
+trustscope evidence export --framework aiuc-1 --format pdf
+trustscope zkp prove --circuit cost_bound --window 30d
+
+# Simulate
+trustscope simulate --engine prompt_injection --trace tr_abc123
+```
+
+---
+
+## Webhook Events
+
+| Event | Description |
+|-------|-------------|
+| `trace.created` | New trace |
+| `trace.blocked` | Trace blocked by policy |
+| `trace.simulated` | Simulate mode detection |
+| `alert.triggered` | Alert fired |
+| `policy.violated` | Violation detected |
+| `agent.drift` | Agent DNA drift |
+| `approval.requested` | Approval needed |
+
+---
+
+## Error Codes
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| UNAUTHORIZED | 401 | Invalid API key |
+| FORBIDDEN | 403 | No permission |
+| NOT_FOUND | 404 | Resource not found |
+| RATE_LIMITED | 429 | Rate exceeded |
+| TIER_REQUIRED | 402 | Upgrade needed |
+
+---
+
+## Quick Setup Checklist
+
+- [ ] Get API key from dashboard
+- [ ] Install SDK or configure gateway
+- [ ] Send test trace (`trustscope test-trace`)
+- [ ] View agent in dashboard
+- [ ] Enable detection engines
+- [ ] Configure alerts
+- [ ] Create first policy (Protect+)
+- [ ] Try simulate mode

@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'get-started/introduction',
         'get-started/quickstart',
+        'get-started/quick-reference',
       ],
     },
     {
@@ -35,10 +36,14 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Core Concepts',
-      collapsed: true,
+      collapsed: false,
       items: [
+        'concepts/architecture',
+        'concepts/technical-overview',
+        'concepts/evidence-framework',
         'concepts/gateway-vs-sdk',
         'concepts/agents',
+        'concepts/agent-dna',
         'concepts/sessions',
         'concepts/policies',
         'concepts/detections',
@@ -91,6 +96,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'sdks/python',
         'sdks/nodejs',
+        'sdks/react-native',
       ],
     },
     {
@@ -119,6 +125,16 @@ const sidebars: SidebarsConfig = {
   resourcesSidebar: [
     {
       type: 'category',
+      label: 'Guides',
+      collapsed: false,
+      items: [
+        'guides/implementation',
+        'guides/production-checklist',
+        'guides/security-best-practices',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Compliance',
       collapsed: false,
       items: [
@@ -126,15 +142,6 @@ const sidebars: SidebarsConfig = {
         'compliance/owasp-agentic',
         'compliance/eu-ai-act',
         'compliance/nist-ai-rmf',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Guides',
-      collapsed: false,
-      items: [
-        'guides/production-checklist',
-        'guides/security-best-practices',
       ],
     },
     {

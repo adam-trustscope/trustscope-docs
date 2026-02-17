@@ -1,0 +1,242 @@
+---
+sidebar_position: 1
+title: Architecture
+description: TrustScope 10-layer governance stack and system architecture
+---
+
+# Architecture
+
+TrustScope is an AI governance platform that monitors, detects, and enforces policies on AI agent behavior. This document describes how data flows through the system and how governance is applied.
+
+## Deployment Models
+
+| Model | Trust Level | Deployment | Tiers |
+|-------|------------|------------|-------|
+| **Cloud Platform** | Trust TrustScope | SaaS | All |
+| **Local Docker** | Trust but verify | Customer infrastructure | Govern |
+| **Air-Gapped + ZKP** | Trust math | No network to TrustScope | Govern |
+
+---
+
+## 10-Layer Governance Stack
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│         Layer 10: Compliance & Evidence Export                │
+│    AIUC-1 primary + 14 secondary framework export templates   │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 9: Privacy & ZKP Services                       │
+│    10 Noir circuits, Sindri proving, redaction                │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 8: Cryptographic Evidence                       │
+│    Hash chains, Ed25519, OpenTimestamps, VGR generation       │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 7: Governance Verification                      │
+│    Coverage verification, audit snapshots                     │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 6: Enforcement                                  │
+│    26 policy types, blocking, approval, simulate mode         │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 5: Detection                                    │
+│    25 engines across 4 categories                             │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 4: Identity                                     │
+│    Agent DNA (8 strands), fingerprinting, drift detection     │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 3: Discovery                                    │
+│    Platform scanning, agent clustering                        │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 2: Ingestion                                    │
+│    8 entry points: Gateway, SDKs, MCP, OTel, CLI, Event API   │
+├───────────────────────────────────────────────────────────────┤
+│         Layer 1: Integration                                  │
+│    Gateway proxy, framework callbacks, MCP server             │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Layer 1: Integration
+
+### Airbag vs Seatbelt
+
+TrustScope provides two complementary governance approaches:
+
+**Gateway (Airbag):** Sits in the network path between agent and LLM provider. Catches everything that passes through. Zero code changes — just change the base URL.
+
+**MCP Server (Seatbelt):** The agent voluntarily participates in governance by calling TrustScope tools before acting. Requires agent modification, but provides richer context.
+
+### Gateway Proxy
+
+```
+   Client Request ──► TrustScope Gateway ──► LLM Provider
+                            │
+                      ┌─────┴─────┐
+                      │  Detect   │
+                      │  Enforce  │
+                      │  Sign     │
+                      │  Log      │
+                      └───────────┘
+```
+
+**Supported Providers:** OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, Google Vertex AI
+
+**Integration:**
+```bash
+export OPENAI_BASE_URL="https://api.trustscope.ai/gateway"
+export TRUSTSCOPE_API_KEY="ts_live_..."
+```
+
+---
+
+## Layer 2: Ingestion
+
+### 8 Entry Points
+
+Every tier gets all 8 ingestion methods.
+
+| Method | Integration Effort | Governance Depth |
+|--------|-------------------|-----------------|
+| **Gateway Proxy** | Change 1 env var | Full Inline |
+| **Framework Callbacks** | Add 1 line | Detect + Alert |
+| **Python SDK** | pip install + 3 lines | Full Inline or Detect + Alert |
+| **Node.js SDK** | npm install + 3 lines | Full Inline or Detect + Alert |
+| **Event API** | POST to endpoint | Visibility Only |
+| **OTel Collector** | Point OTLP endpoint | Visibility Only |
+| **CLI** | `trustscope wrap --` | Full Inline |
+| **MCP Server** | Add to config JSON | Detect + Alert |
+
+### Governance Depths
+
+| Depth | What You Get |
+|-------|-------------|
+| **Full Inline** | Intercept + block + evidence of prevention |
+| **Detect + Alert** | Detection + notification, no blocking |
+| **Visibility Only** | Trace logging only |
+
+---
+
+## Layer 3: Discovery
+
+TrustScope connects to customer platforms to find ungoverned AI agents.
+
+| Tier | Connectors |
+|------|-----------|
+| **Monitor** | CLI scan, GitHub/GitLab/Bitbucket |
+| **Protect** | + AWS/Azure/GCP, Slack/Teams/Discord |
+| **Enforce** | + Salesforce, ServiceNow, Copilot Studio |
+| **Govern** | + Shadow AI Executive Report, custom connectors |
+
+---
+
+## Layer 4: Identity
+
+### Agent DNA (8 Strands)
+
+| Strand | What It Captures |
+|--------|-----------------|
+| Tool Preference | Which tools/APIs the agent favors |
+| Response Patterns | Output structure, length, formatting |
+| Timing Profile | Response latency, processing patterns |
+| Error Handling | How the agent handles failures |
+| Context Usage | How context is maintained |
+| Delegation Patterns | When/how agent delegates |
+| Cost Profile | Token usage, model selection |
+| Safety Behavior | Refusal patterns, safety decisions |
+
+**Agent Lock** (Enforce+): Freezes the DNA fingerprint. Any deviation triggers alerts or blocks.
+
+---
+
+## Layer 5: Detection
+
+### 25 Detection Engines
+
+**Rate Limits (6):** Loop Killer, Velocity Limit, Cost Velocity, Budget Caps, Token Growth, Context Expansion
+
+**Behavioral (6):** Oscillation, Error Rate, Session Duration, Session Action Limit, Reasoning Drift, Hallucination
+
+**Content Safety (6):** PII Scanner, Secrets Scanner, Command Firewall, Blocked Phrases, Toxicity Filter, Data Exfiltration
+
+**Security (7):** Prompt Injection Pattern, Jailbreak Pattern, Prompt Injection AI, Jailbreak Detect AI, Semantic Firewall, A2A Depth, Tool Parameter Validator
+
+### Engine Modes
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Disabled |
+| `simulate` | Logs results, no enforcement |
+| `alert` | Logs + notification |
+| `block` | Blocks the action (Protect+) |
+
+---
+
+## Layer 6: Enforcement
+
+### 26 Policy Types
+
+| Category | Tier |
+|----------|------|
+| Security (pii_block, injection_block, secret_block, toxicity_block) | Protect+ |
+| Cost (cost_limit, token_limit, request_limit) | Protect+ |
+| Behavior (loop_prevention, repetition_block, session_limit) | Protect+ |
+| Content (keyword_block, regex_block, topic_block) | Protect+ |
+| Access (tool_allowlist, model_allowlist, api_allowlist) | Enforce+ |
+| Approval (human_approval, delegation_approval) | Enforce+ |
+| Delegation (delegation_limit, delegation_scope) | Enforce+ |
+| Compliance (framework_enforce, control_require) | Govern |
+| Advanced (custom_rule, conditional_policy, time_based, risk_based) | Govern |
+
+### Policy Lifecycle
+
+```
+disabled ──► simulate ──► active
+```
+
+1. Create in `disabled` or `simulate` mode
+2. Review simulate results
+3. Activate when confident
+
+---
+
+## Layers 7-10: Verification & Evidence
+
+### Cryptographic Evidence (Layer 8)
+
+| Component | Implementation |
+|-----------|---------------|
+| Signature | Ed25519 |
+| Hash | SHA-256 |
+| Timestamping | OpenTimestamps (Govern) |
+
+### ZKP Circuits (Layer 9)
+
+10 circuits for zero-knowledge proofs:
+- governance_coverage
+- pii_compliance
+- cost_budget
+- policy_enforcement
+- detection_coverage
+- hash_chain_integrity
+- agent_identity
+- time_bounds
+- aggregate_stats
+- threshold_proof
+
+### Compliance Frameworks (Layer 10)
+
+**Primary:** AIUC-1 Evidence Room
+
+**Export Templates:** SOC 2 Type II, EU AI Act, NIST AI RMF, ISO 42001, HIPAA, GDPR, ISO 27001, and more
+
+---
+
+## Performance
+
+| Operation | P50 | P99 |
+|-----------|-----|-----|
+| Trace ingestion | 5ms | 15ms |
+| Detection (statistical) | 1-3ms | 10ms |
+| Detection (AI-hybrid) | 50ms | 500ms |
+| Policy evaluation | 3ms | 15ms |
+| ZKP generation | 2s | 5s |

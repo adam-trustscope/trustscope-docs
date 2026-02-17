@@ -1,12 +1,83 @@
 ---
 sidebar_position: 1
-title: All Detections
-description: Complete list of TrustScope detection types
+title: Detection Engines
+description: 25 detection engines for AI agent governance
 ---
 
-# All Detections
+# Detection Engines
 
-Complete reference of TrustScope's detection capabilities.
+TrustScope provides 25 detection engines that automatically scan agent traces for risks, anomalies, and policy violations.
+
+:::info Engines vs Policies
+**Detection Engines** run automatically and produce alerts/blocks based on content analysis.
+**Policy Types** are configurable rules you define (see [Policy Types](/docs/reference/policy-types)).
+
+Engines detect threats. Policies enforce business rules.
+:::
+
+---
+
+## Engine Reference (25 Total)
+
+### Rate Limit Engines (6) — Monitor Tier
+
+| Engine ID | Description | Default Threshold |
+|-----------|-------------|-------------------|
+| `loop_killer` | Detects repeated identical actions | >0.85 similarity, >3 repetitions |
+| `velocity` | Actions per minute vs baseline | >3x baseline |
+| `cost_velocity` | Spend rate anomaly detection | >3x baseline spend rate |
+| `budget_caps` | Remaining budget percentage | &lt;10% remaining |
+| `token_growth` | Output token count anomaly | >3x mean for agent |
+| `context_expansion` | Context window utilization | >90% window consumed |
+
+### Behavioral Engines (6) — Mixed Tiers
+
+| Engine ID | Description | Tier | Default |
+|-----------|-------------|------|---------|
+| `oscillation` | State flip-flop patterns | Monitor | >4 reversals in 10 actions |
+| `error_rate` | Sequential error monitoring | Monitor | >5 consecutive errors |
+| `session_duration` | Abnormal session length | Monitor | >2x mean session |
+| `session_action_limit` | Actions per session anomaly | Monitor | >3x mean count |
+| `reasoning_drift` | Reasoning chain coherence | Enforce | Coherence &lt;0.6 |
+| `hallucination` | Output grounding verification | Enforce | Grounding &lt;0.7 |
+
+### Content Safety Engines (6) — Mixed Tiers
+
+| Engine ID | Description | Tier | Action |
+|-----------|-------------|------|--------|
+| `pii_scanner` | ML detection (88 patterns) via Presidio | Monitor | Alert |
+| `secrets_scanner` | API keys, tokens, passwords (50+ patterns) | Protect | Block |
+| `command_firewall` | Dangerous commands (rm -rf, DROP TABLE) | Protect | Block |
+| `blocked_phrases` | Configurable organization blocklist | Protect | Block |
+| `toxicity_filter` | Harmful content via Detoxify | Protect | Block |
+| `data_exfiltration` | Sensitive data leaving perimeter | Protect | Block |
+
+### Security Engines (7) — Protect & Enforce Tiers
+
+| Engine ID | Description | Tier | Backend |
+|-----------|-------------|------|---------|
+| `prompt_injection_pattern` | Pattern matching (40+ patterns) | Protect | Regex |
+| `jailbreak_pattern` | Pattern matching (30+ patterns) | Protect | Regex |
+| `prompt_injection` | AI-powered detection | Enforce | Prompt Guard 2 |
+| `jailbreak_detector` | AI-powered classification | Enforce | Prompt Guard 2 |
+| `semantic_firewall` | Embedding-based intent classification | Enforce | Vector similarity |
+| `a2a_depth` | Agent-to-agent privilege escalation | Enforce | Statistical |
+| `tool_parameter_validator` | Tool call parameter validation | Enforce | Schema + AI |
+
+### Engine Modes
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Engine disabled |
+| `simulate` | Runs, logs results, does NOT enforce |
+| `alert` | Runs, logs, sends notification |
+| `block` | Runs, blocks the action (Protect+) |
+
+---
+
+## Detection Output Types
+
+When engines detect issues, they produce detection objects with the following types:
 
 ## Security Detections
 

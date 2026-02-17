@@ -16,7 +16,7 @@ TrustScope offers **five ingestion points** to capture AI agent activity. Choose
 | [**SDK**](#sdk) | New apps, fine-grained control | 15 min | Decorators | Selective |
 | [**CLI**](#cli) | Scripts, testing, CI/CD | 2 min | None | Per-command |
 | [**Direct API**](#direct-api) | Custom integrations, any language | 10 min | HTTP calls | Manual |
-| [**Frameworks**](#frameworks) | LangChain, CrewAI, AutoGen | 10 min | Callbacks | Automatic |
+| [**Frameworks**](#framework-integrations) | LangChain, CrewAI, AutoGen | 10 min | Callbacks | Automatic |
 
 ---
 
@@ -269,7 +269,7 @@ curl -X POST https://api.trustscope.ai/v1/observe \
     "agent_id": "my-agent",
     "action_type": "llm_call",
     "provider": "openai",
-    "model": "gpt-4o",
+    "model": "gpt-5.2",
     "input": {"messages": [{"role": "user", "content": "Hello"}]},
     "output": {"content": "Hi there!"},
     "metrics": {
@@ -432,7 +432,7 @@ callback = TrustScopeCallbackHandler(
 )
 
 # Add to LLM
-llm = ChatOpenAI(model="gpt-4o", callbacks=[callback])
+llm = ChatOpenAI(model="gpt-5.2", callbacks=[callback])
 
 # Or add to chain
 chain = prompt | llm | parser
@@ -534,7 +534,7 @@ ts = TrustScope(api_key="ts_live_xxx")
 def my_agent(user_input: str):
     # LLM call goes through Gateway (automatic)
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5.2",
         messages=[{"role": "user", "content": user_input}]
     )
     

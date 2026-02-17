@@ -1,0 +1,462 @@
+---
+sidebar_position: 3
+title: React Native SDK
+description: Mobile SDK for TrustScope with offline support and React hooks
+---
+
+# React Native SDK
+
+The TrustScope React Native SDK provides mobile-optimized AI governance with offline support, automatic batching, and React hooks.
+
+## Installation
+
+```bash
+npm install @trustscope/react-native
+# or
+yarn add @trustscope/react-native
+```
+
+**Requirements:** React Native 0.70+, iOS 13+, Android API 24+
+
+---
+
+## Quick Start
+
+```typescript
+import { TrustScopeProvider, useTrustScope } from '@trustscope/react-native';
+
+// Wrap your app
+function App() {
+  return (
+    <TrustScopeProvider apiKey="ts_live_...">
+      <YourApp />
+    </TrustScopeProvider>
+  );
+}
+
+// Use in components
+function ChatScreen() {
+  const { trace, enforce } = useTrustScope();
+
+  const handleSend = async (message: string) => {
+    const result = await enforce({
+      agentId: 'mobile-chat',
+      policies: ['pii_block'],
+      action: 'user_message',
+      input: { message }
+    });
+
+    if (result.blocked) {
+      Alert.alert('Message blocked', result.reason);
+      return;
+    }
+
+    // Send message...
+  };
+
+  return <ChatUI onSend={handleSend} />;
+}
+```
+
+---
+
+## Provider Configuration
+
+```typescript
+import { TrustScopeProvider } from '@trustscope/react-native';
+
+<TrustScopeProvider
+  apiKey="ts_live_..."
+  environment="live"
+  options={{
+    baseUrl: 'https://api.trustscope.ai',
+    timeout: 30000,
+    retryCount: 3,
+    failOpen: true,
+    debug: __DEV__,
+
+    // Mobile-specific
+    batchTraces: true,
+    batchInterval: 5000,
+    offlineSupport: true,
+    maxOfflineTraces: 1000
+  }}
+>
+  <App />
+</TrustScopeProvider>
+```
+
+---
+
+## Hooks
+
+### useTrustScope
+
+Main hook for TrustScope operations.
+
+```typescript
+const {
+  trace,          // Create trace
+  enforce,        // Enforce policies
+  isReady,        // SDK initialized
+  isOnline,       // Network status
+  pendingTraces   // Offline queue size
+} = useTrustScope();
+```
+
+### useAgent
+
+Hook for agent-specific operations.
+
+```typescript
+const {
+  agent,
+  status,
+  dna,
+  createTrace,
+  lock,
+  unlock
+} = useAgent('agent_abc123');
+```
+
+### useSession
+
+Hook for session management.
+
+```typescript
+const {
+  session,
+  start,
+  end,
+  addTrace
+} = useSession('mobile-chat');
+```
+
+---
+
+## Tracing
+
+### Basic Trace
+
+```typescript
+const { trace } = useTrustScope();
+
+const result = await trace({
+  agentId: 'mobile-agent',
+  action: 'user_input',
+  input: { text: '...' },
+  output: { response: '...' },
+  metadata: {
+    screen: 'ChatScreen',
+    deviceId: deviceId
+  }
+});
+
+console.log(result.id, result.outcome);
+```
+
+### Trace with Session
+
+```typescript
+const { session, addTrace } = useSession('mobile-chat');
+
+// Start session when screen loads
+useEffect(() => {
+  session.start();
+  return () => session.end();
+}, []);
+
+// Add traces during conversation
+const handleMessage = async (message: string) => {
+  await addTrace({
+    action: 'user_message',
+    input: { message }
+  });
+};
+```
+
+---
+
+## Policy Enforcement
+
+### Enforce Before Action
+
+```typescript
+const { enforce } = useTrustScope();
+
+const handleSubmit = async (data: FormData) => {
+  const result = await enforce({
+    agentId: 'form-agent',
+    policies: ['pii_block', 'content_filter'],
+    action: 'form_submit',
+    input: data
+  });
+
+  if (result.blocked) {
+    Alert.alert('Blocked', result.reason);
+    return;
+  }
+
+  // Proceed with submission
+  await submitForm(data);
+};
+```
+
+### Enforcement Result
+
+```typescript
+interface EnforceResult {
+  allowed: boolean;
+  blocked: boolean;
+  reason?: string;
+  detections: Detection[];
+  traceId: string;
+}
+```
+
+---
+
+## Offline Support
+
+The SDK automatically handles offline scenarios:
+
+```typescript
+<TrustScopeProvider
+  options={{
+    offlineSupport: true,
+    maxOfflineTraces: 1000,
+    syncOnReconnect: true
+  }}
+>
+```
+
+### Offline Status
+
+```typescript
+const { isOnline, pendingTraces } = useTrustScope();
+
+if (!isOnline) {
+  return <Text>Offline - {pendingTraces} traces pending</Text>;
+}
+```
+
+### Manual Sync
+
+```typescript
+const { sync } = useTrustScope();
+
+// Force sync pending traces
+await sync();
+```
+
+---
+
+## Batch Tracing
+
+For performance, traces are batched:
+
+```typescript
+<TrustScopeProvider
+  options={{
+    batchTraces: true,
+    batchInterval: 5000,      // Send every 5 seconds
+    batchSize: 50             // Or when 50 traces accumulated
+  }}
+>
+```
+
+### Immediate Trace
+
+```typescript
+const { trace } = useTrustScope();
+
+// Force immediate send (bypass batching)
+await trace({
+  agentId: 'mobile-agent',
+  action: 'critical_action',
+  input: {...}
+}, { immediate: true });
+```
+
+---
+
+## Mobile-Specific Features
+
+### Device Context
+
+Automatically captured:
+
+```typescript
+// Automatically included in traces
+{
+  device: {
+    platform: 'ios',
+    version: '17.0',
+    model: 'iPhone 15',
+    appVersion: '1.0.0'
+  }
+}
+```
+
+### Screen Tracking
+
+```typescript
+import { useScreenTracking } from '@trustscope/react-native';
+
+function App() {
+  useScreenTracking({
+    agentId: 'mobile-app',
+    trackNavigation: true
+  });
+
+  return <NavigationContainer>...</NavigationContainer>;
+}
+```
+
+### Biometric Context
+
+```typescript
+const { trace } = useTrustScope();
+
+await trace({
+  agentId: 'mobile-agent',
+  action: 'sensitive_action',
+  metadata: {
+    biometricVerified: true,
+    authMethod: 'face_id'
+  }
+});
+```
+
+---
+
+## Error Handling
+
+```typescript
+import { TrustScopeError } from '@trustscope/react-native';
+
+try {
+  await trace({...});
+} catch (error) {
+  if (error instanceof TrustScopeError) {
+    if (error.code === 'NETWORK_ERROR') {
+      // Will be queued for offline sync
+    } else if (error.code === 'TIER_REQUIRED') {
+      // Feature not available
+    }
+  }
+}
+```
+
+---
+
+## React Navigation Integration
+
+```typescript
+import { NavigationContainer } from '@react-navigation/native';
+import { TrustScopeNavigationTracker } from '@trustscope/react-native';
+
+function App() {
+  return (
+    <TrustScopeProvider apiKey="ts_live_...">
+      <NavigationContainer
+        onStateChange={(state) => {
+          TrustScopeNavigationTracker.track(state);
+        }}
+      >
+        <Navigator />
+      </NavigationContainer>
+    </TrustScopeProvider>
+  );
+}
+```
+
+---
+
+## Expo Support
+
+```typescript
+// Works with Expo (no native modules required)
+import { TrustScopeProvider } from '@trustscope/react-native';
+
+export default function App() {
+  return (
+    <TrustScopeProvider apiKey="ts_live_...">
+      <ExpoApp />
+    </TrustScopeProvider>
+  );
+}
+```
+
+---
+
+## Testing
+
+```typescript
+import { MockTrustScopeProvider } from '@trustscope/react-native/testing';
+import { render } from '@testing-library/react-native';
+
+test('blocks PII', async () => {
+  const { getByText } = render(
+    <MockTrustScopeProvider
+      mockEnforce={{
+        blocked: true,
+        reason: 'PII detected'
+      }}
+    >
+      <ChatScreen />
+    </MockTrustScopeProvider>
+  );
+
+  // Test that PII is blocked
+});
+```
+
+---
+
+## Configuration Options
+
+```typescript
+interface TrustScopeOptions {
+  // Connection
+  baseUrl?: string;
+  timeout?: number;
+  retryCount?: number;
+  retryDelay?: number;
+
+  // Behavior
+  failOpen?: boolean;
+  debug?: boolean;
+
+  // Mobile-specific
+  batchTraces?: boolean;
+  batchInterval?: number;
+  batchSize?: number;
+  offlineSupport?: boolean;
+  maxOfflineTraces?: number;
+  syncOnReconnect?: boolean;
+  includeDeviceInfo?: boolean;
+
+  // BYOLLM
+  byollm?: {
+    provider: string;
+    apiKey: string;
+  };
+}
+```
+
+---
+
+## Platform Notes
+
+### iOS
+
+- Minimum iOS 13
+- Works with SwiftUI bridges
+- Background sync supported
+
+### Android
+
+- Minimum API 24
+- Works with Jetpack Compose bridges
+- WorkManager for background sync
