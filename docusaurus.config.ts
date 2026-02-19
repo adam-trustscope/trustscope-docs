@@ -73,8 +73,8 @@ const config: Config = {
       title: 'TrustScope',
       logo: {
         alt: 'TrustScope Logo',
-        src: 'img/logo.svg',
-        srcDark: 'img/logo-dark.svg',
+        src: 'img/logo.png',
+        srcDark: 'img/logo.png',
       },
       items: [
         {
