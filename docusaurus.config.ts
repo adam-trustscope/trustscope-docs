@@ -70,11 +70,12 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'TrustScope',
+      title: '',
       logo: {
         alt: 'TrustScope Logo',
         src: 'img/logo.png',
         srcDark: 'img/logo.png',
+        style: { height: '32px' },
       },
       items: [
         {
