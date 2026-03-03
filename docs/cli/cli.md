@@ -608,7 +608,7 @@ trustscope login --token ts_live_xxx
 
 ## Next Steps
 
-- [Python SDK Quickstart](/docs/quickstart/python.md)
-- [Node SDK Quickstart](/docs/quickstart/node.md)
-- [MCP Setup Guide](/docs/guides/mcp-setup.md)
-- [Governance API](/docs/api/governance.md)
+- [Python SDK Quickstart](/docs/sdks/python)
+- [Node SDK Quickstart](/docs/sdks/nodejs)
+- [MCP Setup Guide](/docs/guides/mcp-setup)
+- [Governance API](/docs/api-reference/governance)

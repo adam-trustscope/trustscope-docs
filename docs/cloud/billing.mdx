@@ -1,0 +1,184 @@
+---
+sidebar_position: 12
+title: Billing
+description: Manage your TrustScope subscription and billing
+---
+
+# Billing
+
+Manage your TrustScope subscription, view usage, and handle payments.
+
+## Pricing Tiers
+
+| | Monitor | Protect | Enforce | Govern |
+|---|:---:|:---:|:---:|:---:|
+| **Price** | Free | $49/mo | $199/mo | Contact Sales |
+| **Users** | 1 | 3 | 5 | Unlimited |
+| **API Keys** | 1 | 3 | 10 | Unlimited |
+| **Policies** | 3 | 16 | 50 | Unlimited |
+| **Detection Engines** | 16 | 20 | 26 | 26 |
+| **Data Retention** | 30 days | 90 days | 1 year | 7 years |
+| **Key Features** | Local engines, basic traces | Cloud engines, alerts, PII redaction | Agent DNA, SIEM, Agent Lock | Compliance exports, ZKP, SSO |
+
+Annual billing saves 20%.
+
+## Trace Limits and Overage
+
+Each tier includes a monthly trace allowance:
+
+| Tier | Monthly Traces | Limit Type |
+|------|:--------------:|:----------:|
+| **Monitor** | 5,000 | Hard limit |
+| **Protect** | 25,000 | Soft limit |
+| **Enforce** | 100,000 | Soft limit |
+| **Govern** | 500,000 | Soft limit |
+
+- **Hard limit** (Monitor): Traces beyond the limit are dropped. Upgrade to continue capturing.
+- **Soft limit** (Protect, Enforce, Govern): Traces beyond the included allowance are billed as overage at **$0.20 per trace**.
+
+Overage charges appear on the next monthly invoice. You can set overage alerts and hard caps at **Settings > Billing > Usage Alerts** to prevent unexpected charges.
+
+## Managed Endpoints
+
+Managed Endpoints are available at the Enforce tier and above:
+
+| Tier | Cost per Endpoint |
+|------|-------------------|
+| Monitor | Not available |
+| Protect | Not available |
+| Enforce | $10/endpoint/month |
+| Govern | Included (contact sales) |
+
+## Billing Portal
+
+Access billing at **Settings > Billing**:
+
+- View current plan and usage
+- Update payment method
+- Download invoices
+- Manage seats
+- Upgrade/downgrade plan
+
+## Upgrade
+
+### Via Dashboard
+
+1. Navigate to **Settings > Billing**
+2. Click **Upgrade Plan**
+3. Select new tier
+4. Confirm changes
+5. New features activate immediately
+
+### Proration
+
+When upgrading mid-cycle:
+- Charged pro-rated amount for remaining days
+- New tier features activate immediately
+- Next invoice reflects new plan
+
+## Downgrade
+
+### Via Dashboard
+
+1. Navigate to **Settings > Billing**
+2. Click **Change Plan**
+3. Select lower tier
+4. Review feature changes
+5. Confirm downgrade
+
+### Effective Date
+
+Downgrades take effect at end of current billing cycle:
+- Keep current features until cycle ends
+- Data beyond new retention limit is archived
+- Managed endpoints above limit are suspended
+
+## Seats
+
+### Add Seats
+
+1. Navigate to **Settings > Billing > Seats**
+2. Click **Add Seats**
+3. Enter number of additional seats
+4. Confirm purchase
+
+Seat additions are pro-rated for the current billing cycle.
+
+### Remove Seats
+
+1. Navigate to **Settings > Billing > Seats**
+2. Click **Manage Seats**
+3. Select seats to remove
+4. Confirm removal
+
+Seat removals take effect at end of billing cycle.
+
+## Payment Methods
+
+Accepted payment methods:
+- Credit/debit cards (Visa, Mastercard, Amex)
+- ACH bank transfer (US only)
+- Wire transfer (Govern tier)
+
+### Update Payment Method
+
+1. Navigate to **Settings > Billing > Payment**
+2. Click **Update Payment Method**
+3. Enter new payment details
+4. Confirm
+
+## Invoices
+
+Download invoices at **Settings > Billing > Invoices**:
+
+- Monthly invoices available for paid tiers
+- PDF format with line-item details
+- Customizable billing details (company name, address, tax ID)
+
+### Invoice Details
+
+Customize invoice details:
+
+1. Navigate to **Settings > Billing > Details**
+2. Enter company information
+3. Add tax ID if applicable
+4. Save changes
+
+## Usage Tracking
+
+Track usage metrics:
+
+| Metric | Where to View |
+|--------|--------------|
+| Active seats | Billing > Seats |
+| Managed endpoints | Billing > Endpoints |
+| Data retention used | Billing > Usage |
+| API calls | Billing > Usage |
+
+## Enterprise Billing
+
+Govern tier includes:
+
+- Custom contract terms
+- Annual invoicing
+- Purchase orders
+- Dedicated account manager
+- Volume discounts
+
+Contact sales@trustscope.ai for enterprise pricing.
+
+## Cancellation
+
+To cancel your subscription:
+
+1. Navigate to **Settings > Billing**
+2. Click **Cancel Subscription**
+3. Select reason (optional)
+4. Confirm cancellation
+
+### After Cancellation
+
+- Access continues until end of billing cycle
+- Data retained for 30 days after expiration
+- Can reactivate within 30 days without data loss
+- After 30 days, data is permanently deleted

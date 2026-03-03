@@ -1,0 +1,66 @@
+---
+sidebar_position: 1
+title: TrustScope Cloud
+description: Enterprise features for AI agent security and monitoring
+---
+
+# TrustScope Cloud
+
+TrustScope Cloud extends Safe Mode with enterprise features including team collaboration, advanced detection, and audit trail exports.
+
+## Tiers
+
+| Tier | Price | Users | Engines | Policies | Retention | Key Features |
+|------|-------|-------|---------|----------|-----------|--------------|
+| **Monitor** | Free | 1 | 15 local | 3 preset | 30 days | Local detection, Discord & Telegram alerts |
+| **Protect** | $49/mo | 3 | 20 (+5 cloud) | 12 | 90 days | Ed25519 signing, + Slack & Email alerts |
+| **Enforce** | $199/mo | 5 | 26 (+6 AI hybrid) | 24 | 1 year | Agent DNA, SIEM export, + Webhooks |
+| **Govern** | Contact Sales | Unlimited | 26 + custom | 24 + custom | 7 years | Compliance exports, ZKP, SSO/SAML, + PagerDuty, MS Teams, Jira, Okta |
+
+TrustScope provides **26 detection engines** and **24 policy types** across all tiers. Higher tiers unlock additional engines and policy customization.
+
+## Quick Connect
+
+```bash
+safemode connect
+```
+
+This opens your browser for authentication and links your local Safe Mode instance to TrustScope Cloud.
+
+## Feature Overview
+
+### Dashboard
+Real-time visibility into all agent activity across your team. View sessions, traces, and detection events.
+
+### Managed Endpoints
+Deploy Safe Mode to team members with centralized policy management. $10/endpoint for Protect and Enforce tiers.
+
+### Agent DNA
+Behavioral profiling that creates a fingerprint for each agent based on tool usage patterns.
+
+### Detection Engines
+Cloud-based detection engines complement local engines for comprehensive coverage.
+
+### Audit Trail Exports
+Export activity records with cryptographic signatures for compliance requirements.
+
+## Architecture
+
+```
+[Your MCP Client]
+       ↓
+[Safe Mode (Local)]
+       ↓
+[TrustScope Cloud]
+       ↓
+[Dashboard / Alerts / Exports]
+```
+
+Local detection runs first. Cloud features add visibility and team coordination.
+
+## Next Steps
+
+- [Connect to Cloud](./connect)
+- [Dashboard Overview](./dashboard)
+- [Detection Engines](./detections)
+- [Manage Your Team](./team)

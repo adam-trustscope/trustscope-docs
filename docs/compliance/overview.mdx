@@ -8,38 +8,79 @@ description: Meet regulatory requirements with TrustScope compliance features
 
 TrustScope helps organizations meet AI governance and compliance requirements across multiple frameworks.
 
+:::note
+TrustScope provides governance evidence and tooling to support compliance programs. TrustScope does not make compliance determinations — your legal and compliance teams are responsible for interpreting regulatory requirements.
+:::
+
 ## Supported Frameworks
 
-| Framework | Coverage | Export Format |
-|-----------|----------|---------------|
-| **NIST AI RMF** | Full | NIST JSON |
-| **EU AI Act** | Full | EU-compliant |
-| **SOC 2** | Type II | Evidence pack |
-| **HIPAA** | Technical safeguards | Audit logs |
-| **OWASP Agentic** | Full | Security report |
+| Framework | Description | Export Format |
+|-----------|-------------|---------------|
+| **AIUC-1** | AI Use Case Standard — agent inventory and risk classification | JSON, PDF |
+| **SEC 17a-4** | Securities recordkeeping — immutable audit trails for financial AI | Evidence pack |
+| **HIPAA** | Health data safeguards — PHI detection and access logging | Audit logs, PDF |
+| **EU AI Act** | EU AI regulation — risk assessment, transparency, human oversight | EU-compliant JSON |
+| **GDPR Article 22** | Automated decision-making — explainability and consent tracking | JSON, PDF |
+| **NIST AI RMF** | AI Risk Management Framework — governance, risk mapping, monitoring | NIST JSON |
+| **ISO 42001** | AI Management System standard — organizational AI governance | Evidence pack, PDF |
+
+Additional mappings:
+
+| Framework | Coverage |
+|-----------|----------|
+| **SOC 2 Type II** | Evidence packs with hash chain verification |
+| **OWASP Agentic Top 10** | Security report with detection coverage mapping |
+
+---
 
 ## Key Capabilities
 
 ### Immutable Audit Trail
 Every AI interaction is cryptographically hashed and linked:
-- Tamper-evident logging
-- Chain of custody
-- Bitcoin anchoring (optional)
+- SHA-256 hash chain with `prev_hash` linkage
+- Tamper-evident logging with chain verification
+- OpenTimestamps Bitcoin anchoring (Govern tier)
+- Ed25519 signed governance receipts (Govern tier)
+
+### Portable Governance Credentials (PGC)
+Cryptographically signed proof of AI governance:
+- Ed25519 digital signatures (RFC 8037 OKP format)
+- Optional Dilithium3 post-quantum signatures
+- JWKS endpoint for third-party verification: `GET /pgc/.well-known/jwks/{org_id}`
+- Machine-verifiable compliance claims
 
 ### Automated Evidence Collection
-Generate compliance reports with one click:
-- Risk assessments
-- Control mappings
-- Incident timelines
+Generate compliance evidence packs:
+- Framework-specific control mappings
+- Detection engine coverage reports
+- Policy evaluation history
+- Incident timelines with full trace context
 
-### Real-time Monitoring
-Continuous compliance monitoring:
-- Policy violation alerts
-- Anomaly detection
-- SLA tracking
+### Continuous Monitoring
+Real-time compliance monitoring with 26 detection engines:
+- Policy violation alerts and blocking
+- Behavioral drift detection via Agent DNA
+- PII/PHI/secrets scanning across all traces
+- Configurable alert channels (email, Slack, PagerDuty, webhook)
+
+---
+
+## Evidence Verification
+
+TrustScope evidence supports 4 verification levels:
+
+| Level | Method | Description |
+|-------|--------|-------------|
+| **Hash** | SHA-256 | Individual trace integrity |
+| **Chain** | prev_hash linkage | Sequence continuity |
+| **Completeness** | Gap detection | No missing traces |
+| **Signature** | Ed25519 / Dilithium3 | Cryptographic non-repudiation |
+
+---
 
 ## Quick Links
 
 - [OWASP Agentic Top 10](/docs/compliance/owasp-agentic)
-- [EU AI Act](/docs/compliance/eu-ai-act)
-- [NIST AI RMF](/docs/compliance/nist-ai-rmf)
+- [Evidence Framework](/docs/concepts/evidence-framework)
+- [Detection Engines](/docs/reference/detections)
+- [Policy Types](/docs/reference/policy-types)

@@ -6,15 +6,15 @@ description: How TrustScope addresses the OWASP Top 10 for Agentic Applications 
 
 # OWASP Top 10 for Agentic Applications
 
-The OWASP Top 10 for Agentic Applications (2026) identifies critical security risks in AI agent systems. TrustScope provides 20 detection engines and multiple governance controls mapped to each category.
+The OWASP Top 10 for Agentic Applications (2026) identifies critical security risks in AI agent systems. TrustScope provides 26 detection engines across 4 tiers and multiple governance controls mapped to each category.
 
 ## ASI01: Agent Goal Hijack
 
 **Risk:** Attackers manipulate agent objectives, task selection, or decision pathways through prompt injection, deceptive tool outputs, or poisoned data.
 
 **Active Detections:**
-- **Prompt Injection** — 40+ patterns across 8 languages, confidence scoring (Enforce+)
-- **Jailbreak Detector** — 35+ patterns with known jailbreak database (DAN, STAN, etc.) (Enforce+)
+- **Prompt Injection** — Prompt Guard 2 ML model, 40+ patterns across 8 languages (Protect+)
+- **Jailbreak Detector** — Prompt Guard 2 ML model, 35+ patterns with known jailbreak database (Protect+)
 - **Semantic Firewall** — LiteLLM embedding similarity for hidden instruction detection (Enforce+)
 - **Oscillation Detection** — A-B-A-B goal confusion pattern detection (All tiers)
 - **Hallucination Detection** — 3-layer pipeline: ground truth, behavioral anomaly, LLM verification (Enforce+)
@@ -204,14 +204,14 @@ policies=["cost-limit-10", "rate-limit-100-per-minute"]
 
 ## Detection Coverage Summary
 
-TrustScope provides **20 detection engines** mapped across the OWASP Agentic Top 10:
+TrustScope provides **26 detection engines** mapped across the OWASP Agentic Top 10:
 
-| Tier | Detections | Mode |
-|------|------------|------|
-| **Observe** (Free) | 8 anomaly detections + PII scanner | Alert only |
-| **Protect** ($29/mo) | + Command Firewall, Blocked Phrases, Secrets Scanner | Can block |
-| **Enforce** ($99/mo) | + Prompt Injection, Jailbreak, Semantic Firewall, A2A Depth, Hallucination, Behavioral Anomaly, Ground Truth, Reasoning Drift | Can block + policies |
-| **Govern** ($499/mo) | All 20 detections + governance evidence | Block + certificates |
+| Tier | Engines | Mode |
+|------|---------|------|
+| **Monitor** (Free) | 16 statistical + pattern engines (loop, velocity, PII, cost, error rate, etc.) | Alert only |
+| **Protect** ($49/mo) | +4 ML engines (prompt injection, jailbreak, toxicity, hate speech) | Can block + redact |
+| **Enforce** ($199/mo) | +6 AI hybrid engines (semantic firewall, hallucination, reasoning drift, A2A depth, tool validator, reasoning quality) | Can block + policies |
+| **Govern** (Contact) | All 26 engines + governance evidence | Block + certificates |
 
 ---
 

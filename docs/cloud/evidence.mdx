@@ -1,0 +1,244 @@
+---
+sidebar_position: 9
+title: Audit Trails
+description: Cryptographically signed activity records
+---
+
+# Audit Trails
+
+TrustScope provides cryptographically signed audit trails for compliance and security requirements.
+
+## Evidence Levels
+
+| Level | Name | Tier | Features |
+|-------|------|------|----------|
+| A0 | Basic | Monitor | Timestamped records, 30-day retention |
+| A1 | Signed | Protect | Ed25519 signatures, 90-day retention |
+| A2 | Timestamped | Enforce | Open Timestamps + PQC, 1-year retention |
+| A3 | Zero-Knowledge | Govern | ZKP proofs, 7-year retention |
+
+## A0: Basic Records
+
+All TrustScope tiers include basic activity records:
+
+- Session metadata
+- Tool call summaries
+- Detection events
+- Cost tracking
+
+Records are stored with timestamps but without cryptographic proofs.
+
+## A1: Ed25519 Signatures
+
+Protect tier adds Ed25519 digital signatures:
+
+```json
+{
+  "event_id": "evt_abc123",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "type": "tool_call",
+  "data": {
+    "tool": "file_write",
+    "path": "/src/app.ts"
+  },
+  "signature": "base64...",
+  "public_key": "ed25519:xyz..."
+}
+```
+
+Signatures prove:
+- Record was created by TrustScope
+- Record has not been modified
+- Timestamp is authentic
+
+### Verify Signatures
+
+```bash
+# Export signed records
+trustscope export --format signed-json --output records.json
+
+# Verify signatures
+trustscope verify records.json
+```
+
+## A2: Open Timestamps + PQC
+
+Enforce tier adds blockchain timestamping and post-quantum signatures:
+
+### Open Timestamps
+
+Records are anchored to the Bitcoin blockchain:
+
+```json
+{
+  "event_id": "evt_abc123",
+  "ots_proof": {
+    "attestations": [...],
+    "bitcoin_block": 820000,
+    "merkle_root": "abc123..."
+  }
+}
+```
+
+### Post-Quantum Cryptography
+
+In addition to Ed25519, records include Dilithium signatures:
+
+```json
+{
+  "signatures": {
+    "ed25519": "base64...",
+    "dilithium": "base64..."
+  }
+}
+```
+
+Dilithium signatures remain secure against quantum computer attacks.
+
+## A3: Zero-Knowledge Proofs
+
+Govern tier adds ZKP capabilities:
+
+### Selective Disclosure
+
+Prove specific facts without revealing full records:
+
+```
+Proof: Agent completed 50 sessions without security violations
+Revealed: Session count, violation count (0)
+Hidden: Session contents, tool calls, timestamps
+```
+
+### Compliance Attestations
+
+Generate compliance proofs for auditors:
+
+```bash
+trustscope prove \
+  --claim "no_pii_violations" \
+  --period "2024-Q1" \
+  --output compliance_proof.json
+```
+
+Auditors verify proofs without accessing underlying data.
+
+## Retention Periods
+
+| Tier | Default Retention | Maximum |
+|------|-------------------|---------|
+| Monitor | 30 days | 30 days |
+| Protect | 90 days | 1 year |
+| Enforce | 1 year | 3 years |
+| Govern | 7 years | Custom |
+
+Configure retention at **Settings > Data Retention**.
+
+## Export Formats
+
+Export audit trails in various formats:
+
+| Format | Use Case |
+|--------|----------|
+| JSON | Programmatic processing |
+| CSV | Spreadsheet analysis |
+| JSONL | Streaming/large exports |
+| Signed JSON | Verification required |
+| AIUC-1 | AI Use Case compliance |
+
+See [Exports](./exports) for detailed export options.
+
+## Chain of Custody
+
+For regulated environments, TrustScope maintains chain of custody records:
+
+1. **Collection** — When and how data was collected
+2. **Processing** — Detection engine processing records
+3. **Storage** — Where and how data is stored
+4. **Access** — Who accessed the data and when
+5. **Export** — When data was exported and to whom
+
+Access chain of custody reports at **Compliance > Chain of Custody**.
+
+## Portable Governance Credentials (PGC)
+
+Portable Governance Credentials allow audit evidence to be verified independently by any third party, without requiring access to the TrustScope platform.
+
+### Cryptographic Foundation
+
+PGC credentials are signed using dual-algorithm signatures:
+
+| Algorithm | Purpose |
+|-----------|---------|
+| **Ed25519** | Primary signature; fast, widely supported |
+| **Dilithium3** (optional) | Post-quantum signature; future-proof against quantum attacks |
+
+Both signatures are included in the credential envelope, allowing verifiers to check either or both.
+
+### JWKS Endpoint
+
+Public keys for verifying PGC credentials are available via a standard JWKS endpoint:
+
+```
+GET /pgc/.well-known/jwks/{org_id}
+```
+
+```bash
+# Fetch public keys for an organization
+curl https://api.trustscope.ai/pgc/.well-known/jwks/org_abc123
+```
+
+```json
+{
+  "keys": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "pgc-ed25519-2025-01",
+      "x": "base64url...",
+      "use": "sig"
+    },
+    {
+      "kty": "PQC",
+      "alg": "Dilithium3",
+      "kid": "pgc-dilithium3-2025-01",
+      "x": "base64url...",
+      "use": "sig"
+    }
+  ]
+}
+```
+
+## Evidence Verification
+
+TrustScope supports **4 levels** of evidence verification, each building on the previous:
+
+| Level | Name | What It Proves |
+|-------|------|----------------|
+| 1 | **Hash Verification** | Record content has not been tampered with |
+| 2 | **Chain Continuity** | No records have been deleted or inserted; sequential integrity |
+| 3 | **Completeness** | All expected records for the time range are present |
+| 4 | **Signature Verification** | Records were created by an authorized TrustScope instance |
+
+```bash
+# Run all 4 verification levels
+trustscope verify records.json --level all
+
+# Run only hash + chain verification
+trustscope verify records.json --level 2
+```
+
+## Compliance Frameworks
+
+TrustScope audit trails are designed to satisfy the following **7 compliance frameworks**:
+
+| Framework | Description | Tier Required |
+|-----------|-------------|:-------------:|
+| **AIUC-1** | AI Use Case compliance standard | Protect |
+| **SEC 17a-4** | Securities records retention requirements | Enforce |
+| **HIPAA** | Health information privacy and security | Enforce |
+| **EU AI Act** | European Union AI transparency and oversight | Enforce |
+| **GDPR Article 22** | Automated decision-making protections | Enforce |
+| **NIST AI RMF** | AI Risk Management Framework | Govern |
+| **ISO 42001** | AI Management System standard | Govern |
+
+Pre-built compliance export templates for each framework are available at **Compliance > Export Templates**.

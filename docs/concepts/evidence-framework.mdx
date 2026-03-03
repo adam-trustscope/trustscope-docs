@@ -174,7 +174,7 @@ Single evidence dataset → multiple audience views:
 | Internal | Everything | Nothing | Optional |
 | Auditor | Most artifacts | Trade secrets | Redacted properties |
 | Regulator | Framework-specific | Operational details | Compliance properties |
-| Insurer | Fleet aggregates | All individual data | Fleet compliance |
+| Insurer | Endpoint aggregates | All individual data | Org-level compliance |
 | Board | Summary + trends | All operational detail | Improvement trends |
 
 All views provably derive from the same Merkle root → same dataset → provably consistent.
@@ -201,6 +201,17 @@ Multiple organizations contribute ZK proofs → industry-level compliance statis
 **Ed25519** for all signed evidence:
 - TrustScope-signed at Enforce tier
 - Customer BYOK (Bring Your Own Key) at Govern tier
+- Optional **Dilithium3** (post-quantum cryptography) at Govern tier
+
+### Portable Governance Credentials (PGC)
+
+Signed, verifiable credentials that prove governance was applied:
+
+- `POST /pgc/issue` — Issue a signed credential for a governance event
+- `GET /pgc/verify/{credential_id}` — Verify credential signature
+- `GET /pgc/.well-known/jwks/{org_id}` — JWKS endpoint (RFC 8037 OKP) for public key discovery
+
+PGC uses Ed25519 signatures by default, with optional Dilithium3 for post-quantum readiness.
 
 ### Hash Chain
 
@@ -208,6 +219,15 @@ Multiple organizations contribute ZK proofs → industry-level compliance statis
 - Each trace includes hash of previous trace
 - Chain verification detects gaps or modifications
 - Anti-rollback protection
+
+### Evidence Verification (4 Levels)
+
+Evidence packs undergo 4-level verification:
+
+1. **Hash verification** — Each trace hash is correct
+2. **Chain continuity** — No gaps in the hash chain
+3. **Completeness check** — All required checks were executed
+4. **Signature verification** — Ed25519/Dilithium3 signatures valid
 
 ### Timestamping
 

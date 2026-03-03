@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
 title: Detection Engines
-description: 25 detection engines for AI agent governance
+description: 26 detection engines for AI agent governance
 ---
 
 # Detection Engines
 
-TrustScope provides 25 detection engines that automatically scan agent traces for risks, anomalies, and policy violations.
+TrustScope provides 26 detection engines that automatically scan agent traces for risks, anomalies, and policy violations.
 
 :::info Engines vs Policies
 **Detection Engines** run automatically and produce alerts/blocks based on content analysis.
@@ -17,9 +17,13 @@ Engines detect threats. Policies enforce business rules.
 
 ---
 
-## Engine Reference (25 Total)
+## Engine Reference (26 Total)
 
-### Rate Limit Engines (6) — Monitor Tier
+Engines are tiered — each tier includes all engines from lower tiers.
+
+### Monitor Tier (16 Engines)
+
+**Statistical Engines (10):**
 
 | Engine ID | Description | Default Threshold |
 |-----------|-------------|-------------------|
@@ -29,49 +33,87 @@ Engines detect threats. Policies enforce business rules.
 | `budget_caps` | Remaining budget percentage | &lt;10% remaining |
 | `token_growth` | Output token count anomaly | >3x mean for agent |
 | `context_expansion` | Context window utilization | >90% window consumed |
+| `oscillation` | State flip-flop patterns | >4 reversals in 10 actions |
+| `error_rate` | Sequential error monitoring | >5 consecutive errors |
+| `session_duration` | Abnormal session length | >2x mean session |
+| `session_action_limit` | Actions per session anomaly | >3x mean count |
 
-### Behavioral Engines (6) — Mixed Tiers
+**Pattern / Content Engines (6):**
 
-| Engine ID | Description | Tier | Default |
-|-----------|-------------|------|---------|
-| `oscillation` | State flip-flop patterns | Monitor | >4 reversals in 10 actions |
-| `error_rate` | Sequential error monitoring | Monitor | >5 consecutive errors |
-| `session_duration` | Abnormal session length | Monitor | >2x mean session |
-| `session_action_limit` | Actions per session anomaly | Monitor | >3x mean count |
-| `reasoning_drift` | Reasoning chain coherence | Enforce | Coherence &lt;0.6 |
-| `hallucination` | Output grounding verification | Enforce | Grounding &lt;0.7 |
+| Engine ID | Description | Default Action |
+|-----------|-------------|----------------|
+| `pii_scanner` | PII detection (88 patterns) via Presidio NER | Alert |
+| `secrets_scanner` | API keys, tokens, passwords (50+ patterns) | Alert |
+| `command_firewall` | Dangerous commands (`rm -rf`, `DROP TABLE`) | Block |
+| `blocked_phrases` | Configurable organization blocklist | Block |
+| `data_exfiltration` | Sensitive data leaving perimeter | Block |
+| `action_label_mismatch` | Tool claims "read" but performs "write" | Alert |
 
-### Content Safety Engines (6) — Mixed Tiers
+### Protect Tier (+4 = 20 Engines)
 
-| Engine ID | Description | Tier | Action |
-|-----------|-------------|------|--------|
-| `pii_scanner` | ML detection (88 patterns) via Presidio | Monitor | Alert |
-| `secrets_scanner` | API keys, tokens, passwords (50+ patterns) | Protect | Block |
-| `command_firewall` | Dangerous commands (rm -rf, DROP TABLE) | Protect | Block |
-| `blocked_phrases` | Configurable organization blocklist | Protect | Block |
-| `toxicity_filter` | Harmful content via Detoxify | Protect | Block |
-| `data_exfiltration` | Sensitive data leaving perimeter | Protect | Block |
+ML-powered content analysis. Requires model inference.
 
-### Security Engines (7) — Protect & Enforce Tiers
+| Engine ID | Description | Backend | Default Action |
+|-----------|-------------|---------|----------------|
+| `prompt_injection` | AI-powered injection detection | Prompt Guard 2 | Block |
+| `jailbreak_detector` | AI-powered jailbreak classification | Prompt Guard 2 | Block |
+| `toxicity_filter` | Harmful content detection | Detoxify | Block |
+| `hate_speech_detector` | Hate speech and discrimination | HateBERT | Block |
 
-| Engine ID | Description | Tier | Backend |
-|-----------|-------------|------|---------|
-| `prompt_injection_pattern` | Pattern matching (40+ patterns) | Protect | Regex |
-| `jailbreak_pattern` | Pattern matching (30+ patterns) | Protect | Regex |
-| `prompt_injection` | AI-powered detection | Enforce | Prompt Guard 2 |
-| `jailbreak_detector` | AI-powered classification | Enforce | Prompt Guard 2 |
-| `semantic_firewall` | Embedding-based intent classification | Enforce | Vector similarity |
-| `a2a_depth` | Agent-to-agent privilege escalation | Enforce | Statistical |
-| `tool_parameter_validator` | Tool call parameter validation | Enforce | Schema + AI |
+### Enforce Tier (+6 = 26 Engines)
 
-### Engine Modes
+AI hybrid engines using LLM reasoning and embedding models.
+
+| Engine ID | Description | Backend | Default Action |
+|-----------|-------------|---------|----------------|
+| `semantic_firewall` | Embedding-based intent classification | Vector similarity | Block |
+| `hallucination` | Output grounding verification | 3-layer pipeline | Alert |
+| `reasoning_drift` | Reasoning chain coherence | LLM analysis | Alert |
+| `a2a_depth` | Agent-to-agent privilege escalation | Statistical | Block |
+| `tool_parameter_validator` | Tool call parameter validation | Schema + AI | Block |
+| `reasoning_quality_monitor` | Reasoning chain quality assessment | LLM analysis | Alert |
+
+:::note Bias Monitor
+`bias_monitor` is a **batch analysis feature** available on the Agent DNA endpoints, not a per-trace detection engine. It analyzes patterns across an agent's full trace history.
+:::
+
+---
+
+## Engine Modes
 
 | Mode | Behavior |
 |------|----------|
 | `off` | Engine disabled |
 | `simulate` | Runs, logs results, does NOT enforce |
 | `alert` | Runs, logs, sends notification |
+| `redact` | Runs, redacts detected content (Protect+) |
 | `block` | Runs, blocks the action (Protect+) |
+
+---
+
+## Redaction
+
+Seven engines support automatic content redaction at Protect tier and above:
+
+| Engine | Redaction Target |
+|--------|-----------------|
+| `pii_scanner` | SSN, credit cards, emails, phone numbers, addresses |
+| `secrets_scanner` | API keys, tokens, passwords, connection strings |
+| `command_firewall` | Dangerous shell commands |
+| `blocked_phrases` | Organization-specific blocklist matches |
+| `toxicity_filter` | Harmful content segments |
+| `data_exfiltration` | Sensitive data in outbound payloads |
+| `hate_speech_detector` | Discriminatory content |
+
+Redacted content is replaced with typed markers:
+
+```
+✓[REDACTED_SSN]
+✓[REDACTED_API_KEY]
+✓[REDACTED_CREDIT_CARD]
+```
+
+Original content is never stored when redaction is active.
 
 ---
 
@@ -141,7 +183,7 @@ Detects attempts to extract sensitive data.
   "subtype": "ssn",
   "confidence": 0.99,
   "location": "input.messages[0].content",
-  "value_redacted": "***-**-6789"
+  "value_redacted": "✓[REDACTED_SSN]"
 }
 ```
 
@@ -268,7 +310,7 @@ detections:
 | `log` | Log only, don't block |
 | `alert` | Log and send alert |
 | `block` | Block the request |
-| `redact` | Redact detected content |
+| `redact` | Redact detected content (Protect+) |
 
 ---
 
@@ -283,8 +325,8 @@ detections:
       "subtype": "ssn",
       "confidence": 0.99,
       "location": "input.messages[0].content",
-      "action_taken": "blocked",
-      "value_redacted": "***-**-6789"
+      "action_taken": "redacted",
+      "value_redacted": "✓[REDACTED_SSN]"
     },
     {
       "type": "prompt_injection",

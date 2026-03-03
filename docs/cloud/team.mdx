@@ -1,0 +1,125 @@
+---
+sidebar_position: 7
+title: Team Management
+description: Manage team members and permissions
+---
+
+# Team Management
+
+Manage your team's access to TrustScope Cloud and Safe Mode policies.
+
+## Team Roles
+
+| Role | Permissions |
+|------|------------|
+| **Owner** | Full access, billing, team deletion |
+| **Admin** | Manage members, policies, endpoints |
+| **Member** | View dashboard, manage own devices |
+| **Viewer** | Read-only dashboard access |
+
+Roles follow a strict hierarchy: Owner > Admin > Member > Viewer. Each role inherits all permissions of the roles below it. A user can only assign roles at or below their own level.
+
+## Inviting Members
+
+### Via Dashboard
+
+1. Navigate to **Team > Invite**
+2. Enter email address(es)
+3. Select role
+4. Send invitation
+
+### Via API
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/team/invites \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "developer@company.com",
+    "role": "member"
+  }'
+```
+
+## Seat Limits
+
+Seat counts vary by tier:
+
+| Tier | Included Seats | API Keys | Additional Seats |
+|------|---------------|----------|------------------|
+| Monitor | 1 | 1 | N/A |
+| Protect | 3 | 3 | $10/seat/mo |
+| Enforce | 5 | 10 | $20/seat/mo |
+| Govern | Unlimited | Unlimited | Custom |
+
+View current usage at **Team > Seats**.
+
+## SSO/SAML (Govern)
+
+Enterprise SSO is available on Govern tier:
+
+### Supported Providers
+
+- Okta
+- Azure AD
+- Google Workspace
+- OneLogin
+- Custom SAML 2.0
+
+### Configuration
+
+1. Navigate to **Team > SSO**
+2. Select provider or "Custom SAML"
+3. Enter IdP metadata URL or upload metadata XML
+4. Configure attribute mapping
+5. Test connection
+6. Enable for team
+
+### Just-in-Time Provisioning
+
+New users are provisioned automatically on first SSO login:
+
+```yaml
+sso:
+  jit_provisioning: true
+  default_role: member
+  auto_assign_policy: engineering-default
+```
+
+## Activity Audit
+
+Track team member actions:
+
+1. Navigate to **Team > Audit Log**
+2. Filter by member, action type, date range
+3. Export for review
+
+Tracked actions:
+- Policy changes
+- Member invitations/removals
+- Endpoint assignments
+- Alert configurations
+
+## Device Management
+
+View and manage devices connected by team members:
+
+1. Navigate to **Team > Devices**
+2. See all connected devices
+3. Filter by member, client type, last active
+4. Revoke device access if needed
+
+## Data Access Controls
+
+Control team member access to data:
+
+### Enforce+ Features
+
+- **Session isolation** — Members only see their own sessions
+- **Agent restrictions** — Limit visibility to assigned agents
+- **Endpoint restrictions** — Limit visibility to assigned endpoints
+
+### Govern Features
+
+- **Custom data policies** — Fine-grained access rules
+- **Data residency** — Regional data storage requirements
+- **Retention controls** — Per-team retention settings

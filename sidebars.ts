@@ -121,6 +121,84 @@ const sidebars: SidebarsConfig = {
     },
   ],
 
+  // Developer Sidebar
+  developerSidebar: [
+    {
+      type: 'category',
+      label: 'Developer Handbook',
+      collapsed: false,
+      items: [
+        'developer/overview',
+        'developer/repositories',
+        'developer/local-development',
+        'developer/environments-and-secrets',
+        'developer/deployment-runbook',
+        'developer/go-live-checklist',
+      ],
+    },
+  ],
+
+  // Safe Mode Sidebar
+  safeModeSidebar: [
+    {
+      type: 'category',
+      label: 'Safe Mode',
+      collapsed: false,
+      items: [
+        'safe-mode/index',
+        'safe-mode/install',
+        'safe-mode/presets',
+        'safe-mode/knobs',
+        'safe-mode/engines',
+        'safe-mode/cli',
+      ],
+    },
+  ],
+
+  // Cloud Sidebar
+  cloudSidebar: [
+    {
+      type: 'category',
+      label: 'TrustScope Cloud',
+      collapsed: false,
+      items: [
+        'cloud/index',
+        'cloud/connect',
+        'cloud/dashboard',
+        'cloud/detections',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Management',
+      collapsed: false,
+      items: [
+        'cloud/policies',
+        'cloud/agents',
+        'cloud/team',
+        'cloud/managed-endpoints',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Compliance & Export',
+      collapsed: false,
+      items: [
+        'cloud/evidence',
+        'cloud/exports',
+        'cloud/siem',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Account',
+      collapsed: false,
+      items: [
+        'cloud/billing',
+      ],
+    },
+  ],
+
   // Resources Sidebar
   resourcesSidebar: [
     {

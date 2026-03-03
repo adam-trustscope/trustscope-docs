@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: Policy Types
-description: Complete reference of 26 TrustScope policy types for AI governance
+description: Complete reference of 24 TrustScope policy types for AI governance
 ---
 
 # Policy Types
 
-TrustScope provides 26 policy types — configurable rules you define to govern agent behavior.
+TrustScope provides 24 policy types — configurable rules you define to govern agent behavior.
 
 :::info Policies vs Detection Engines
 **Policy Types** are rules you configure (rate limits, approvals, allowlists).
@@ -22,14 +22,35 @@ To enforce a spending limit, use the `max_value` **policy type**.
 
 | Tier | Count | Policy Types |
 |------|-------|--------------|
-| **Discover** | 4 | max_value, min_value, allowed_values, blocked_values |
-| **Protect** | +10 | rate_limit, time_window, require_field, recipient_allowlist, amount_limit, require_approval, block_action, sla_monitor, blocked_phrases, cumulative_limit |
-| **Enforce** | +9 | human_approval, chain_depth_limit, external_check, per_entity_limit, custom_logic, semantic_rule, delegation_restriction, delegation_limits, exposure_threshold |
-| **Govern** | +3 | custom_function, multi_approval, tool_provenance |
+| **Monitor** | 3 | max_value, min_value, allowed_values |
+| **Protect** | +9 (12 total) | blocked_values, rate_limit, time_window, require_field, recipient_allowlist, amount_limit, require_approval, block_action, cumulative_limit |
+| **Enforce** | +9 (21 total) | human_approval, chain_depth_limit, external_check, per_entity_limit, custom_logic, semantic_rule, delegation_restriction, delegation_limits, exposure_threshold |
+| **Govern** | +3 (24 total) | custom_function, multi_approval, tool_provenance |
+
+### Enforcement Modes
+
+Every policy supports these enforcement modes:
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Policy not evaluated |
+| `simulate` | Evaluates, logs what would happen, does NOT enforce |
+| `alert` | Evaluates, logs, sends notification |
+| `redact` | Evaluates, redacts matching content (Protect+) |
+| `block` | Evaluates and blocks the action (Protect+) |
+
+### Policy Limits by Tier
+
+| Tier | Max Policies |
+|------|-------------|
+| Monitor | 3 |
+| Protect | 16 |
+| Enforce | 50 |
+| Govern | Unlimited |
 
 ---
 
-## Discover Tier (4 Types)
+## Monitor Tier (3 Types)
 
 ### Max Value (`max_value`)
 
@@ -86,9 +107,11 @@ Use cases: Model allowlists, tool allowlists, action allowlists.
 
 ---
 
+## Protect Tier (+9 Types)
+
 ### Blocked Values (`blocked_values`)
 
-Blacklist specific parameter values.
+Blocklist specific parameter values.
 
 ```json
 {
@@ -102,8 +125,6 @@ Blacklist specific parameter values.
 ```
 
 ---
-
-## Protect Tier (+10 Types)
 
 ### Rate Limit (`rate_limit`)
 
@@ -219,41 +240,6 @@ Block specific action types entirely.
   "type": "block_action",
   "config": {
     "blocked_actions": ["shell_execute", "database_write", "file_delete"],
-    "action": "block"
-  }
-}
-```
-
----
-
-### SLA Monitor (`sla_monitor`)
-
-Monitor service level agreements.
-
-```json
-{
-  "type": "sla_monitor",
-  "config": {
-    "max_latency_ms": 5000,
-    "max_error_rate": 0.05,
-    "window_minutes": 15,
-    "action": "alert"
-  }
-}
-```
-
----
-
-### Blocked Phrases (`blocked_phrases`)
-
-Organization-specific keyword blocklist.
-
-```json
-{
-  "type": "blocked_phrases",
-  "config": {
-    "phrases": ["competitor_name", "internal_codename", "unreleased_product"],
-    "case_sensitive": false,
     "action": "block"
   }
 }
@@ -518,51 +504,38 @@ Prevents supply chain attacks via recently modified tools.
   "name": "Cost Control Policy",
   "type": "max_value",
   "enabled": true,
-  "mode": "active",
-  "agents": ["agent_id_1", "agent_id_2"],
+  "mode": "block",
+  "agent_id": "agent_id_1",
   "config": {
     "field": "cost_usd",
-    "max": 100.00,
-    "action": "block"
+    "max": 100.00
   }
 }
 ```
 
-### Policy Modes
-
-| Mode | Description |
-|------|-------------|
-| `disabled` | Policy not evaluated |
-| `simulate` | Evaluates, logs what would happen, does NOT enforce |
-| `active` | Evaluates and enforces |
-
 ### Policy Lifecycle
 
 ```
-disabled → simulate → active
+off → simulate → alert → block
 ```
 
-1. **Create policy** in `disabled` mode — no impact on traffic
+1. **Create policy** in `off` mode — no impact on traffic
 2. **Enable simulate** — policy evaluates, logs results, no enforcement
 3. **Review simulate results** — confirm no false positives
-4. **Activate** — policy enforces on live traffic
+4. **Switch to alert** — policy flags violations, sends notifications
+5. **Activate block** — policy enforces on live traffic
 
 ### Agent Targeting
 
 ```json
-// Specific agents
+// Specific agent
 {
-  "agents": ["agent_id_1", "agent_id_2"]
+  "agent_id": "agent_id_1"
 }
 
-// All agents
+// All agents (global policy)
 {
-  "agents": ["*"]
-}
-
-// By tag
-{
-  "agent_tags": ["production", "customer-facing"]
+  "agent_id": null
 }
 ```
 

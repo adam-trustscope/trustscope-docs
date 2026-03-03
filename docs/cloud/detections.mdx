@@ -1,0 +1,182 @@
+---
+sidebar_position: 4
+title: Cloud Detection Engines
+description: Additional detection engines available with TrustScope Cloud
+---
+
+# Cloud Detection Engines
+
+TrustScope Cloud adds additional detection engines to complement the 16 local engines in Safe Mode. Across all tiers, there are **26 detection engines** in total (16 Monitor + 4 Protect + 6 Enforce).
+
+## Engine Tiers
+
+| Tier | Local Engines | Cloud Engines | Total |
+|------|--------------|---------------|-------|
+| Monitor (Free) | 16 | 0 | 16 |
+| Protect | 16 | +4 | 20 |
+| Enforce | 16 | +10 | 26 |
+| Govern | 16 | +10 | 26 |
+
+### Tier-Based Engine Availability Matrix
+
+| Engine Category | Monitor (16) | Protect (20) | Enforce (26) |
+|-----------------|:------------:|:------------:|:------------:|
+| Local regex & pattern engines | Yes | Yes | Yes |
+| Local ONNX models | Yes | Yes | Yes |
+| Cloud Presidio PII | — | Yes | Yes |
+| Cloud ONNX Prompt Injection | — | Yes | Yes |
+| Cloud ONNX Jailbreak | — | Yes | Yes |
+| Statistical Anomaly | — | Yes | Yes |
+| Cross-Session Matching | — | — | Yes |
+| BYOLLM Detectors | — | — | Yes |
+| Agent DNA | — | — | Yes |
+| CLAG | — | — | Yes |
+| RGNA | — | — | Yes |
+| Behavioral Fingerprinting | — | — | Yes |
+
+## Protect Tier Engines (+4)
+
+### Presidio PII (Cloud)
+
+Enhanced PII detection using Microsoft Presidio with additional entity types beyond local regex patterns.
+
+- Named entity recognition
+- Context-aware detection
+- Custom entity support
+
+### ONNX Prompt Injection
+
+Cloud-hosted prompt injection model with larger parameter count than local version.
+
+- Lower false positive rate
+- Multilingual support
+- Continuous model updates
+
+### ONNX Jailbreak
+
+Cloud-hosted jailbreak detection with expanded training data.
+
+- Novel jailbreak pattern detection
+- Cross-model coverage
+- Weekly model updates
+
+### Statistical Anomaly
+
+Session-level anomaly detection using statistical methods.
+
+- Unusual tool call patterns
+- Timing anomalies
+- Cost anomalies
+
+## Enforce Tier Engines (+6)
+
+All Protect engines plus:
+
+### Cross-Session Matching
+
+Pattern matching across sessions to detect coordinated behavior.
+
+- Multi-session attack detection
+- Agent behavior correlation
+- Team-wide pattern analysis
+
+### BYOLLM Detectors
+
+Run your own prompts against incoming tool calls using your preferred LLM.
+
+```yaml
+# Example BYOLLM detector
+detectors:
+  - name: sensitive_data_check
+    prompt: "Does this action involve sensitive customer data?"
+    model: gpt-4
+    action: approve
+```
+
+### Agent DNA
+
+Behavioral fingerprinting based on tool usage patterns.
+
+- Detects agent identity spoofing
+- Flags unusual behavior for known agents
+- Builds behavioral baselines
+
+### CLAG (Cross-Layer Analysis Graph)
+
+Graph-based analysis of tool call relationships.
+
+- Multi-step attack detection
+- Call chain analysis
+- Dependency tracking
+
+### RGNA (Risk Graph Neural Attention)
+
+Neural network-based risk scoring across tool call sequences.
+
+- Context-aware risk assessment
+- Temporal pattern analysis
+- Adaptive thresholds
+
+### Behavioral Fingerprinting
+
+Continuous authentication based on behavioral patterns.
+
+- Session consistency checking
+- Drift detection
+- Identity verification
+
+## Configuration
+
+Cloud engines are enabled automatically based on your tier. Configure thresholds via the dashboard or API:
+
+```bash
+# View cloud engine status
+safemode status
+
+# Output includes cloud engine details
+Cloud: connected (Enforce tier)
+Cloud Engines: 10 active
+  - presidio_pii: enabled
+  - onnx_prompt_injection: enabled
+  - agent_dna: enabled (baseline building)
+  ...
+```
+
+## Redact Mode
+
+Detection engines can operate in **redact mode**, where sensitive content is masked rather than blocked or alerted. When a detection fires in redact mode, the offending content is replaced with a placeholder before the tool call proceeds.
+
+```yaml
+# Enable redact mode for a specific engine
+engines:
+  presidio_pii:
+    mode: redact
+    replacement: "[REDACTED]"
+  onnx_prompt_injection:
+    mode: block   # other engines can use different modes
+```
+
+Redact mode is available on all detection engines at the Protect tier and above. It is particularly useful for PII detection, where you want to allow tool calls to proceed but strip sensitive information from the parameters.
+
+Supported engine modes:
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Engine disabled |
+| `monitor` | Log detection, allow tool call |
+| `alert` | Log + notify, allow tool call |
+| `redact` | Mask content, allow tool call |
+| `block` | Deny tool call |
+
+## Latency
+
+Cloud engines add minimal latency to tool call processing:
+
+| Engine Type | Typical Latency |
+|-------------|-----------------|
+| Statistical | 5-10ms |
+| ONNX Models | 15-30ms |
+| BYOLLM | 100-500ms |
+| Neural (RGNA) | 20-40ms |
+
+Cloud engines run in parallel with local engines. Total added latency is the maximum of cloud engine latencies, not the sum.

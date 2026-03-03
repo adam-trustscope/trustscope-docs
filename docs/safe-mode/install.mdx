@@ -1,0 +1,118 @@
+---
+sidebar_position: 2
+title: Installation
+description: Install Safe Mode on your machine
+---
+
+# Installation
+
+## Requirements
+
+- Node.js 18+
+- One of: Cursor, Claude Desktop, Claude Code, VS Code, Windsurf
+
+## Install Methods
+
+### 1. npx (Recommended)
+
+```bash
+npx safemode init
+```
+
+This downloads and runs Safe Mode temporarily. Good for trying it out.
+
+### 2. Global Install
+
+```bash
+npm install -g safemode
+safemode init
+```
+
+Installs Safe Mode permanently. The `safemode` command is always available.
+
+### 3. MCP Marketplace (Coming Soon)
+
+Settings → MCP Apps → Search "Safe Mode"
+
+## What `init` Does
+
+1. **Detects MCP clients** — Finds Claude Desktop, Cursor, VS Code, etc.
+2. **Reads config files** — Locates MCP server configurations
+3. **Backs up configs** — Saves originals to `~/.safemode/backup/`
+4. **Patches configs** — Routes MCP servers through Safe Mode proxy
+5. **Prompts for preset** — Choose from coding, personal, strict, trading, yolo
+6. **Creates config** — Writes `~/.safemode/config.yaml`
+7. **Runs first-run scan** — Checks for secrets, risky packages, etc.
+8. **Optional: ML models** — Downloads prompt injection/jailbreak models (85MB)
+
+## Config File Locations
+
+### Claude Desktop
+
+| Platform | Path |
+|----------|------|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+### Cursor
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.cursor/mcp.json` |
+| Project | `.cursor/mcp.json` |
+
+### VS Code
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.vscode/mcp.json` |
+| Project | `.vscode/mcp.json` |
+
+### Claude Code
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.claude/mcp_servers.json` |
+
+### Windsurf
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.windsurf/mcp.json` |
+
+### Project-level
+
+Any project can include a `.mcp.json` file in its root directory for project-scoped MCP server configuration.
+
+## Uninstall
+
+```bash
+# Restore original MCP configs
+safemode restore
+
+# Remove global package
+npm uninstall -g safemode
+```
+
+## Troubleshooting
+
+### Safe Mode doesn't detect my client
+
+1. Make sure the client is installed
+2. Check if the config file exists at the expected path
+3. Run `safemode doctor` for diagnostics
+
+### MCP servers aren't working
+
+1. Check `safemode status` for errors
+2. View activity with `safemode activity`
+3. Restore originals with `safemode restore` if needed
+
+### ML models won't download
+
+```bash
+# Retry ML model download
+safemode ml --enable
+```
+
+Models require ~85MB disk space and internet connection.

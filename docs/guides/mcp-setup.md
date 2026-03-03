@@ -483,7 +483,7 @@ Increase timeout in client configuration:
 
 ## Next Steps
 
-- [Python SDK Quickstart](/docs/quickstart/python.md)
-- [Node SDK Quickstart](/docs/quickstart/node.md)
-- [Governance API](/docs/api/governance.md)
-- [CLI Reference](/docs/reference/cli.md)
+- [Python SDK Quickstart](/docs/sdks/python)
+- [Node SDK Quickstart](/docs/sdks/nodejs)
+- [Governance API](/docs/api-reference/governance)
+- [CLI Reference](/docs/cli/overview)

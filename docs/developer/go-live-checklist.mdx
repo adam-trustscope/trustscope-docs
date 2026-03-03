@@ -1,0 +1,87 @@
+---
+sidebar_position: 6
+title: Go-Live Checklist
+description: Launch-day checklist for the TrustScope platform and its customer-facing surfaces
+---
+
+# Go-Live Checklist
+
+Use this checklist for the week of launch and again on launch day.
+
+## Domains and routing
+
+- [ ] `api.trustscope.ai` resolves to the live API deployment.
+- [ ] `app.trustscope.ai` or the chosen dashboard domain resolves to the dashboard deployment.
+- [ ] `trustscope.ai` and `www.trustscope.ai` resolve to the marketing site.
+- [ ] `docs.trustscope.ai` resolves to the Docusaurus build.
+- [ ] API `CORS_ORIGINS` includes every production frontend origin.
+
+## Secrets and environment readiness
+
+- [ ] API `SECRET_KEY` is production-grade and not a development default.
+- [ ] Production Redis and Postgres URLs are configured.
+- [ ] Clerk live keys are loaded in the API and dashboard.
+- [ ] `CLERK_JWKS_URL` is set in production.
+- [ ] `ADMIN_API_KEY` is present anywhere admin routes are exercised.
+- [ ] Stripe live keys and webhook secret are configured if billing is live.
+- [ ] R2 credentials are configured if import or evidence-pack upload flows are live.
+- [ ] Any AI-provider keys required for launch demos or deep analysis are configured.
+
+## Data and migrations
+
+- [ ] `alembic upgrade head` has been applied in production.
+- [ ] Post-deploy `/health` returns healthy or expected degraded state.
+- [ ] Postgres backup and restore ownership is assigned.
+- [ ] Redis persistence and failover expectations are documented.
+
+## Application smoke tests
+
+- [ ] API OpenAPI docs load.
+- [ ] Dashboard login works.
+- [ ] Dashboard can read live metrics and traces.
+- [ ] At least one trace is created end to end.
+- [ ] Waitlist submission works if exposed publicly.
+- [ ] Pricing and contact pages render without broken links.
+- [ ] Docs navbar, API reference, and developer handbook pages render.
+
+## CI/CD and rollback
+
+- [ ] API security and integration gates passed on the release commit.
+- [ ] Dashboard and website security gates passed on the release commit.
+- [ ] Render deploy hook is configured and working.
+- [ ] Last-known-good Render and Vercel deployments are identified for rollback.
+- [ ] Release owners know who can perform DNS, Render, Vercel, Clerk, and Stripe changes.
+
+## Package and repo hygiene
+
+- [ ] The canonical runtime package repo is chosen before publishing `trustscope`.
+- [ ] Experimental or legacy repos are not referenced from public docs by accident.
+- [ ] Boilerplate READMEs have been replaced or are clearly marked as non-canonical.
+- [ ] No public surface links to legacy package names or outdated docs.
+
+## Launch-day operating rhythm
+
+### T-minus 24 hours
+
+- [ ] Freeze schema-breaking changes.
+- [ ] Rehearse rollback for API and dashboard.
+- [ ] Rebuild docs and verify search behavior.
+
+### T-minus 1 hour
+
+- [ ] Verify deploy credentials and provider access.
+- [ ] Confirm incident channel and decision maker.
+- [ ] Confirm smoke-test owner.
+
+### First hour after launch
+
+- [ ] Watch API `/health`, errors, and auth failures.
+- [ ] Watch dashboard page-load and API-call failures.
+- [ ] Validate one billing or onboarding journey if those flows are live.
+- [ ] Record the exact deployment versions that are live.
+
+### First day after launch
+
+- [ ] Review traces, errors, and any governance events.
+- [ ] Review broken-link reports and docs feedback.
+- [ ] Capture follow-up fixes for anything deferred during launch freeze.

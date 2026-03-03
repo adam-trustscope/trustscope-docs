@@ -478,26 +478,27 @@ user.initiate_chat(assistant, message="Write a Python function")
 
 ---
 
-## MCP Server (Claude Code / Cursor)
+## MCP Server {#mcp-server}
 
-**Model Context Protocol server for IDE integrations.**
+**Model Context Protocol server with 11 governance tools and 18 local detection engines.**
 
 ### When to Use
-- ✅ Claude Code users
-- ✅ Cursor IDE users
-- ✅ Any MCP-compatible client
+- Claude Desktop, Claude Code, Cursor, VS Code, or any MCP-compatible client
+- Local governance without cloud dependency
+- Human-in-the-loop approval workflows
 
 ### Setup
 
 ```bash
-# Install MCP server
-npm install -g @trustscope/mcp-server
+# Via CLI (auto-detects and patches MCP client configs)
+trustscope mcp wrap
 
-# Add to Claude Code config (~/.claude/config.json)
+# Or manual — add to Claude Desktop config
 {
   "mcpServers": {
     "trustscope": {
-      "command": "trustscope-mcp",
+      "command": "npx",
+      "args": ["trustscope", "mcp"],
       "env": {
         "TRUSTSCOPE_API_KEY": "ts_live_xxx"
       }
@@ -506,13 +507,65 @@ npm install -g @trustscope/mcp-server
 }
 ```
 
-### What Gets Captured
-- All tool invocations
-- File read/write operations
-- Command executions
-- Conversation context
+**Two modes:**
+- **Local** (no API key): 18 detection engines, local SQLite evidence store, no cloud sync
+- **Connected** (with API key): Local + cloud sync, cloud policies, managed endpoint registration
 
-📖 **Full Guide:** [MCP Integration](/docs/concepts/sessions)
+### 11 MCP Tools
+
+#### Policy & Detection
+
+| Tool | Description |
+|------|-------------|
+| `trustscope_check_policy` | Check content/action against configured policies. Input: `agent_id`, `action_type`, optional `tool_name`, `tool_args`, `content`. Returns: allow/alert/block decision with detected issues. |
+| `trustscope_check_detection` | Run 18 local detection engines on content. Input: `content`, optional `context` (agent_id, session_id, direction), optional `engines[]` to select specific engines. Returns: detection results from all engines. |
+
+#### Evidence & Logging
+
+| Tool | Description |
+|------|-------------|
+| `trustscope_log_action` | Log an action to the local evidence store with SHA-256 hash chain integrity. Input: `agent_id`, `action_type`, optional `session_id`, `tool_name`, `request_summary`, `response_summary`, `blocked`, `simulated`, `metadata`. Returns: trace record with hash chain entry. |
+| `trustscope_list_traces` | Query the evidence store with filters. Input: optional `agent_id`, `session_id`, `limit` (default 100), `offset`, `blocked_only`. Returns: array of traces with pagination. |
+
+#### Approvals
+
+| Tool | Description |
+|------|-------------|
+| `trustscope_list_approvals` | List pending, approved, or rejected approval requests. Input: optional `agent_id`, `status`, `limit`. |
+| `trustscope_approve` | Approve or reject a pending action. Input: `approval_id`, `approved` (boolean), optional `reason`. |
+
+#### Agent Intelligence
+
+| Tool | Description |
+|------|-------------|
+| `trustscope_get_agent_dna` | Get Agent DNA behavioral fingerprint. Input: `agent_id`. Returns: behavioral profile with z-scores, patterns, risk scores. |
+| `trustscope_explain_behavior` | Statistical analysis of agent behavior over a time window. Input: `agent_id`, optional `session_id`, `window_hours` (default 24). Returns: z-scores, tool patterns, risk scoring. |
+
+#### Compliance
+
+| Tool | Description |
+|------|-------------|
+| `trustscope_list_policies` | List all configured policies. Input: optional `engine` filter. |
+| `trustscope_get_compliance` | Get compliance status. Input: optional `agent_id`, `session_id`. Returns: evidence chain integrity + detection summary. |
+| `trustscope_get_attestation` | Generate an evidence attestation for external verification. Input: `agent_id`, optional `window_start`, `window_end` (ISO 8601). Returns: unsigned attestation. |
+
+### 18 Local Detection Engines
+
+The MCP server runs 18 detection engines locally (vs 26 cloud engines):
+
+**Statistical (10):** loop_killer, velocity_limit, cost_velocity, budget_caps, token_growth, context_expansion, oscillation, error_rate, session_duration, session_action_limit
+
+**Pattern (8):** pii_scanner, secrets_scanner, command_firewall, blocked_phrases, data_exfiltration, prompt_injection, jailbreak, action_label_mismatch
+
+### MCP Server Options
+
+```bash
+npx trustscope mcp [OPTIONS]
+  -k, --api-key <key>     TrustScope API key (enables cloud sync)
+  --http                  Use HTTP transport instead of stdio
+  -p, --port <port>       HTTP port (default: 3000)
+  -h, --host <host>       HTTP host (default: 0.0.0.0)
+```
 
 ---
 

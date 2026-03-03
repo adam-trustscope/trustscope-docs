@@ -1,0 +1,191 @@
+---
+sidebar_position: 11
+title: SIEM Integration
+description: Stream events to your security information and event management system
+---
+
+# SIEM Integration
+
+Stream TrustScope events to your SIEM for centralized security monitoring.
+
+## Supported SIEMs
+
+TrustScope integrates with SIEM platforms via webhook:
+
+| SIEM | Integration Type | Tier |
+|------|-----------------|------|
+| Splunk | HTTP Event Collector | Enforce+ |
+| Datadog | Log Management API | Enforce+ |
+| Generic | Webhook | Enforce+ |
+
+## Notification Channels by Tier
+
+Alert notifications are available across tiers with increasing channel options:
+
+| Tier | Channels |
+|------|----------|
+| **Monitor** | Discord, Telegram |
+| **Protect** | + Slack, Email |
+| **Enforce** | + Webhooks |
+| **Govern** | + PagerDuty, MS Teams, Jira, Okta |
+
+## Quick Setup
+
+### Splunk
+
+1. Create HTTP Event Collector token in Splunk
+2. In TrustScope: **Integrations > SIEM > Splunk**
+3. Enter HEC URL and token
+4. Test connection
+5. Enable streaming
+
+```json
+{
+  "type": "splunk",
+  "hec_url": "https://splunk.company.com:8088/services/collector",
+  "token": "your-hec-token",
+  "index": "trustscope",
+  "source": "trustscope",
+  "sourcetype": "trustscope:events"
+}
+```
+
+### Datadog
+
+1. Create API key in Datadog
+2. In TrustScope: **Integrations > SIEM > Datadog**
+3. Enter API key and site (US/EU)
+4. Configure tags
+5. Enable streaming
+
+```json
+{
+  "type": "datadog",
+  "api_key": "your-api-key",
+  "site": "datadoghq.com",
+  "tags": ["env:production", "service:trustscope"]
+}
+```
+
+### Generic Webhook
+
+For unsupported SIEMs, use the generic webhook integration:
+
+```json
+{
+  "type": "webhook",
+  "url": "https://your-siem.com/ingest",
+  "method": "POST",
+  "headers": {
+    "Authorization": "Bearer your-token",
+    "Content-Type": "application/json"
+  },
+  "batch_size": 100,
+  "flush_interval_seconds": 5
+}
+```
+
+## Event Format
+
+Events are streamed in a consistent JSON format:
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00.123Z",
+  "event_type": "detection",
+  "severity": "high",
+  "source": {
+    "endpoint_id": "ep_abc123",
+    "agent_id": "agt_xyz789",
+    "client": "cursor"
+  },
+  "detection": {
+    "engine": "prompt_injection",
+    "action": "block",
+    "confidence": 0.95,
+    "details": {
+      "pattern": "ignore previous instructions"
+    }
+  },
+  "context": {
+    "session_id": "ses_123",
+    "tool": "bash",
+    "risk_level": "high"
+  }
+}
+```
+
+## Event Types
+
+| Type | Description | Severity |
+|------|-------------|----------|
+| `detection` | Engine triggered | Variable |
+| `block` | Action blocked | High |
+| `approve` | Action sent for approval | Medium |
+| `allow` | Action allowed | Low |
+| `session_start` | New session began | Info |
+| `session_end` | Session completed | Info |
+| `policy_change` | Policy was modified | Medium |
+| `endpoint_health` | Endpoint status change | Variable |
+
+## Filtering
+
+Configure which events stream to your SIEM:
+
+```json
+{
+  "filters": {
+    "event_types": ["detection", "block"],
+    "severity": ["high", "critical"],
+    "engines": ["prompt_injection", "secrets_scanner"],
+    "agents": ["agt_abc123"]
+  }
+}
+```
+
+## Alert Correlation
+
+Use TrustScope event fields for SIEM correlation rules:
+
+### Splunk SPL Example
+
+```spl
+index=trustscope sourcetype=trustscope:events
+| where event_type="detection" AND severity="high"
+| stats count by source.agent_id, detection.engine
+| where count > 5
+| alert
+```
+
+### Datadog Monitor Example
+
+```yaml
+name: TrustScope High Severity Detections
+type: log alert
+query: |
+  logs("source:trustscope severity:high").rollup("count").by("agent_id").last("5m") > 5
+message: |
+  High detection rate for agent {{agent_id}}
+  @slack-security-alerts
+```
+
+## Troubleshooting
+
+### Events not appearing
+
+1. Check integration status at **Integrations > SIEM**
+2. Verify credentials are correct
+3. Check SIEM for ingestion errors
+4. Review TrustScope activity to confirm events exist
+
+### High latency
+
+1. Increase batch size (reduces API calls)
+2. Check network connectivity
+3. Review SIEM ingestion rate limits
+
+### Missing events
+
+1. Review filter configuration
+2. Check tier supports SIEM integration (Enforce+)
+3. Verify event types are enabled

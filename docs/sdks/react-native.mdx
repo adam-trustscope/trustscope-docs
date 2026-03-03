@@ -6,7 +6,13 @@ description: Mobile SDK for TrustScope with offline support and React hooks
 
 # React Native SDK
 
+**Version:** 0.1.0 · **Package:** `@trustscope/react-native` · **React Native:** 0.70+
+
 The TrustScope React Native SDK provides mobile-optimized AI governance with offline support, automatic batching, and React hooks.
+
+:::info Fail-Open Default
+The SDK defaults to `failOpen: true` — your app continues working even if TrustScope is unavailable. An `OfflineQueue` automatically caches and syncs requests when connectivity returns.
+:::
 
 ## Installation
 

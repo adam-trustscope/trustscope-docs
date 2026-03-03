@@ -6,24 +6,72 @@ description: Grouping related AI interactions with sessions
 
 # Sessions
 
-A **session** groups related AI interactions together, providing context and traceability.
+A **session** groups related AI interactions together, providing context, traceability, and aggregate analytics across multiple traces.
+
+---
 
 ## What is a Session?
 
-A session might represent:
+A session represents a logical unit of work:
+
 - A user conversation from start to finish
 - A multi-step workflow execution
 - A batch processing job
-- Any logical unit of work
+- An agent-to-agent delegation chain
+
+Every trace within a session shares the same `session_id`, enabling you to view the complete interaction history as a single unit.
+
+---
+
+## Session Fields
+
+Sessions are grouped dynamically by `session_id` across traces. Key fields:
+
+| Field | Description |
+|-------|-------------|
+| `session_id` | Your chosen identifier (e.g., `"user_123_conv_456"`) |
+| `org_id` | Organization that owns the session |
+| `trace_count` | Number of traces in the session |
+| `agent_count` | Number of distinct agents involved |
+| `first_trace_at` | Timestamp of first trace |
+| `last_trace_at` | Timestamp of most recent trace |
+| `total_duration_ms` | Time from first to last trace |
+| `status` | Current status (active, completed, failed, timeout) |
+
+### Outcome Counts
+
+Each session tracks trace outcomes:
+
+| Counter | Description |
+|---------|-------------|
+| `success_count` | Traces that completed successfully |
+| `blocked_count` | Traces blocked by policy |
+| `failed_count` | Traces that resulted in errors |
+
+---
 
 ## Creating Sessions
 
 ### Python SDK
 
 ```python
-with ts.session(agent_id="my-agent", session_id="user_123") as session:
-    result1 = process_query("What's my order status?")
-    result2 = process_query("Can you update my address?")
+async with ts.start_session(name="Customer Support") as session:
+    await session.observe(agent_id="my-agent", action="query", ...)
+    await session.observe(agent_id="my-agent", action="response", ...)
+```
+
+Or pass `session_id` directly:
+
+```python
+await ts.observe(agent_id="my-agent", session_id="user_123", ...)
+```
+
+### Node.js SDK
+
+```typescript
+const session = await ts.startSession('Customer Support');
+await session.observe({ agentId: 'my-agent', actionType: 'query', ... });
+await session.end('completed');
 ```
 
 ### Gateway (via Headers)
@@ -38,9 +86,65 @@ client = OpenAI(
 )
 ```
 
+### Direct API
+
+Include `session_id` in your observe or enforce request body.
+
+---
+
+## Agent-to-Agent (A2A) Tracking
+
+When multiple agents collaborate within a session, TrustScope tracks the delegation chain:
+
+| Field | Description |
+|-------|-------------|
+| `has_a2a` | Whether the session involves multiple agents |
+| `handoff_count` | Number of agent-to-agent handoffs |
+| `agents_involved` | List of all agent IDs in the session |
+
+Each trace in an A2A chain includes:
+- `parent_trace_id` — The trace that spawned this one
+- `source_agent_id` — Agent that delegated
+- `target_agent_id` — Agent that received
+- `sequence_number` — Position in the chain
+
+This enables you to visualize the full delegation tree and apply `chain_depth_limit` policies to prevent runaway chains.
+
+---
+
+## Querying Sessions
+
+### API
+
+```bash
+# List sessions with summary stats
+curl "https://api.trustscope.ai/v1/sessions/summary?limit=50" \
+  -H "Authorization: Bearer ts_live_xxx"
+```
+
+Returns paginated session summaries with trace counts, duration, agents involved, and outcome breakdowns.
+
+### Dashboard
+
+The Sessions view in the dashboard groups traces by session, showing:
+- Timeline of all actions
+- Agent participation
+- Policy violations
+- Cost breakdown per session
+
+---
+
 ## Session Benefits
 
-1. **Traceability** - See all actions in a conversation
-2. **Context** - Understand user intent across messages
-3. **Analytics** - Measure session-level metrics
-4. **Compliance** - Export complete interaction history
+1. **Traceability** — See all actions in a conversation as a single unit
+2. **Context** — Understand user intent across multiple messages
+3. **A2A visibility** — Track delegation chains between agents
+4. **Analytics** — Measure session-level metrics (duration, cost, success rate)
+5. **Compliance** — Export complete interaction history for audits
+
+---
+
+## Related
+
+- [Agents](/docs/concepts/agents) — Agent identity and management
+- [Cloud: Dashboard](/docs/cloud/dashboard) — Session view in the dashboard

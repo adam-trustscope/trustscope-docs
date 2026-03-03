@@ -35,10 +35,10 @@ TrustScope is an AI governance platform that monitors, detects, and enforces pol
 │    Coverage verification, audit snapshots                     │
 ├───────────────────────────────────────────────────────────────┤
 │         Layer 6: Enforcement                                  │
-│    26 policy types, blocking, approval, simulate mode         │
+│    24 policy types, blocking, approval, simulate mode         │
 ├───────────────────────────────────────────────────────────────┤
 │         Layer 5: Detection                                    │
-│    25 engines across 4 categories                             │
+│    26 engines across 4 categories                             │
 ├───────────────────────────────────────────────────────────────┤
 │         Layer 4: Identity                                     │
 │    Agent DNA (8 strands), fingerprinting, drift detection     │
@@ -150,15 +150,15 @@ TrustScope connects to customer platforms to find ungoverned AI agents.
 
 ## Layer 5: Detection
 
-### 25 Detection Engines
+### 26 Detection Engines
 
-**Rate Limits (6):** Loop Killer, Velocity Limit, Cost Velocity, Budget Caps, Token Growth, Context Expansion
+**Statistical (10) — Monitor:** Loop Killer, Velocity, Oscillation, Token Growth, Cost Velocity, Error Rate, Budget Caps, Context Expansion, Session Duration, Session Action Limit
 
-**Behavioral (6):** Oscillation, Error Rate, Session Duration, Session Action Limit, Reasoning Drift, Hallucination
+**Pattern / Content (6) — Monitor:** PII Scanner, Secrets Scanner, Command Firewall, Blocked Phrases, Data Exfiltration, Action Label Mismatch
 
-**Content Safety (6):** PII Scanner, Secrets Scanner, Command Firewall, Blocked Phrases, Toxicity Filter, Data Exfiltration
+**ML Content (4) — Protect:** Prompt Injection (Prompt Guard 2), Jailbreak Detector (Prompt Guard 2), Toxicity Filter (Detoxify), Hate Speech Detector (HateBERT)
 
-**Security (7):** Prompt Injection Pattern, Jailbreak Pattern, Prompt Injection AI, Jailbreak Detect AI, Semantic Firewall, A2A Depth, Tool Parameter Validator
+**AI Hybrid (6) — Enforce:** Semantic Firewall, Hallucination, Reasoning Drift, A2A Depth, Tool Parameter Validator, Reasoning Quality Monitor
 
 ### Engine Modes
 
@@ -173,29 +173,25 @@ TrustScope connects to customer platforms to find ungoverned AI agents.
 
 ## Layer 6: Enforcement
 
-### 26 Policy Types
+### 24 Policy Types
 
-| Category | Tier |
-|----------|------|
-| Security (pii_block, injection_block, secret_block, toxicity_block) | Protect+ |
-| Cost (cost_limit, token_limit, request_limit) | Protect+ |
-| Behavior (loop_prevention, repetition_block, session_limit) | Protect+ |
-| Content (keyword_block, regex_block, topic_block) | Protect+ |
-| Access (tool_allowlist, model_allowlist, api_allowlist) | Enforce+ |
-| Approval (human_approval, delegation_approval) | Enforce+ |
-| Delegation (delegation_limit, delegation_scope) | Enforce+ |
-| Compliance (framework_enforce, control_require) | Govern |
-| Advanced (custom_rule, conditional_policy, time_based, risk_based) | Govern |
+| Tier | Count | Types |
+|------|-------|-------|
+| **Monitor** | 3 | max_value, min_value, allowed_values |
+| **Protect** | +9 (12) | blocked_values, rate_limit, time_window, require_field, recipient_allowlist, amount_limit, require_approval, block_action, cumulative_limit |
+| **Enforce** | +9 (21) | human_approval, chain_depth_limit, external_check, per_entity_limit, custom_logic, semantic_rule, delegation_restriction, delegation_limits, exposure_threshold |
+| **Govern** | +3 (24) | custom_function, multi_approval, tool_provenance |
 
-### Policy Lifecycle
+### Policy Enforcement Modes
 
 ```
-disabled ──► simulate ──► active
+off ──► simulate ──► alert ──► block
 ```
 
-1. Create in `disabled` or `simulate` mode
+1. Create in `off` or `simulate` mode
 2. Review simulate results
-3. Activate when confident
+3. Enable `alert` for notifications
+4. Activate `block` for enforcement
 
 ---
 

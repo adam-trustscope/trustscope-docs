@@ -1,0 +1,187 @@
+---
+sidebar_position: 5
+title: Policies
+description: Centralized policy management for teams
+---
+
+# Policies
+
+TrustScope Cloud enables centralized policy management across your team's devices. There are **24 policy types** spanning the Monitor, Protect, Enforce, and Govern tiers.
+
+## Policy Limits by Tier
+
+| | Monitor | Protect | Enforce | Govern |
+|---|:---:|:---:|:---:|:---:|
+| **Policies** | 3 | 16 | 50 | Unlimited |
+| **Users** | 1 | 3 | 5 | Unlimited |
+| **API Keys** | 1 | 3 | 10 | Unlimited |
+
+## Policy Hierarchy
+
+Policies are evaluated in order:
+
+1. **Team Policy** — Set by admins, applies to all team members
+2. **Endpoint Policy** — Per-device overrides (Managed Endpoints only)
+3. **Local Overrides** — User `.safemode.yaml` (if allowed by team policy)
+
+## Creating Policies
+
+### Via Dashboard
+
+1. Navigate to **Policies > Create Policy**
+2. Start from a preset or blank template
+3. Configure capabilities and overrides
+4. Assign to team or specific endpoints
+
+### Via API
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/policies \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Engineering Team",
+    "base_preset": "coding",
+    "capabilities": {
+      "filesystem": "scoped_write",
+      "terminal": "scoped_write"
+    },
+    "overrides": {
+      "terminal": {
+        "destructive_commands": "block"
+      }
+    }
+  }'
+```
+
+## Policy Structure
+
+```yaml
+version: "1.0"
+name: Engineering Team
+base_preset: coding
+
+# Capability levels
+capabilities:
+  filesystem: scoped_write
+  terminal: scoped_write
+  git: scoped_write
+  network: full_access
+  database: scoped_write
+
+# Specific overrides
+overrides:
+  terminal:
+    destructive_commands: block
+    package_installs: approve
+  filesystem:
+    write_outside_project: block
+
+# Budget limits
+budget:
+  max_session_cost: 25
+  alert_at: 20
+
+# Allow local overrides
+allow_local_overrides: true
+local_override_allowlist:
+  - budget.alert_at
+  - overrides.terminal.package_installs
+```
+
+## Policy Assignment
+
+### Team-Wide
+
+Assign a policy as the team default:
+
+1. Navigate to **Policies > [Policy Name]**
+2. Click **Set as Team Default**
+3. All team members receive this policy
+
+### Per-Endpoint
+
+Assign policies to specific endpoints:
+
+1. Navigate to **Endpoints**
+2. Select endpoint(s)
+3. Click **Assign Policy**
+4. Choose policy
+
+## Local Override Control
+
+Control whether team members can override policy settings locally:
+
+| Setting | Effect |
+|---------|--------|
+| `allow_local_overrides: false` | No local changes allowed |
+| `allow_local_overrides: true` | All local changes allowed |
+| `local_override_allowlist: [...]` | Only listed settings can be changed |
+| `local_override_blocklist: [...]` | Listed settings cannot be changed |
+
+## Policy Sync
+
+Policies sync to endpoints automatically:
+
+- **Standard devices:** Sync on connect, then every 5 minutes
+- **Managed Endpoints:** Immediate push on policy change
+
+Force immediate sync:
+
+```bash
+safemode connect --refresh
+```
+
+## Version History
+
+All policy changes are versioned:
+
+1. Navigate to **Policies > [Policy Name] > History**
+2. View change history with diffs
+3. Roll back to previous versions if needed
+
+## Enforcement Modes
+
+Each policy rule can operate in one of five enforcement modes:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `off` | Rule disabled | Temporarily disable without deleting |
+| `simulate` | Evaluate but take no action; results logged | Testing new rules before enabling |
+| `alert` | Log and send notification; tool call proceeds | Visibility without blocking |
+| `redact` | Mask matching content; tool call proceeds | PII scrubbing, data loss prevention |
+| `block` | Deny the tool call entirely | Strict enforcement of security boundaries |
+
+```yaml
+# Example: mixed enforcement modes
+rules:
+  pii_detection:
+    mode: redact
+  destructive_commands:
+    mode: block
+  cost_anomaly:
+    mode: alert
+  new_experimental_rule:
+    mode: simulate
+```
+
+## Test Builder
+
+The policy **Test Builder** (available in the dashboard at **Policies > [Policy Name] > Test**) lets you validate policies against sample tool calls before deploying them.
+
+1. Navigate to **Policies > [Policy Name] > Test**
+2. Enter a sample tool call payload or select from recent real events
+3. Click **Run Test** to evaluate the policy against the payload
+4. Review which rules fire, what mode they would operate in, and the resulting action
+5. Iterate on rules until the policy behaves as expected
+
+The test builder supports batch testing against multiple payloads simultaneously and can replay historical sessions to validate policy changes against real traffic.
+
+## Compliance Presets
+
+Pre-built policies for compliance requirements (Govern tier):
+
+- **SOC 2** — Audit logging, access controls
+- **HIPAA** — PII protection, encryption requirements
+- **EU AI Act** — Transparency, human oversight
+- **NIST AI RMF** — Risk management framework alignment

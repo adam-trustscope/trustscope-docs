@@ -18,11 +18,16 @@ const config: Config = {
   projectName: 'docs',
 
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
 
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
+  },
+
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
   },
 
   presets: [
@@ -98,6 +103,12 @@ const config: Config = {
         },
         {
           type: 'docSidebar',
+          sidebarId: 'developerSidebar',
+          position: 'left',
+          label: 'Developer',
+        },
+        {
+          type: 'docSidebar',
           sidebarId: 'resourcesSidebar',
           position: 'left',
           label: 'Resources',
@@ -131,6 +142,10 @@ const config: Config = {
             {
               label: 'SDKs',
               to: '/docs/sdks/python',
+            },
+            {
+              label: 'Developer',
+              to: '/docs/developer/overview',
             },
           ],
         },

@@ -1,0 +1,121 @@
+---
+sidebar_position: 2
+title: Connect to Cloud
+description: Link Safe Mode to TrustScope Cloud
+---
+
+# Connect to Cloud
+
+Link your local Safe Mode instance to TrustScope Cloud for team features and advanced detection.
+
+## Prerequisites
+
+- Safe Mode installed and initialized
+- TrustScope account (free tier available)
+
+## Connect
+
+```bash
+safemode connect
+```
+
+This command:
+1. Opens your browser for authentication
+2. Creates an API key for your device
+3. Enables cloud-based detection engines
+4. Starts syncing activity to your dashboard
+
+## Connection Modes
+
+### Standard (Default)
+
+Activity syncs to cloud for dashboard visibility. Local engines continue to run. Cloud engines add additional detection. You retain full control over your local `.safemode.yaml` configuration.
+
+```bash
+safemode connect
+```
+
+### Managed Endpoint
+
+Device policies are managed centrally by your team admin. Local `.safemode.yaml` changes are overwritten by team policies pushed from the dashboard. Use this mode for enforcing consistent policies across your organization.
+
+```bash
+safemode connect --managed
+```
+
+When connecting in managed mode, a device token is issued in the format:
+
+```
+tsdev_<base64-encoded-device-id>_<hmac-signature>
+```
+
+This token is stored locally at `~/.safemode/device_token` and used for policy sync authentication.
+
+### API-Based Setup
+
+For automated provisioning (CI/CD, fleet deployment), connect via API instead of the browser flow:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/devices/register \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "build-server-01",
+    "mode": "managed",
+    "policy_group": "ci-default"
+  }'
+```
+
+Then pass the returned device token to Safe Mode:
+
+```bash
+safemode connect --token <device-token>
+```
+
+## Verify Connection
+
+```bash
+safemode status
+```
+
+Output shows cloud connection status:
+```
+Safe Mode v1.0.0
+Preset: coding
+Engines: 20 active (5 cloud)
+Clients: Cursor, Claude Desktop
+Cloud: connected (Protect tier)
+```
+
+## Disconnect
+
+Stop syncing activity to cloud:
+
+```bash
+safemode disconnect
+```
+
+Local detection continues to work. Cloud engines are disabled.
+
+## Privacy
+
+When connected to TrustScope Cloud:
+
+- **Synced:** Tool call metadata, detection events, session summaries
+- **Not synced:** Full message content, file contents, secrets (redacted locally)
+
+All data is encrypted in transit (TLS 1.3) and at rest (AES-256).
+
+## Troubleshooting
+
+### Connection fails
+
+1. Check internet connectivity
+2. Verify browser can access `https://app.trustscope.ai`
+3. Run `safemode doctor` for diagnostics
+
+### Cloud engines not loading
+
+1. Verify your tier supports cloud engines (Protect+)
+2. Check `safemode status` for errors
+3. Try `safemode disconnect` then `safemode connect`

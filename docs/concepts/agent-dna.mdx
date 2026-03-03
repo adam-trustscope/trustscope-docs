@@ -12,19 +12,38 @@ Agent DNA is TrustScope's behavioral fingerprinting system that creates a unique
 
 ## Overview
 
-Every agent monitored by TrustScope develops a DNA profile composed of three strands:
+Every agent monitored by TrustScope develops a DNA profile composed of **8 strands**, computed by the DNASynthesizer service across the agent's trace history:
 
-| Strand | What It Captures | Example Traits |
-|--------|------------------|----------------|
-| **Static** | Configuration and identity | Model, system prompt hash, tools enabled |
-| **Functional** | Capabilities and permissions | API access, file operations, cost limits |
-| **Dynamic** | Behavioral patterns over time | Response patterns, tool usage frequency, error rates |
+| Strand | What It Captures |
+|--------|------------------|
+| `agent_origin` | How the agent was registered, source system, initial configuration |
+| `tools_called` | Which tools the agent uses, frequency, and call patterns |
+| `models_used` | LLM models used, provider distribution, model switching behavior |
+| `patterns_observed` | Response patterns — length, style, timing, token usage |
+| `error_patterns` | Error types, frequency, recovery strategies, failure modes |
+| `temporal_patterns` | Usage by time of day, day of week, seasonal patterns |
+| `interaction_patterns` | How the agent interacts with users, other agents, and systems |
+| _(reserved)_ | Future strand for additional behavioral signals |
 
 The DNA profile enables:
 - **Trust Scoring** — Quantified reliability (0-100)
 - **Drift Detection** — Alerts when behavior deviates from baseline
 - **Freeze/Unfreeze** — Lock agent configuration to prevent changes
 - **Verification** — Cryptographic attestation of agent identity
+
+---
+
+## Agent Fingerprint
+
+Each agent receives a unique fingerprint in `fp_XXXX` format — a 24-character, 3-component hash derived from:
+
+| Component | Source |
+|-----------|--------|
+| `capabilities_hash` | Hash of tools, models, and MCP servers |
+| `pattern_hash` | Hash of behavioral patterns across strands |
+| `pattern_shape` | Statistical shape of the agent's execution pattern |
+
+The fingerprint changes when the agent's behavior meaningfully shifts, enabling drift detection.
 
 ---
 
@@ -49,66 +68,6 @@ Each agent receives a trust score from 0-100 based on:
 | 50-69 | Fair | Increased monitoring recommended |
 | 30-49 | Poor | Restricted operations, review needed |
 | 0-29 | Critical | Immediate attention required |
-
----
-
-## DNA Strands
-
-### Static Strand
-
-Fixed characteristics that define the agent's identity:
-
-```json
-{
-  "strand": "static",
-  "traits": {
-    "model": "gpt-4-turbo",
-    "system_prompt_hash": "sha256:abc123...",
-    "tools_enabled": ["web_search", "file_read", "calculator"],
-    "created_at": "2026-01-15T10:30:00Z",
-    "version": "1.2.0"
-  }
-}
-```
-
-### Functional Strand
-
-Capabilities and operational boundaries:
-
-```json
-{
-  "strand": "functional",
-  "traits": {
-    "api_access": ["openai", "anthropic"],
-    "file_operations": ["read"],
-    "network_access": true,
-    "cost_limit_daily": 50.00,
-    "max_tokens_per_request": 4096,
-    "allowed_domains": ["api.company.com"]
-  }
-}
-```
-
-### Dynamic Strand
-
-Behavioral patterns observed over time:
-
-```json
-{
-  "strand": "dynamic",
-  "traits": {
-    "avg_response_time_ms": 1250,
-    "avg_tokens_per_response": 450,
-    "tool_usage_distribution": {
-      "web_search": 0.45,
-      "file_read": 0.35,
-      "calculator": 0.20
-    },
-    "error_rate": 0.02,
-    "peak_usage_hours": [9, 10, 14, 15]
-  }
-}
-```
 
 ---
 
@@ -137,10 +96,12 @@ The drift score (0.0 - 1.0) measures behavioral deviation:
 | `cost` | Cost patterns changed | 3x increase in token usage |
 | `errors` | Error patterns changed | New error types appearing |
 
-### API: Get Drift
+### Intent Drift
+
+If `intent_drift_enabled` is true for an agent, TrustScope also monitors whether the agent's actions align with its `stated_purpose` and `allowed_intents`:
 
 ```bash
-curl https://api.trustscope.ai/v1/agents/{agent_id}/drift \
+curl https://api.trustscope.ai/v1/agent-dna/{agent_id}/drift \
   -H "Authorization: Bearer ts_live_..."
 ```
 
@@ -163,18 +124,20 @@ Response:
 
 ---
 
-## DNA Freeze
+## DNA Freeze (Enforce+ Tier)
 
-Freeze an agent's DNA to lock its configuration. Frozen agents cannot:
-- Change their system prompt
-- Add new tools
-- Modify permissions
-- Update model versions
+Freeze an agent's DNA to lock its behavioral fingerprint. When frozen:
+
+- `is_locked` = true
+- `locked_fingerprint` stores the DNA state at freeze time
+- `locked_by` records who initiated the freeze
+- `locked_at` records the timestamp
+- Any deviation from the locked fingerprint triggers an alert or block
 
 ### Freeze Agent
 
 ```bash
-curl -X POST https://api.trustscope.ai/v1/agents/{agent_id}/freeze \
+curl -X POST https://api.trustscope.ai/v1/agent-dna/{agent_id}/freeze \
   -H "Authorization: Bearer ts_live_..." \
   -d '{"reason": "Production deployment lock"}'
 ```
@@ -207,7 +170,7 @@ ts.agents.unfreeze("agent_abc123", reason="Authorized update")
 ```
 
 ```typescript
-import { TrustScope } from '@trustscope/node';
+import { TrustScope } from '@trustscope/sdk';
 
 const ts = new TrustScope({ apiKey: 'ts_live_...' });
 
@@ -216,7 +179,6 @@ await ts.agents.freeze('agent_abc123');
 
 // Get DNA profile
 const dna = await ts.agents.getDna('agent_abc123');
-console.log(dna.strands);
 console.log(dna.trustScore);
 
 // Get drift analysis
@@ -247,6 +209,17 @@ curl https://api.trustscope.ai/v1/agents/{agent_id}/baseline/history \
 
 ---
 
+## DNA API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agent-dna/{agent_id}` | Get full DNA profile |
+| `POST /agent-dna/{agent_id}/freeze` | Freeze DNA (Enforce+) |
+| `GET /agent-dna/{agent_id}/drift` | Get drift analysis |
+| `GET /agent-dna/{agent_id}/alerts` | Get capability alerts |
+
+---
+
 ## Tier Availability
 
 | Feature | Monitor | Protect | Enforce | Govern |
@@ -254,7 +227,7 @@ curl https://api.trustscope.ai/v1/agents/{agent_id}/baseline/history \
 | Basic DNA Profile | - | Yes | Yes | Yes |
 | Trust Score | - | Yes | Yes | Yes |
 | Drift Detection | - | Yes | Yes | Yes |
-| DNA Freeze | - | - | Yes | Yes |
+| DNA Freeze (Lock) | - | - | Yes | Yes |
 | Baseline Management | - | - | Yes | Yes |
 | Cryptographic Attestation | - | - | - | Yes |
 | DNA History (7 years) | - | - | - | Yes |

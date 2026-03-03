@@ -1,0 +1,115 @@
+---
+sidebar_position: 4
+title: Detection Engines
+description: 15 local detection engines for AI agent governance
+---
+
+# Detection Engines
+
+Safe Mode includes 15 CPU/regex-based detection engines that run locally with sub-millisecond latency.
+
+## Engine Reference
+
+### Counter Engines (1-8)
+
+These engines track patterns over time to detect anomalous agent behavior.
+
+| # | Engine | Description | Alert Threshold | Block Threshold |
+|---|--------|-------------|-----------------|-----------------|
+| 1 | `loop_killer` | Detects repeated identical tool calls | >5 in 60s | >10 in 60s |
+| 2 | `oscillation` | State flip-flop patterns (A→B→A→B) | >4 reversals | >8 reversals |
+| 3 | `velocity_limiter` | Actions per minute limiting | >60/min | >120/min |
+| 4 | `cost_exposure` | Budget threshold approaching | >80% | >100% |
+| 5 | `action_growth` | Accelerating call rate | >2x growth | >4x growth |
+| 6 | `latency_spike` | Server response time anomaly | >3x P95 | >5x P95 |
+| 7 | `error_rate` | Sequential error monitoring | >30% errors | >50% errors |
+| 8 | `throughput_drop` | Call rate dropped significantly | >50% drop | >80% drop |
+
+### Content Scanners (9-10)
+
+These engines scan tool parameters for sensitive content.
+
+| # | Engine | Description | Latency |
+|---|--------|-------------|---------|
+| 9 | `pii_scanner` | PII detection (SSN, credit card, email, phone) | ~2ms |
+| 10 | `secrets_scanner` | API keys, tokens, high-entropy strings (40+ patterns) | ~2ms |
+
+### Security Scanners (11-12)
+
+ML-based detection engines using ONNX inference (optional, requires model download).
+Both engines use the `meta-llama/Prompt-Guard-2-22M` model with a regex fallback when the model is unavailable.
+
+| # | Engine | Description | Latency |
+|---|--------|-------------|---------|
+| 11 | `prompt_injection` | Adversarial prompts in tool inputs | ~15ms |
+| 12 | `jailbreak` | Model safety bypass attempts | ~15ms |
+
+Enable with:
+```bash
+safemode ml --enable
+```
+
+Models require ~85MB disk space (downloaded from Hugging Face on first use).
+
+### Rule Engines (13-15)
+
+Pattern-based rules for common threats.
+
+| # | Engine | Description | Latency |
+|---|--------|-------------|---------|
+| 13 | `command_firewall` | rm -rf, mkfs, fork bombs, etc. | &lt;1ms |
+| 14 | `budget_cap` | Session cost at hard cap | &lt;1ms |
+| 15 | `action_label_mismatch` | Tool says "read" but does "write" | &lt;1ms |
+
+## Risk-Based Routing
+
+Engines are selected based on the risk level of each tool call:
+
+| Risk Level | Engines Run | Typical Latency |
+|------------|-------------|-----------------|
+| Low | 1-8 | ~2ms |
+| Medium | 1-10, 13-15 | ~5ms |
+| High | 1-15 | ~20ms |
+| Critical | 1-15 (sequential) | ~25ms |
+
+## Engine Configuration
+
+Disable or tune engines in your config:
+
+```yaml
+# ~/.safemode/config.yaml
+engines:
+  loop_killer:
+    enabled: true
+    alert_threshold: 5
+    block_threshold: 10
+
+  pii_scanner:
+    enabled: true
+    # Allow email addresses
+    allow_patterns:
+      - email
+
+  prompt_injection:
+    enabled: false  # Disable ML engine
+```
+
+## Cloud Engines (TrustScope)
+
+Connecting to TrustScope adds additional cloud-based engines:
+
+**Protect tier (+5 engines):**
+- Presidio PII (cloud version)
+- ONNX prompt injection
+- ONNX jailbreak
+- Statistical anomaly detection
+- Cross-session pattern matching
+
+**Enforce tier (+7 engines):**
+- BYOLLM custom detectors
+- Agent DNA profiling
+- Behavioral fingerprinting
+- Adaptive threat detection
+- And more...
+
+Connect to TrustScope cloud for additional detection capabilities.

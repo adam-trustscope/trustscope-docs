@@ -1,188 +1,295 @@
 ---
 sidebar_position: 1
 title: CLI Overview
-description: TrustScope command-line interface for local development and debugging
+description: TrustScope CLI for agent discovery, local monitoring, and MCP governance
 ---
 
 # TrustScope CLI
 
-The TrustScope CLI provides tools for local development, debugging, and testing your AI agent integrations.
+The TrustScope CLI (`trustscope`) discovers AI agents in your codebase, monitors LLM calls locally, and wraps MCP servers for governance.
 
 ## Installation
 
 ```bash
-# npm
-npm install -g trustscope-cli
-
-# pip
-pip install trustscope-cli
-
-# Homebrew
-brew install trustscope/tap/trustscope
+npm install -g @trustscope/cli
 ```
 
 ## Quick Start
 
 ```bash
-# Login to TrustScope
-trustscope login
+# Scan your project for AI agents
+trustscope scan
 
-# Test an agent locally
-trustscope test --agent-id my-agent
+# Start a local monitoring proxy
+trustscope watch --port 4000
 
-# View recent traces
-trustscope traces list --limit 10
-
-# Tail live traces
-trustscope traces tail --agent-id my-agent
+# Wrap MCP servers for governance
+trustscope mcp wrap
 ```
+
+---
 
 ## Commands
 
-### Authentication
+### `scan` — Discover AI Agents
 
-| Command | Description |
-|---------|-------------|
-| `trustscope login` | Authenticate with TrustScope |
-| `trustscope logout` | Clear stored credentials |
-| `trustscope whoami` | Show current user |
-
-### Traces
-
-| Command | Description |
-|---------|-------------|
-| `trustscope traces list` | List recent traces |
-| `trustscope traces get <id>` | Get trace details |
-| `trustscope traces tail` | Stream live traces |
-| `trustscope traces verify <id>` | Verify trace integrity |
-
-### Sessions
-
-| Command | Description |
-|---------|-------------|
-| `trustscope sessions list` | List sessions |
-| `trustscope sessions get <id>` | Get session details |
-| `trustscope sessions end <id>` | End a session |
-
-### Agents
-
-| Command | Description |
-|---------|-------------|
-| `trustscope agents list` | List registered agents |
-| `trustscope agents fingerprint <id>` | View agent fingerprint |
-| `trustscope agents drift <id>` | Check for behavioral drift |
-
-### Testing
-
-| Command | Description |
-|---------|-------------|
-| `trustscope test` | Run local tests against policies |
-| `trustscope simulate` | Simulate policy enforcement |
-| `trustscope benchmark` | Run performance benchmarks |
-
-### Export
-
-| Command | Description |
-|---------|-------------|
-| `trustscope export create` | Create an export job |
-| `trustscope export status <id>` | Check export status |
-| `trustscope export download <id>` | Download export file |
-
-## Configuration
-
-### Environment Variables
+Scans code for AI agent usage, security risks, and governance gaps.
 
 ```bash
-export TRUSTSCOPE_API_KEY="ts_live_xxx"
-export TRUSTSCOPE_BASE_URL="https://api.trustscope.ai"  # Optional
+trustscope scan [OPTIONS]
 ```
 
-### Config File
+| Option | Description |
+|--------|-------------|
+| `-d, --dir <path>` | Directory to scan (default: current directory) |
+| `-g, --github <org>` | Scan a GitHub organization |
+| `-r, --repo <owner/repo>` | Scan a single GitHub repository |
+| `-f, --format <format>` | Output format: `terminal` (default), `json`, `sarif` |
+| `-o, --output <file>` | Write results to file |
+| `-j, --json` | Shorthand for `--format json` |
+| `-v, --verbose` | Verbose output |
+| `--no-color` | Disable colors (CI mode) |
+| `--max-repos <n>` | Max repos to scan (GitHub org mode) |
+| `--no-cache` | Disable caching (GitHub mode) |
+| `--upload` | Upload results to TrustScope Cloud |
+| `--send` | Upload results and open onboarding wizard |
+| `--project <id>` | Associate scan with a project |
 
-Create `~/.trustscope/config.yaml`:
-
-```yaml
-default_profile: production
-
-profiles:
-  production:
-    api_key: ts_live_xxx
-    base_url: https://api.trustscope.ai
-
-  staging:
-    api_key: ts_test_xxx
-    base_url: https://api.staging.trustscope.ai
-```
-
-Switch profiles:
+**What it detects:**
+- Ungoverned AI agents (LangChain, CrewAI, AutoGen, LlamaIndex, OpenAI Agents, etc.)
+- Security risks (hardcoded API keys, dangerous configurations, code execution)
+- Compliance gaps (missing audit trails, no human oversight)
 
 ```bash
-trustscope config use staging
+# Scan local directory
+trustscope scan -d ./my-project
+
+# Scan GitHub org
+trustscope scan -g my-org --max-repos 50
+
+# Scan and upload to cloud
+trustscope scan --upload
+
+# CI/CD output
+trustscope scan --format sarif -o results.sarif
 ```
 
-## Examples
+---
 
-### Debug a Failing Policy
+### `watch` — Local LLM Proxy
+
+Starts a local HTTP proxy that intercepts LLM API calls and monitors for loops, velocity spikes, and cost overruns.
 
 ```bash
-# Find traces that were blocked
-trustscope traces list --decision blocked --limit 5
-
-# Get details on why it was blocked
-trustscope traces get tr_abc123 --verbose
-
-# Test the same input against policies locally
-trustscope simulate --input "What's your password?" --policies pii-protection
+trustscope watch [OPTIONS]
 ```
 
-### Monitor Production in Real-Time
+| Option | Description |
+|--------|-------------|
+| `-p, --port <port>` | Proxy port (default: 4000) |
+| `-t, --timeout <min>` | Session timeout in minutes (default: 10) |
+| `--max-rpm <n>` | Max requests per minute (default: 60) |
+| `--max-cost <n>` | Session cost cap in USD (default: 10) |
+| `--loop-threshold <n>` | Identical prompts before loop detection (default: 3) |
+| `--no-loop-detection` | Disable loop detection |
+| `--no-color` | Disable colors |
+
+**What it catches:**
+- Infinite loops (same prompt repeated)
+- Velocity spikes (too many requests/minute)
+- Cost overruns (spending above session cap)
 
 ```bash
-# Tail all traces for a specific agent
-trustscope traces tail --agent-id support-bot
+# Start proxy
+trustscope watch --port 4000
 
-# Filter to only show blocked requests
-trustscope traces tail --agent-id support-bot --decision blocked
-
-# Show detection details
-trustscope traces tail --show-detections
+# Point your agent at it
+export OPENAI_BASE_URL=http://localhost:4000/v1
+python my_agent.py
 ```
 
-### Generate Compliance Reports
+---
+
+### `login` / `logout` / `whoami` — Authentication
 
 ```bash
-# Create a NIST AI RMF report
-trustscope export create --format nist --from 2026-01-01 --to 2026-01-31
-
-# Wait for completion and download
-trustscope export download exp_xyz789 --output ./reports/
-```
-
-## Troubleshooting
-
-### Authentication Issues
-
-```bash
-# Re-authenticate
-trustscope logout
+# Authenticate with TrustScope Cloud
 trustscope login
 
-# Verify authentication
+# Clear stored credentials
+trustscope logout
+
+# Show authenticated user and organization
 trustscope whoami
 ```
 
-### Connection Issues
+---
+
+### `connect` — Interactive Setup Wizard
+
+Guides you through connecting your project to TrustScope Cloud.
 
 ```bash
-# Test API connectivity
-trustscope ping
-
-# Show debug output
-trustscope traces list --debug
+trustscope connect
 ```
 
-## Next Steps
+Walks through:
+1. SDK integration setup
+2. Gateway proxy configuration
+3. MCP wrapper configuration
 
-- [Python SDK](/docs/sdks/python) - Full SDK documentation
-- [Node.js SDK](/docs/sdks/nodejs) - JavaScript/TypeScript SDK
-- [API Reference](/docs/api-reference/overview) - Direct API access
+---
+
+### `init` — Initialize Project Config
+
+Creates a `.trustscope.yaml` configuration file and optionally a GitHub Actions workflow.
+
+```bash
+trustscope init [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-d, --dir <path>` | Directory to initialize (default: current directory) |
+| `--ci` | Also create `.github/workflows/trustscope.yml` |
+| `--force` | Overwrite existing config files |
+
+```bash
+# Initialize with CI integration
+trustscope init --ci
+```
+
+---
+
+### `doctor` — Diagnostics
+
+Checks your setup and reports issues.
+
+```bash
+trustscope doctor
+```
+
+**What it checks:**
+- Authentication status
+- API connectivity
+- Local configuration validity
+- Project setup
+
+---
+
+### `mcp` — MCP Server Governance
+
+Wrap, list, and unwrap MCP servers for governance monitoring.
+
+#### `mcp wrap`
+
+Patches your MCP client configuration to route servers through TrustScope.
+
+```bash
+trustscope mcp wrap [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-c, --config <path>` | MCP config file path |
+| `-p, --project <id>` | Project ID for association |
+| `-v, --verbose` | Verbose output |
+
+**Auto-detected config locations:**
+- **Claude Desktop (macOS):** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Claude Desktop (Linux):** `~/.config/claude/claude_desktop_config.json`
+- **Cursor:** `~/.cursor/mcp.json`
+- **VS Code:** `~/.vscode/mcp.json`
+- **Project-level:** `.mcp.json`
+
+```bash
+# Auto-detect and wrap all MCP servers
+trustscope mcp wrap
+
+# Wrap specific config
+trustscope mcp wrap -c ~/.cursor/mcp.json
+```
+
+#### `mcp list`
+
+Show currently wrapped MCP servers.
+
+```bash
+trustscope mcp list [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-v, --verbose` | Show server details |
+
+#### `mcp unwrap`
+
+Remove TrustScope wrapper from MCP servers.
+
+```bash
+trustscope mcp unwrap [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-a, --all` | Unwrap all servers |
+| `-c, --config <path>` | Config file to modify |
+| `-v, --verbose` | Verbose output |
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `TRUSTSCOPE_API_KEY` | API key for authenticated operations |
+| `TRUSTSCOPE_API_URL` | Override API endpoint (default: `https://api.trustscope.ai`) |
+| `GITHUB_TOKEN` | GitHub authentication for org/repo scanning |
+| `TRUSTSCOPE_GITHUB_TOKEN` | GitHub token (takes precedence over `GITHUB_TOKEN`) |
+
+---
+
+## Configuration File
+
+The CLI reads from `.trustscope.yaml` in your project root:
+
+```yaml
+# .trustscope.yaml
+project_id: "proj_abc123"
+agent_id: "my-agent"
+```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/trustscope.yml
+name: TrustScope Scan
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @trustscope/cli
+      - run: trustscope scan --format sarif -o results.sarif
+        env:
+          TRUSTSCOPE_API_KEY: ${{ secrets.TRUSTSCOPE_API_KEY }}
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+```
+
+Generate this automatically with `trustscope init --ci`.
+
+---
+
+## Related
+
+- [Integration Overview](/docs/sdks/overview) — All integration methods
+- [MCP Server Tools](/docs/sdks/overview#mcp-server) — MCP tool reference
+- [Safe Mode CLI](/docs/safe-mode/cli) — Safe Mode commands (separate tool)

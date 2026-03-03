@@ -18,26 +18,94 @@ pip install trustscope
 
 ---
 
-## Quick Start
+## 1. Initialize
 
 ```python
 from trustscope import TrustScope
 
 ts = TrustScope(api_key="ts_live_xxx")
+# Or set TRUSTSCOPE_API_KEY environment variable
+```
+
+The SDK defaults to `fail_open=True` — your agent continues working even if TrustScope is unavailable.
+
+---
+
+## 2. Observe Actions
+
+Use the `@ts.observe` decorator to log agent actions automatically:
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
 
 @ts.observe(agent_id="my-agent")
 def my_agent(prompt: str) -> str:
-    # Your agent logic here
-    from openai import OpenAI
-    client = OpenAI()
     response = client.chat.completions.create(
-        model="gpt-5.2",
+        model="gpt-4",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
 
 result = my_agent("Hello!")
-# Automatically logged to TrustScope
+# Automatically logged to TrustScope with inputs, output, duration, errors
+```
+
+---
+
+## 3. Enforce Policies
+
+Use `@ts.enforce` to check policies **before** an action executes:
+
+```python
+from trustscope import Policy
+
+@ts.enforce(
+    agent_id="refund-bot",
+    policies=[Policy.max_value("amount", 1000)]
+)
+def process_refund(amount: float):
+    # Only runs if amount <= 1000
+    return {"status": "refunded", "amount": amount}
+```
+
+If a policy is violated, the function is blocked and a `PolicyViolationError` is raised.
+
+---
+
+## 4. Use Sessions
+
+Group related actions into sessions:
+
+```python
+async with ts.start_session(name="Customer Support") as session:
+    await session.observe(agent_id="my-agent", action="query", parameters={"q": "order status"})
+    await session.observe(agent_id="my-agent", action="response", parameters={"answer": "..."})
+```
+
+Or pass `session_id` directly:
+
+```python
+await ts.observe(agent_id="my-agent", session_id="user_123", ...)
+```
+
+---
+
+## 5. Policy Builder
+
+Build policies programmatically:
+
+```python
+from trustscope import Policy
+
+Policy.max_value("cost_usd", 100.0)
+Policy.min_value("confidence_score", 0.8)
+Policy.allowed_values("model", ["gpt-4", "claude-3-opus"])
+Policy.blocked_values("action_type", ["delete", "drop_table"])
+Policy.rate_limit(count=1000, window="1h")
+Policy.time_window(start_time="09:00", end_time="17:00", timezone="UTC")
+Policy.custom(rule_type="my_rule", threshold=0.5)
 ```
 
 ---
@@ -45,14 +113,29 @@ result = my_agent("Hello!")
 ## What Gets Captured
 
 - Function inputs and outputs
-- Execution time
+- Execution time (duration_ms)
 - Errors and exceptions
-- Custom metadata
+- Policy evaluation results
+- Session context
+
+---
+
+## Sync Client
+
+For non-async code, use the sync wrapper:
+
+```python
+from trustscope import TrustScopeSyncClient
+
+ts = TrustScopeSyncClient(api_key="ts_live_xxx")
+result = ts.observe_action(agent_id="my-agent", action_type="query", parameters={"q": "hello"})
+```
 
 ---
 
 ## Next Steps
 
-- [Full Python SDK Guide](/docs/sdks/python) - Complete documentation
-- [Sessions](/docs/concepts/sessions) - Group related requests
-- [Policies](/docs/concepts/policies) - Enforce rules
+- [Full Python SDK Guide](/docs/sdks/python) — Complete documentation
+- [Sessions](/docs/concepts/sessions) — Group related requests
+- [Policies](/docs/concepts/policies) — Enforce rules
+- [LangChain Integration](/docs/frameworks/langchain) — Framework callbacks

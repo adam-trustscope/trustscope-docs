@@ -1,49 +1,147 @@
 ---
 sidebar_position: 1
 title: Gateway vs SDK
-description: When to use TrustScope Gateway vs SDK integration
+description: Choosing between TrustScope's five integration methods
 ---
 
-# Gateway vs SDK
+# Integration Methods
 
-TrustScope offers two primary integration methods. Here's how to choose.
+TrustScope provides five ways to integrate. Each method captures different signals and suits different use cases.
+
+---
 
 ## Quick Comparison
 
-| Aspect | Gateway | SDK |
-|--------|---------|-----|
-| **Setup time** | 5 minutes | 15 minutes |
-| **Code changes** | 2 lines | Decorators/wrappers |
-| **Languages** | Any (HTTP) | Python, Node.js |
-| **Capture** | All LLM calls automatically | Selected functions |
-| **Custom actions** | No | Yes |
-| **Offline support** | No | Yes (batching) |
+| Method | Setup | Code Changes | What It Captures | Offline Support |
+|--------|-------|-------------|-----------------|-----------------|
+| **Gateway** | 2 lines | Change base URL | All LLM calls + cost | No |
+| **Python SDK** | Decorators | `@ts.observe` / `@ts.enforce` | Selected functions + custom actions | Yes (batching) |
+| **Node.js SDK** | Wrappers | `ts.observe()` / `ts.enforce()` | Selected functions + custom actions | Yes (batching) |
+| **MCP Server** | Config patch | None | All MCP tool calls | Yes (local SQLite) |
+| **CLI Watch** | 1 command | None | All LLM calls via local proxy | No |
+| **Direct API** | HTTP calls | POST /observe, POST /enforce | Anything you send | N/A |
 
-## Use Gateway When
+---
 
-- You want minimal code changes
-- You have existing applications
-- You use multiple LLM providers
-- You want automatic capture of everything
+## Gateway
 
-## Use SDK When
+OpenAI-compatible proxy at `https://gateway.trustscope.ai/v1`. Supports all major LLM providers (OpenAI, Anthropic, Google Gemini, Mistral, Cohere, Azure OpenAI, AWS Bedrock).
 
-- You want fine-grained control
-- You need to capture custom actions (tool calls, decisions)
-- You're building a new application
-- You need offline/batched logging
+**Best for:** Existing applications, minimal code changes, automatic capture of all LLM calls.
 
-## Combining Both
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/v1",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+```
 
-You can use both Gateway and SDK together for comprehensive coverage:
+Captures: prompts, responses, model, tokens, cost, latency, streaming.
+
+---
+
+## SDK
+
+Programmatic integration with policy enforcement and session management. Available for Python (v0.3.0), Node.js (v0.2.0), and React Native (v0.1.0).
+
+**Best for:** Fine-grained control, custom action types, policy builder, framework integrations.
+
+```python
+@ts.enforce(agent_id="refund-bot", policies=[Policy.max_value("amount", 1000)])
+def process_refund(amount: float):
+    ...
+```
+
+Captures: anything you instrument. Supports `fail_open=True` (default) for graceful degradation.
+
+---
+
+## MCP Server
+
+Local MCP proxy that wraps your MCP servers and monitors all tool calls. Includes 18 local detection engines and a local SQLite evidence store.
+
+**Best for:** AI coding assistants (Cursor, Claude Desktop, VS Code), MCP-native agents.
+
+```bash
+trustscope mcp wrap  # Patches your MCP client config
+```
+
+Captures: every MCP tool call, request/response, tool name, server name.
+
+---
+
+## CLI Watch
+
+Local HTTP proxy that intercepts LLM API calls. Point your agent's base URL at `localhost:4000` and TrustScope monitors everything.
+
+**Best for:** Quick local monitoring, development, debugging.
+
+```bash
+trustscope watch --port 4000
+export OPENAI_BASE_URL=http://localhost:4000/v1
+python my_agent.py
+```
+
+Captures: all LLM calls routed through the proxy, with loop detection, velocity limits, and cost caps.
+
+---
+
+## Direct API
+
+Send traces directly via HTTP. No SDK required.
+
+**Best for:** Languages without an SDK, custom integrations, batch imports.
+
+```bash
+# Observe (async)
+curl -X POST https://api.trustscope.ai/v1/observe \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{"agent_id": "my-agent", "action_type": "query", ...}'
+
+# Enforce (sync)
+curl -X POST https://api.trustscope.ai/v1/enforce \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{"agent_id": "my-agent", "action_type": "refund", ...}'
+```
+
+---
+
+## Combining Methods
+
+Use multiple methods together for comprehensive coverage:
 
 ```python
 # Gateway for LLM calls
 client = OpenAI(base_url="https://gateway.trustscope.ai/v1", ...)
 
-# SDK for custom actions
+# SDK for custom business logic
 @ts.observe(agent_id="my-agent")
 def my_agent():
     response = client.chat.completions.create(...)  # Captured by Gateway
-    ts.log_action("business_logic", {...})          # Captured by SDK
+    ts.log_action("business_logic", {...})           # Captured by SDK
 ```
+
+All methods feed into the same dashboard, the same detection engines, and the same policy evaluation.
+
+---
+
+## Decision Guide
+
+| If you need... | Use |
+|---------------|-----|
+| Zero-code monitoring of LLM calls | Gateway |
+| Policy enforcement before actions execute | SDK (`enforce`) |
+| Monitoring MCP tool calls | MCP Server |
+| Quick local development monitoring | CLI Watch |
+| Integration in any language | Direct API |
+| Framework integration (LangChain, CrewAI) | SDK with framework callbacks |
+
+---
+
+## Related
+
+- [Gateway Overview](/docs/gateway/overview) — Provider setup
+- [Python SDK](/docs/sdks/python) — Python integration guide
+- [Node.js SDK](/docs/sdks/nodejs) — Node.js integration guide
+- [CLI Overview](/docs/cli/overview) — CLI commands
+- [Integration Overview](/docs/sdks/overview) — Detailed comparison

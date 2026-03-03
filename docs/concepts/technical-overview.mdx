@@ -12,10 +12,10 @@ This document provides a bird's-eye view of TrustScope's capabilities: tier stru
 
 | Tier | Price | Retention | Key Capabilities |
 |------|-------|-----------|-----------------|
-| **Monitor** | Free | 3 days | 11 detection engines, alerts, 8 ingestion methods |
-| **Protect** | $49/mo | 30 days | +7 engines, blocking, BYOLLM, Agent DNA |
-| **Enforce** | $249/mo | 1 year | +7 AI engines, 26 policies, human approvals, MCP |
-| **Govern** | Contact Sales | 7 years | Evidence Room, ZKP, Docker, BYOK, SIEM |
+| **Monitor** | Free | 30 days | 16 detection engines, alerts, 9 ingestion methods |
+| **Protect** | $49/mo | 90 days | +4 ML engines (20 total), blocking, redaction, Agent DNA |
+| **Enforce** | $199/mo | 1 year | +6 AI engines (26 total), 24 policy types, human approvals |
+| **Govern** | Contact Sales | 7 years | Evidence Room, ZKP, PGC, Docker, BYOK, SIEM |
 
 **Retention Add-Ons:** Protect +$29/mo → 1 year. Enforce +$29/mo → 3 years.
 
@@ -83,58 +83,55 @@ This document provides a bird's-eye view of TrustScope's capabilities: tier stru
 
 ---
 
-## Detection Engines (25)
+## Detection Engines (26)
 
-### Rate Limits (6) — Monitor
+### Monitor Tier (16 engines)
 
-| Engine | Method | Default Threshold |
-|--------|--------|-------------------|
-| Loop Killer | Semantic similarity between actions | >0.85 similarity, >3 repetitions |
-| Velocity Limit | Actions per minute vs baseline | >3x baseline |
-| Cost Velocity | Spend rate anomaly | >3x baseline spend rate |
-| Budget Caps | Remaining budget percentage | &lt;10% remaining |
-| Token Growth | Output token count anomaly | >3x mean for agent |
-| Context Expansion | Context utilization tracking | >90% window consumed |
+**Statistical (10):**
 
-### Behavioral (6) — Mixed
+| Engine | Default Threshold |
+|--------|-------------------|
+| Loop Killer | >0.85 similarity, >3 repetitions |
+| Velocity | >3x baseline actions/min |
+| Cost Velocity | >3x baseline spend rate |
+| Budget Caps | &lt;10% remaining |
+| Token Growth | >3x mean for agent |
+| Context Expansion | >90% window consumed |
+| Oscillation | >4 reversals in 10 actions |
+| Error Rate | >5 consecutive errors |
+| Session Duration | >2x mean session |
+| Session Action Limit | >3x mean count |
 
-| Engine | Method | Tier | Default |
-|--------|--------|------|---------|
-| Oscillation | State flip-flop patterns | Monitor | >4 reversals in 10 actions |
-| Error Rate | Sequential error monitoring | Monitor | >5 consecutive errors |
-| Session Duration | Abnormal session length | Monitor | >2x mean session |
-| Session Action Limit | Actions per session anomaly | Monitor | >3x mean count |
-| Reasoning Drift | Reasoning chain coherence | Enforce (AI) | Coherence &lt;0.6 |
-| Hallucination | Output grounding verification | Enforce (AI) | Grounding &lt;0.7 |
+**Pattern / Content (6):**
 
-### Content Safety (6) — Mixed
+| Engine | Default Action |
+|--------|----------------|
+| PII Scanner (Presidio NER) | Alert |
+| Secrets Scanner (50+ patterns) | Alert |
+| Command Firewall | Block |
+| Blocked Phrases | Block |
+| Data Exfiltration | Block |
+| Action Label Mismatch | Alert |
 
-| Engine | Method | Tier | Action |
-|--------|--------|------|--------|
-| PII Scanner | ML (88 patterns) | Monitor | Alert only |
-| Secrets Scanner | API keys, tokens, passwords | Protect | Redact or block |
-| Command Firewall | Dangerous commands (rm -rf, DROP TABLE) | Protect | Block |
-| Blocked Phrases | Configurable phrase blocklist | Protect | Block |
-| Toxicity Filter | Harmful content detection | Protect | Block |
-| Data Exfiltration | Sensitive data leaving perimeter | Protect | Block |
+### Protect Tier (+4 ML = 20 engines)
 
-### Security (7) — Protect & Enforce
+| Engine | Backend | Action |
+|--------|---------|--------|
+| Prompt Injection | Prompt Guard 2 | Block |
+| Jailbreak Detector | Prompt Guard 2 | Block |
+| Toxicity Filter | Detoxify | Block |
+| Hate Speech Detector | HateBERT | Block |
 
-| Engine | Method | Tier | Action |
-|--------|--------|------|--------|
-| Prompt Injection Pattern | Pattern matching | Protect | Block |
-| Jailbreak Pattern | Pattern matching | Protect | Block |
-| Prompt Injection AI | LLM verification | Enforce | Block |
-| Jailbreak Detect AI | LLM classification | Enforce | Block |
-| Semantic Firewall | Embedding-based intent classification | Enforce | Block |
-| A2A Depth | Cross-agent privilege escalation | Enforce | Block |
-| Tool Parameter Validator | Tool call parameter validation | Enforce | Block |
+### Enforce Tier (+6 AI Hybrid = 26 engines)
 
-### Engine Totals by Tier
-
-- **Monitor:** 11 engines
-- **Protect:** +7 engines (18 total)
-- **Enforce:** +7 AI-hybrid engines (25 total)
+| Engine | Backend | Action |
+|--------|---------|--------|
+| Semantic Firewall | Vector similarity | Block |
+| Hallucination | 3-layer pipeline | Alert |
+| Reasoning Drift | LLM analysis | Alert |
+| A2A Depth | Statistical | Block |
+| Tool Parameter Validator | Schema + AI | Block |
+| Reasoning Quality Monitor | LLM analysis | Alert |
 
 ### Engine Modes
 
@@ -147,32 +144,24 @@ This document provides a bird's-eye view of TrustScope's capabilities: tier stru
 
 ---
 
-## Policy Types (26)
+## Policy Types (24)
 
-| Category | Policies | Tier |
-|----------|----------|------|
-| Rate Limiting | rate_limit, concurrent_limit | Protect+ |
-| Content | blocked_phrases, pii_redaction | Protect+ |
-| Cost | cost_limit, cost_per_action | Protect+ |
-| Command | command_firewall | Protect+ |
-| Secrets | secrets_scanning | Protect+ |
-| Approval | human_approval, manager_approval | Enforce+ |
-| AI Safety | prompt_injection_block, jailbreak_block | Enforce+ |
-| Semantic | semantic_boundary, intent_enforcement | Enforce+ |
-| MCP | mcp_allowlist, mcp_trust_threshold | Enforce+ |
-| Delegation | delegation_restriction, delegation_limits | Enforce+ |
-| Agent | agent_freeze, capability_lock | Enforce+ |
-| Evidence | evidence_required, hash_chain_enforcement | Govern |
-| Encryption | byok_encryption, cmek_enforcement | Govern |
-| Governance | governance_level, negligence_threshold | Govern |
+| Tier | Count | Types |
+|------|-------|-------|
+| **Monitor** | 3 | max_value, min_value, allowed_values |
+| **Protect** | +9 (12) | blocked_values, rate_limit, time_window, require_field, recipient_allowlist, amount_limit, require_approval, block_action, cumulative_limit |
+| **Enforce** | +9 (21) | human_approval, chain_depth_limit, external_check, per_entity_limit, custom_logic, semantic_rule, delegation_restriction, delegation_limits, exposure_threshold |
+| **Govern** | +3 (24) | custom_function, multi_approval, tool_provenance |
 
-### Policy Modes
+### Enforcement Modes
 
 | Mode | Behavior |
 |------|----------|
-| `disabled` | Policy not evaluated |
+| `off` | Policy not evaluated |
 | `simulate` | Evaluates, logs what would happen, no enforcement |
-| `active` | Evaluates and enforces |
+| `alert` | Evaluates, logs, sends notification |
+| `redact` | Evaluates, redacts matching content (Protect+) |
+| `block` | Evaluates and blocks the action (Protect+) |
 
 ---
 
@@ -230,19 +219,21 @@ trustscope simulate --engine prompt_injection --trace tr_abc123
 
 ---
 
-## MCP Server Tools (9)
+## MCP Server Tools (11)
 
-| Tool | Tier | Purpose |
-|------|------|---------|
-| trustscope_check_risk | All | Assess action risk level |
-| trustscope_enforce_policy | Protect+ | Evaluate against policies |
-| trustscope_log_action | All | Log agent action |
-| trustscope_validate_tool_output | Enforce+ | Prevent prompt injection via tools |
-| trustscope_verify_delegation | Enforce+ | A2A privilege escalation prevention |
-| trustscope_log_cost_event | All | Real-time budget tracking |
-| trustscope_get_session_context | Protect+ | Retrieve session context |
-| trustscope_request_approval | Enforce+ | Human-in-the-loop approval |
-| trustscope_governance_status | Govern | Check governance coverage |
+| Tool | Purpose |
+|------|---------|
+| `trustscope_check_policy` | Check content/action against policies |
+| `trustscope_check_detection` | Run 18 local detection engines on content |
+| `trustscope_log_action` | Log action to evidence store with hash chain |
+| `trustscope_list_traces` | Query evidence store with filters |
+| `trustscope_list_policies` | List configured policies |
+| `trustscope_list_approvals` | List approval requests |
+| `trustscope_approve` | Approve or reject pending actions |
+| `trustscope_get_agent_dna` | Get behavioral fingerprint |
+| `trustscope_get_compliance` | Get compliance status |
+| `trustscope_explain_behavior` | Statistical behavior analysis |
+| `trustscope_get_attestation` | Generate evidence attestation |
 
 ---
 
@@ -273,7 +264,7 @@ Evidence Room organized by AIUC-1 domains A through F. Per-control mapping. Vali
 
 ### OWASP Agentic Top 10
 
-25 engines mapped to 10 ASI categories. Average coverage: ~61%.
+26 engines mapped to 10 ASI categories.
 
 ### 14 Export Templates
 

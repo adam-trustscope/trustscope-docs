@@ -6,48 +6,143 @@ description: Real-time threat and anomaly detection for AI agents
 
 # Detections
 
-TrustScope runs real-time detection engines on all AI traffic to identify threats and anomalies.
+TrustScope runs 26 detection engines on all AI traffic to identify threats, anomalies, and policy violations in real time.
 
-## Detection Categories
+---
 
-### Security Detections
-- **Prompt Injection** - Attempts to override system instructions
-- **Jailbreak** - Attempts to bypass safety measures
-- **Data Exfiltration** - Unauthorized data access attempts
+## How Detection Works
 
-### Privacy Detections
-- **PII** - Names, emails, SSNs, credit cards
-- **PHI** - Health information (HIPAA)
-- **Secrets** - API keys, passwords, tokens
+Every trace is processed by the detection engine pipeline:
 
-### Behavioral Detections
-- **Agent Drift** - Behavior differs from baseline
-- **Anomaly** - Unusual patterns detected
-- **Rate Anomaly** - Abnormal request volume
+```
+Trace Ingested → run_detections() → 26 engines evaluate → results attached to trace
+```
 
-## Detection Response
+Engines run in parallel where possible. Each engine produces zero or more detection objects with a type, confidence score, and recommended action.
 
-When a detection fires:
+### Detection Methods
+
+| Method | Engines | Description |
+|--------|---------|-------------|
+| `statistical` | 10 | Pattern recognition on numeric signals (loops, velocity, cost) |
+| `pattern` | 6 | Regex and rule-based content matching (PII, secrets, commands) |
+| `ml` | 4 | Machine learning models (injection, jailbreak, toxicity, hate speech) |
+| `ai_hybrid` | 6 | LLM reasoning + embedding models (hallucination, semantic firewall, reasoning) |
+
+---
+
+## Engine Tiers
+
+Each tier includes all engines from lower tiers:
+
+| Tier | Engine Count | What's Added |
+|------|-------------|--------------|
+| **Monitor** | 16 | Statistical + pattern engines (alert only) |
+| **Protect** | 20 | + 4 ML content engines (can block and redact) |
+| **Enforce** | 26 | + 6 AI hybrid engines (LLM-powered analysis) |
+
+For the full engine list with thresholds and configuration, see [Detection Engines Reference](/docs/reference/detections).
+
+---
+
+## Detection Actions
+
+When an engine detects an issue, it produces a detection with one of these actions:
+
+| Action | Behavior |
+|--------|----------|
+| `log` | Record the detection, no enforcement |
+| `alert` | Record and send notification |
+| `redact` | Replace detected content with `✓[REDACTED_TYPE]` markers (Protect+) |
+| `block` | Block the entire trace (Protect+) |
+
+---
+
+## Detection Output Format
 
 ```json
 {
-  "trace_id": "tr_abc123",
-  "detections": [
-    {
-      "type": "pii",
-      "subtype": "ssn",
-      "confidence": 0.98,
-      "location": "input.messages[0].content",
-      "action": "blocked"
-    }
-  ]
+  "type": "pii",
+  "subtype": "ssn",
+  "confidence": 0.99,
+  "location": "input.messages[0].content",
+  "action_taken": "redacted",
+  "value_redacted": "✓[REDACTED_SSN]"
 }
 ```
 
+| Field | Description |
+|-------|-------------|
+| `type` | Detection category (e.g., `pii`, `prompt_injection`, `anomaly`) |
+| `subtype` | Specific detection (e.g., `ssn`, `override`, `error_rate`) |
+| `confidence` | Score from 0.0 to 1.0 |
+| `location` | Where in the trace the issue was found |
+| `action_taken` | What action was applied |
+
+---
+
 ## Configuring Detections
 
-In the dashboard, configure:
-- Which detections to enable
-- Sensitivity thresholds
-- Actions (log, alert, block)
-- Exceptions and allowlists
+### Dashboard
+
+In the Configuration > Detections section, you can:
+- Enable/disable individual engines
+- Set sensitivity thresholds
+- Choose default actions per engine
+- Configure exceptions and allowlists
+
+### Engine Modes
+
+Each engine can be set to one of four modes:
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Engine disabled |
+| `simulate` | Runs and logs, does NOT enforce |
+| `alert` | Runs, logs, sends notification |
+| `block` | Runs, blocks the action (Protect+) |
+
+---
+
+## Detection Feedback
+
+Improve engine accuracy over time by providing feedback on detections:
+
+```bash
+POST /api/v1/detection_feedback
+{
+  "trace_id": "tr_abc123",
+  "detection_type": "prompt_injection",
+  "feedback": "false_positive",
+  "notes": "This was a legitimate instruction"
+}
+```
+
+Feedback is used to tune engine thresholds and reduce false positives.
+
+---
+
+## Custom Engines
+
+Create organization-specific detection engines via the API:
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/detections \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{
+    "name": "competitor_mention",
+    "type": "custom",
+    "patterns": ["CompetitorA", "CompetitorB"],
+    "action": "alert"
+  }'
+```
+
+Custom engines use the `custom_engine` model and support regex patterns, keyword matching, and configurable actions.
+
+---
+
+## Related
+
+- [Detection Engines Reference](/docs/reference/detections) — Full engine list with thresholds
+- [Policies](/docs/concepts/policies) — Configurable enforcement rules
+- [Cloud: Detections](/docs/cloud/detections) — Dashboard configuration

@@ -1,0 +1,211 @@
+---
+sidebar_position: 6
+title: Agents
+description: Track and manage AI agents across your organization
+---
+
+# Agents
+
+TrustScope tracks AI agents across your organization, providing visibility into their behavior and enabling per-agent policies.
+
+## Agent Identification
+
+Agents are identified by:
+
+- **Agent ID** — Stable identifier across sessions
+- **Agent Name** — Human-readable name
+- **Client** — MCP client (Cursor, Claude Desktop, etc.)
+- **Model** — Underlying LLM (Claude, GPT-4, etc.)
+
+## Agent Registry
+
+View all agents in your organization:
+
+1. Navigate to **Agents**
+2. Browse or search agents
+3. Click an agent to view details
+
+### Agent Details
+
+- **Sessions** — History of all sessions for this agent
+- **Behavior Profile** — Tool usage patterns and frequencies
+- **Detection History** — All triggered detections
+- **Policies** — Assigned policies and overrides
+
+## Agent DNA (Enforce+)
+
+Agent DNA creates behavioral fingerprints based on **8 strands** computed by the `DNASynthesizer`:
+
+| Strand | Description |
+|--------|-------------|
+| 1. Tool Frequency | Distribution of tool call types |
+| 2. Session Shape | Typical session length, phases, and flow |
+| 3. Parameter Patterns | Characteristic parameter values and ranges |
+| 4. Timing Profile | Inter-call timing, burst patterns, cadence |
+| 5. Error Behavior | How the agent handles and recovers from errors |
+| 6. Resource Usage | Token consumption, cost profile per session |
+| 7. Scope Patterns | File paths, network targets, breadth of access |
+| 8. Interaction Style | Prompt/response ratio, human-in-the-loop frequency |
+
+### Agent Fingerprint
+
+Each agent is assigned a unique **fingerprint** in the format `fp_XXXX` — a 24-character identifier derived from 3 components:
+
+- **Client signature** — MCP client type and version
+- **Model signature** — Underlying LLM identity
+- **Behavioral hash** — Rolling hash of DNA strand values
+
+```
+Agent: code-assistant-v2
+Fingerprint: fp_a8f3c2e19b0d4k7m2x9q1w5t
+Components: [client:cursor-0.45] [model:claude-4] [behavior:0x3f2a]
+```
+
+### Agent Lock (Enforce+)
+
+At the Enforce tier and above, agents can be **locked** to their current fingerprint. When locked, any session that deviates from the locked fingerprint is flagged or blocked.
+
+| Field | Description |
+|-------|-------------|
+| `is_locked` | Whether the agent is currently locked (`true`/`false`) |
+| `locked_fingerprint` | The fingerprint value the agent is locked to |
+
+```bash
+# Lock an agent via API
+curl -X PUT https://api.trustscope.ai/v1/agents/{agent_id}/lock \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_locked": true,
+    "locked_fingerprint": "fp_a8f3c2e19b0d4k7m2x9q1w5t"
+  }'
+```
+
+When a locked agent's fingerprint drifts beyond the configured threshold, the session is flagged with a `fingerprint_mismatch` detection event.
+
+### Baseline Building
+
+Agent DNA builds baselines automatically:
+
+```
+Agent: code-assistant-v2
+Status: Baseline building (73%)
+Sessions analyzed: 142
+Estimated completion: 8 more sessions
+```
+
+### Anomaly Detection
+
+Once baseline is established, Agent DNA flags anomalies:
+
+```
+Agent: code-assistant-v2
+Alert: Unusual tool call pattern
+- Expected: 80% read, 15% write, 5% execute
+- Observed: 20% read, 10% write, 70% execute
+- Confidence: High
+```
+
+## Per-Agent Policies
+
+Assign policies to specific agents:
+
+### Via Dashboard
+
+1. Navigate to **Agents > [Agent Name]**
+2. Click **Assign Policy**
+3. Select policy or create custom rules
+
+### Via API
+
+```bash
+curl -X PUT https://api.trustscope.ai/v1/agents/{agent_id}/policy \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "policy_id": "pol_abc123",
+    "overrides": {
+      "budget": {
+        "max_session_cost": 50
+      }
+    }
+  }'
+```
+
+## Agent Groups
+
+Organize agents into groups for bulk management:
+
+- **By Function** — Coding assistants, research agents, etc.
+- **By Team** — Engineering, Data Science, etc.
+- **By Risk Level** — High-trust, standard, restricted
+
+### Create Group
+
+1. Navigate to **Agents > Groups > Create Group**
+2. Name the group
+3. Add agents manually or by rule (e.g., "all agents named *-assistant")
+4. Assign group policy
+
+## Agent Discovery Workflow
+
+Agents progress through a **5-stage import funnel** as you increase governance:
+
+```
+Import → Monitor → Protect → Enforce → Govern
+```
+
+| Stage | Description |
+|-------|-------------|
+| **Import** | Agent first seen; basic metadata captured |
+| **Monitor** | Passive observation; traces collected, no enforcement |
+| **Protect** | Alerts enabled; anomaly detection active |
+| **Enforce** | Active enforcement; Agent DNA + Lock available |
+| **Govern** | Full compliance; audit trails, ZKP, retention policies |
+
+Agents can be promoted through stages individually or in bulk via the dashboard (**Agents > Select > Promote**) or API.
+
+## Agent Status Lifecycle
+
+Each agent has a status that reflects its operational state:
+
+```
+discovered → connected_test → connected_live
+```
+
+| Status | Description |
+|--------|-------------|
+| `discovered` | Agent detected but not yet connected to a live environment |
+| `connected_test` | Agent connected in a test/staging environment |
+| `connected_live` | Agent connected and active in production |
+
+Status transitions are tracked in the agent's event history and can trigger notifications or policy changes.
+
+## Agent Lifecycle
+
+### New Agent Detection
+
+When a new agent is detected:
+
+1. Added to registry with status `discovered`
+2. Inherits team default policy
+3. Baseline building begins (Enforce+)
+4. Admin notification (if configured)
+
+### Agent Retirement
+
+Retire agents no longer in use:
+
+1. Navigate to **Agents > [Agent Name]**
+2. Click **Retire Agent**
+3. Agent is marked inactive
+4. Historical data retained per retention policy
+
+## Agent Metrics
+
+View agent-level metrics:
+
+- **Sessions/day** — Activity frequency
+- **Avg session duration** — Typical usage pattern
+- **Detection rate** — Percentage of sessions with detections
+- **Cost/session** — Average token cost

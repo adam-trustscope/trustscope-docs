@@ -1,0 +1,301 @@
+---
+sidebar_position: 3.5
+title: Knobs Reference
+description: Complete reference for all 92 knobs across 19 categories
+---
+
+# Knobs Reference
+
+Every Safe Mode knob controls a single action type and accepts one of three levels:
+
+| Level | Behavior |
+|-------|----------|
+| `allow` | Action proceeds without interruption |
+| `approve` | Action pauses until human approval (terminal, Telegram, or Discord) |
+| `block` | Action is denied completely |
+
+Presets set sensible defaults. Override any knob individually in `.safemode.yaml` or at runtime with `safemode allow <knob>`.
+
+:::warning Hardcoded knobs
+`terminal.destructive_commands` and `terminal.pipe_to_shell` are always `block` and cannot be overridden. These protect against `rm -rf /`, fork bombs, and piped shell execution.
+:::
+
+---
+
+## Terminal (10 knobs)
+
+Controls for shell and subprocess execution.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `command_exec` | General command execution | allow |
+| `destructive_commands` | `rm -rf`, `mkfs`, fork bombs | **block** (hardcoded) |
+| `network_commands` | `curl`, `wget`, `ssh`, etc. | allow |
+| `package_installs` | `npm install`, `pip install`, etc. | approve |
+| `sudo` | Elevated privilege commands | block |
+| `pipe_to_shell` | Piping output to `sh`, `bash`, `eval` | **block** (hardcoded) |
+| `kill_processes` | `kill`, `pkill`, process termination | approve |
+| `daemons` | Starting background services | block |
+| `cron_jobs` | Creating cron entries | block |
+| `max_subprocesses` | Subprocess count limiting | allow |
+
+## Filesystem (8 knobs)
+
+Controls for file and directory operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `file_read` | Read file contents | allow |
+| `file_write` | Write or modify files | allow |
+| `file_delete` | Delete files | approve |
+| `directory_create` | Create directories | allow |
+| `directory_delete` | Delete directories | approve |
+| `symlink_create` | Create symbolic links | approve |
+| `permissions_change` | `chmod`, `chown` operations | block |
+| `file_move` | Move or rename files | allow |
+
+## Git (6 knobs)
+
+Controls for version control operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `git_commit` | Create commits | allow |
+| `git_push` | Push to remote | allow |
+| `git_force_push` | Force push (`--force`) | approve |
+| `git_branch_delete` | Delete branches | approve |
+| `git_tag` | Create or delete tags | allow |
+| `git_rebase` | Interactive or non-interactive rebase | approve |
+
+## Network (5 knobs)
+
+Controls for network access.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `http_request` | Outbound HTTP/HTTPS requests | allow |
+| `websocket` | WebSocket connections | allow |
+| `dns_lookup` | DNS resolution | allow |
+| `domain_allowlist` | Restrict to approved domains | allow |
+| `domain_blocklist` | Block specific domains | allow |
+
+## Database (5 knobs)
+
+Controls for database operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `db_read` | SELECT queries | allow |
+| `db_write` | INSERT, UPDATE queries | allow |
+| `db_delete` | DELETE queries | approve |
+| `db_schema_change` | ALTER, DROP, CREATE TABLE | block |
+| `db_admin` | GRANT, REVOKE, database-level admin | block |
+
+## Financial (5 knobs)
+
+Controls for payment and financial operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `payment_create` | Initiate a payment | approve |
+| `payment_over_threshold` | Payment exceeds configured limit | approve |
+| `transfer` | Fund transfers between accounts | approve |
+| `subscription_change` | Create, modify, or cancel subscriptions | approve |
+| `refund` | Issue refunds | approve |
+
+## API (5 knobs)
+
+Controls for external API calls.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `api_read` | GET requests to external APIs | allow |
+| `api_write` | POST, PUT, PATCH requests | allow |
+| `api_delete` | DELETE requests | approve |
+| `api_admin` | Admin-level API operations | block |
+| `rate_limit` | Rate limiting enforcement | allow |
+
+## Communication (5 knobs)
+
+Controls for messaging and notifications.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `email_send` | Send email messages | approve |
+| `message_send` | Send chat/SMS messages | approve |
+| `notification_send` | Push notifications | approve |
+| `calendar_create` | Create calendar events | approve |
+| `contact_modify` | Modify contact records | approve |
+
+## Cloud Infrastructure (5 knobs)
+
+Controls for cloud resource management.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `instance_create` | Spin up VMs, containers, functions | approve |
+| `instance_delete` | Terminate instances | block |
+| `storage_modify` | Create/delete buckets, modify storage | approve |
+| `network_modify` | VPC, firewall, routing changes | block |
+| `iam_change` | Role, policy, or permission changes | block |
+
+## Container (4 knobs)
+
+Controls for Docker and container operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `container_create` | Run new containers | approve |
+| `container_delete` | Stop and remove containers | approve |
+| `image_pull` | Pull container images | allow |
+| `volume_mount` | Mount host volumes | approve |
+
+## Package Management (4 knobs)
+
+Controls for dependency management.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `install` | Install packages | approve |
+| `uninstall` | Remove packages | approve |
+| `update` | Update packages | approve |
+| `publish` | Publish packages to registries | block |
+
+## Deployment (4 knobs)
+
+Controls for deployment operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `deploy_staging` | Deploy to staging environments | allow |
+| `deploy_production` | Deploy to production | block |
+| `rollback` | Roll back deployments | approve |
+| `scale` | Scale instances up or down | approve |
+
+## Data (4 knobs)
+
+Controls for data import/export.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `export` | Export data from systems | approve |
+| `import` | Import data into systems | approve |
+| `backup` | Create backups | allow |
+| `transform` | Data transformation operations | allow |
+
+## Scheduling (3 knobs)
+
+Controls for scheduled tasks.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `cron_create` | Create recurring cron jobs | block |
+| `timer_create` | Create one-shot timers | approve |
+| `scheduled_task` | Manage scheduled tasks | allow |
+
+## Authentication (3 knobs)
+
+Controls for credential and session management.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `credential_read` | Read credentials from stores | allow |
+| `credential_write` | Write or rotate credentials | block |
+| `session_create` | Create authentication sessions | allow |
+
+## Monitoring (3 knobs)
+
+Controls for observability operations.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `log_read` | Read log files and streams | allow |
+| `metrics_read` | Read metrics and dashboards | allow |
+| `alert_create` | Create or modify alert rules | approve |
+
+## Browser (3 knobs)
+
+Controls for browser automation.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `navigate` | Navigate to URLs | allow |
+| `form_submit` | Submit forms | approve |
+| `download` | Download files | allow |
+
+## Physical (3 knobs)
+
+Controls for hardware and IoT.
+
+| Knob | Description | Default |
+|------|-------------|---------|
+| `iot_command` | Send commands to IoT devices | approve |
+| `hardware_control` | Direct hardware access | block |
+| `sensor_read` | Read sensor data | allow |
+
+## Custom
+
+Define your own knobs in `.safemode.yaml`:
+
+```yaml
+custom_knobs:
+  my_org_approval:
+    description: "Requires manager sign-off"
+    default: approve
+    match:
+      tool_pattern: "org_*"
+```
+
+---
+
+## Default Distribution
+
+Across all 92 built-in knobs:
+
+| Level | Count | Percentage |
+|-------|-------|------------|
+| `allow` | 27 | 29% |
+| `approve` | 42 | 46% |
+| `block` | 23 | 25% |
+
+The default posture is **approve-heavy** — most potentially impactful actions pause for human confirmation rather than being silently allowed or hard-blocked.
+
+## Overriding Knobs
+
+### In config file
+
+```yaml
+# ~/.safemode/config.yaml
+overrides:
+  terminal:
+    package_installs: allow    # skip approval for installs
+  git:
+    git_force_push: block      # never allow force push
+  financial:
+    payment_create: block      # block all payments
+```
+
+### At runtime
+
+```bash
+# Temporarily allow a specific knob
+safemode allow terminal.package_installs
+
+# View current resolved config
+safemode config
+```
+
+### Per-preset overrides
+
+Each preset configures knobs at the category level via `capabilities`. Individual knob overrides in the `overrides` section take precedence:
+
+```yaml
+preset: coding
+capabilities:
+  terminal: scoped_write       # category-level default
+
+overrides:
+  terminal:
+    sudo: block                # knob-level override wins
+    package_installs: allow    # knob-level override wins
+```

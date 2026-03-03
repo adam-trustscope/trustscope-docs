@@ -1,0 +1,291 @@
+---
+sidebar_position: 5
+title: CLI Reference
+description: Safe Mode command line interface
+---
+
+# CLI Reference
+
+Complete reference for the `safemode` command.
+
+## Core Commands
+
+### `safemode init`
+
+Initialize Safe Mode. Detects MCP clients, patches configs, picks preset.
+
+```bash
+safemode init [options]
+```
+
+**Options:**
+- `--preset <name>` — Skip prompt, use specified preset
+- `--no-ml` — Skip ML model download
+- `--skip-scan` — Skip first-run security scan
+
+**Example:**
+```bash
+safemode init --preset coding
+```
+
+### `safemode start`
+
+Start the Safe Mode proxy. Usually automatic via MCP client launch.
+
+```bash
+safemode start
+```
+
+### `safemode stop`
+
+Stop the Safe Mode proxy.
+
+```bash
+safemode stop
+```
+
+### `safemode status`
+
+Show current status: preset, engines, connected clients, cloud status.
+
+```bash
+safemode status
+```
+
+**Output:**
+```
+Safe Mode v1.0.0
+Preset: coding
+Engines: 15 active (2 ML)
+Clients: Cursor, Claude Desktop
+Cloud: disconnected
+```
+
+## History & Rollback
+
+### `safemode summary`
+
+Show session summary with statistics and restore points.
+
+```bash
+safemode summary
+```
+
+### `safemode history`
+
+Show recent activity feed.
+
+```bash
+safemode history [options]
+```
+
+**Options:**
+- `--json` — Output as JSON
+- `--limit <n>` — Number of entries (default: 50)
+
+### `safemode restore`
+
+Restore files to a snapshot point.
+
+```bash
+safemode restore [timestamp] [options]
+```
+
+**Options:**
+- `--latest` — Restore to most recent snapshot
+
+**Example:**
+```bash
+safemode restore 14:31
+safemode restore --latest
+```
+
+## Configuration
+
+### `safemode preset`
+
+Switch to a different preset.
+
+```bash
+safemode preset <name>
+```
+
+**Available presets:** yolo, coding, personal, trading, strict
+
+### `safemode config`
+
+Show current configuration (resolved: preset + overrides + rules).
+
+```bash
+safemode config
+```
+
+### `safemode allow`
+
+Override a knob to "allow" (creates local override).
+
+```bash
+safemode allow <action_type>
+```
+
+**Example:**
+```bash
+safemode allow file_write
+```
+
+## Scanning & Detection
+
+### `safemode scan`
+
+Run security scanner on current directory.
+
+```bash
+safemode scan [options]
+```
+
+**Options:**
+- `--fix` — Attempt to fix detected issues
+
+### `safemode ml`
+
+Enable or disable ML engines (engines 11-12).
+
+```bash
+safemode ml --enable
+safemode ml --disable
+```
+
+### `safemode doctor`
+
+Health check and diagnostics.
+
+```bash
+safemode doctor
+```
+
+## Cloud Connection
+
+### `safemode connect`
+
+Connect to TrustScope cloud for dashboard and team features.
+
+```bash
+safemode connect [options]
+```
+
+**Options:**
+- `--api-key <key>` — Authenticate with an API key (`smdev_` prefix)
+- `--api-url <url>` — Custom API URL (default: `https://api.trustscope.ai`)
+
+**Example:**
+```bash
+safemode connect --api-key smdev_your_api_key
+```
+
+Get your API key from [app.trustscope.ai/settings/api-keys](https://app.trustscope.ai/settings/api-keys).
+
+### `safemode disconnect`
+
+Disconnect from cloud. Flushes pending events before disconnecting.
+
+```bash
+safemode disconnect
+```
+
+### `safemode sync`
+
+Show sync status and force event sync to TrustScope cloud.
+
+```bash
+safemode sync [options]
+```
+
+**Options:**
+- `--force` — Force sync even if no events pending
+
+### `safemode cloud-status`
+
+Show detailed cloud connection status including sync stats, policies, and health metrics.
+
+```bash
+safemode cloud-status
+```
+
+## Phone Approvals
+
+### `safemode phone`
+
+Set up phone approval notifications.
+
+```bash
+safemode phone --telegram
+safemode phone --discord
+```
+
+Opens setup wizard for the selected provider.
+
+## Activity Feed
+
+### `safemode activity`
+
+Watch live activity feed.
+
+```bash
+safemode activity [options]
+```
+
+**Options:**
+- `--follow` — Continuous output (like `tail -f`)
+
+## IDE Integrations
+
+### `safemode hook-check`
+
+Check and install Safe Mode hooks for detected IDEs.
+
+```bash
+safemode hook-check [options]
+```
+
+**Options:**
+- `--fix` — Install missing hooks automatically
+
+**Supported IDEs:** Cursor, Claude Code, VS Code, Windsurf
+
+### `safemode claude-code`
+
+Manage Claude Code integration.
+
+```bash
+safemode claude-code <install|uninstall|status>
+```
+
+Installs hooks and patches the Claude Code MCP configuration at `~/.claude/mcp_servers.json`.
+
+### `safemode cursor`
+
+Manage Cursor integration.
+
+```bash
+safemode cursor <install|uninstall|status>
+```
+
+Installs hooks and patches the Cursor MCP configuration at `~/.cursor/mcp.json`.
+
+## Other Commands
+
+### `safemode version`
+
+Show version information.
+
+```bash
+safemode version
+```
+
+### `safemode help`
+
+Show help for any command.
+
+```bash
+safemode help [command]
+```

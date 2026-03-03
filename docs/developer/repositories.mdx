@@ -1,0 +1,63 @@
+---
+sidebar_position: 2
+title: Repository Map
+description: Active repos, supporting package repos, and workspace areas to treat as non-canonical
+---
+
+# Repository Map
+
+This page separates the active launch path from package repos and legacy workspace material.
+
+## Active production repos
+
+| Repo | Role | Runtime | Release artifact | Notes |
+|---|---|---|---|---|
+| `trustscope-api` | Core backend | FastAPI / Python | Render service | Owns `/health`, `/docs`, `/api/v1/*`, migrations, and background jobs |
+| `trustscope-dashboard` | Customer application | Next.js | Vercel app | Uses Clerk, proxy routes, and `NEXT_PUBLIC_API_URL` |
+| `trustscope-website` | Marketing site | Next.js | Vercel app | Public pages, pricing, framework pages, waitlist API bridge |
+| `trustscope-docs` | Documentation site | Docusaurus | Static site | Owns docs IA, API reference generation, and build output |
+| `trustscope-admin` | Internal backoffice | Next.js | Internal deployment | Uses `API_URL` and `ADMIN_API_KEY` against admin routes |
+
+## Product and package repos
+
+| Repo | Role | Release target | Typical commands |
+|---|---|---|---|
+| `trustscope-cli` | End-user CLI | npm package | `npm run build`, `npm test` |
+| `trustscope-node` | Node SDK | npm package | `npm run build`, `npm test` |
+| `trustscope-python` | Python SDK | PyPI package | `pytest`, `python -m build` |
+| `trustscope-main` | Runtime CLI/MCP package | npm package | `npm run build`, `npm test` |
+| `trustscope-mcp-server` | Runtime CLI/MCP package variant | npm package | `npm run build`, `npm test` |
+| `trustscope-dashboard-ui-lab` | Experimental UI branch | none by default | `npm run dev`, `npm run build` |
+
+:::warning Canonical package ownership
+`trustscope-main` and `trustscope-mcp-server` both currently declare the `trustscope` package name. Do not publish both to the same registry target without choosing a canonical package repo first.
+:::
+
+## Workspace areas to confirm or retire
+
+These repos exist in the workspace but should not be treated as part of the live path until they are deliberately assigned:
+
+| Repo | Current posture |
+|---|---|
+| `trustscope` | Parallel runtime package repo at the workspace root |
+| `trustscope-cli-legacy` | Legacy CLI line |
+| `safemode` | Separate product/package track |
+| `trustscope-hook-test` | Hook/plugin test workspace |
+| `trustscope-pkg` | Package workspace, purpose should be confirmed |
+| `trustscope-v16-docs` | Older docs generation or archive repo |
+| root-level `trustscope-node` | Duplicate or earlier SDK workspace |
+
+## Who depends on what
+
+- `trustscope-dashboard` depends on `trustscope-api` and Clerk.
+- `trustscope-admin` depends on `trustscope-api` admin endpoints and an admin API key.
+- `trustscope-website` can run statically, but its waitlist bridge expects a reachable API.
+- `trustscope-docs` is independent at runtime, but it should reflect the contracts and flows owned by the API and dashboard.
+- SDK and CLI repos depend on stable API behavior and should release after backend compatibility is validated.
+
+## Recommended release ownership model
+
+1. Treat `trustscope-api` as the contract source of truth.
+2. Treat `trustscope-dashboard`, `trustscope-website`, and `trustscope-docs` as the customer-facing launch bundle.
+3. Treat `trustscope-admin` as internal-only unless hosting, auth, and operational ownership are documented.
+4. Freeze one canonical package path for the runtime CLI/MCP surface before package launch.

@@ -20,43 +20,144 @@ yarn add @trustscope/sdk
 
 ---
 
-## Quick Start
+## 1. Initialize
 
 ```typescript
 import { TrustScope } from '@trustscope/sdk';
-import OpenAI from 'openai';
 
-const ts = new TrustScope({ apiKey: 'ts_live_xxx' });
-const openai = new OpenAI();
+const ts = new TrustScope({
+  apiKey: 'ts_live_xxx',  // Or set TRUSTSCOPE_API_KEY env var
+  failOpen: true,          // Default: continue on errors
+  timeout: 5000,           // Request timeout in ms
+});
+```
 
-async function myAgent(prompt: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-5.2',
-    messages: [{ role: 'user', content: prompt }]
-  });
-  return response.choices[0].message.content ?? '';
+---
+
+## 2. Observe Actions
+
+```typescript
+const result = await ts.observe({
+  agentId: 'my-agent',
+  actionType: 'chat_completion',
+  parameters: { prompt: userMessage },
+});
+
+console.log(result.traceId);  // tr_abc123
+```
+
+---
+
+## 3. Enforce Policies
+
+Check policies **before** executing an action:
+
+```typescript
+import { Policy } from '@trustscope/sdk';
+
+const decision = await ts.enforce({
+  agentId: 'refund-bot',
+  actionType: 'process_refund',
+  parameters: { amount: 500, customer_id: 'cust_123' },
+  policies: [Policy.maxValue('amount', 1000)],
+});
+
+if (decision.allowed) {
+  // Proceed with refund
+} else {
+  console.log('Blocked by:', decision.blockedBy);
 }
+```
 
-// Wrap with observability
-const observedAgent = ts.observe(myAgent, { agentId: 'my-agent' });
+---
 
-const result = await observedAgent('Hello!');
-// Automatically logged to TrustScope
+## 4. Use Sessions
+
+Group related actions into sessions:
+
+```typescript
+const session = await ts.startSession('Customer Support');
+
+await session.observe({
+  agentId: 'my-agent',
+  actionType: 'query',
+  parameters: { q: 'order status' },
+});
+
+await session.observe({
+  agentId: 'my-agent',
+  actionType: 'response',
+  parameters: { answer: '...' },
+});
+
+await session.end('completed');
+```
+
+---
+
+## 5. Policy Builder
+
+Build policies programmatically (11 factory methods):
+
+```typescript
+import { Policy } from '@trustscope/sdk';
+
+// Monitor tier
+Policy.maxValue('cost_usd', 100);
+Policy.minValue('confidence_score', 0.8);
+Policy.allowedValues('model', ['gpt-4', 'claude-3-opus']);
+
+// Protect tier
+Policy.blockedValues('action_type', ['delete']);
+Policy.rateLimit(1000, { window: '1h' });
+Policy.timeWindow('09:00', '17:00', { timezone: 'UTC' });
+Policy.blockedDomains(['example.com']);
+
+// Enforce tier
+Policy.cumulativeLimit('tokens_used', 1000000, { window: '30d' });
+Policy.humanApproval({ actionTypes: ['external_api'] });
+Policy.chainDepthLimit(3);
+Policy.externalCheck('https://approval.internal.com/check');
 ```
 
 ---
 
 ## What Gets Captured
 
-- Function inputs and outputs
+- Action type and parameters
 - Execution time
-- Errors and exceptions
-- Custom metadata
+- Policy evaluation results
+- Session context
+- Agent-to-agent handoffs (A2A)
+
+---
+
+## Express Middleware
+
+```typescript
+import express from 'express';
+
+const app = express();
+
+app.use(async (req, res, next) => {
+  const decision = await ts.enforce({
+    agentId: 'api-agent',
+    actionType: req.path,
+    parameters: req.body,
+  });
+
+  if (!decision.allowed) {
+    return res.status(403).json({ blocked: true, reason: decision.blockedBy });
+  }
+
+  next();
+});
+```
 
 ---
 
 ## Next Steps
 
-- [Full Node.js SDK Guide](/docs/sdks/nodejs) - Complete documentation
-- [Sessions](/docs/concepts/sessions) - Group related requests
-- [Policies](/docs/concepts/policies) - Enforce rules
+- [Full Node.js SDK Guide](/docs/sdks/nodejs) — Complete documentation
+- [Sessions](/docs/concepts/sessions) — Group related requests
+- [Policies](/docs/concepts/policies) — Enforce rules

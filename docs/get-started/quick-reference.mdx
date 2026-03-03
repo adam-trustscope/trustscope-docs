@@ -30,14 +30,14 @@ from trustscope import TrustScope
 
 ts = TrustScope(api_key="ts_live_...")
 
-@ts.monitor(agent_id="my-agent")
+@ts.observe(agent_id="my-agent")
 def agent_action():
-    # Your agent code — detect + alert
+    # Your agent code — logged to TrustScope
     pass
 
-@ts.enforce(policies=["pii_block", "cost_limit"])
+@ts.enforce(agent_id="my-agent", policies=["no-pii", "cost-limit"])
 def protected_action():
-    # Full inline — intercept + block
+    # Only runs if policies pass
     pass
 ```
 
@@ -95,8 +95,8 @@ exporter.start()
 ### Framework Callbacks (LangChain/CrewAI/AutoGen)
 
 ```python
-from trustscope.callbacks import LangChainCallback
-handler = LangChainCallback(api_key="ts_live_...", agent_id="my-agent")
+from trustscope.integrations.langchain import TrustScopeCallbackHandler
+handler = TrustScopeCallbackHandler(api_key="ts_live_...", agent_id="my-agent")
 chain.invoke(input, config={"callbacks": [handler]})
 ```
 
@@ -114,8 +114,8 @@ curl -X POST https://api.trustscope.ai/api/v1/traces \
 
 | Depth | Methods | What You Get |
 |-------|---------|-------------|
-| **Full Inline** | Gateway, SDK enforce, CLI wrap | Actions + prevention evidence |
-| **Detect + Alert** | SDK monitor, callbacks, MCP | Detection without blocking |
+| **Full Inline** | Gateway, SDK enforce, MCP server | Actions + prevention evidence |
+| **Detect + Alert** | SDK observe, callbacks, CLI watch | Detection without blocking |
 | **Visibility Only** | Event API, OTel | Trace logging only |
 
 ---
@@ -199,10 +199,10 @@ GET  /api/v1/evidence/hash-chain # Verify hash chain
 
 | Tier | Price | Retention | Key Features |
 |------|-------|-----------|-------------|
-| Monitor | Free | 3 days | 11 engines, 8 ingestion methods |
-| Protect | $49/mo | 30 days | +7 engines, blocking, BYOLLM |
-| Enforce | $249/mo | 1 year | +7 AI engines, 26 policies |
-| Govern | Contact | 7 years | Evidence Room, ZKP, Docker, BYOK |
+| Monitor | Free | 30 days | 16 engines, 3 policy types, 5K traces |
+| Protect | $49/mo | 90 days | +4 ML engines, blocking/redact, BYOLLM |
+| Enforce | $199/mo | 1 year | +6 AI engines, 24 policy types, Agent Lock |
+| Govern | Contact | 7 years | Evidence Room, ZKP, PGC, BYOK |
 
 ---
 
@@ -210,20 +210,27 @@ GET  /api/v1/evidence/hash-chain # Verify hash chain
 
 ```bash
 # Authentication
-trustscope auth login
-trustscope auth status
+trustscope login
+trustscope whoami
+trustscope logout
 
-# Agents & Monitoring
-trustscope agents list
-trustscope watch ./src --live
-trustscope scan --agent my-agent
+# Agent Discovery
+trustscope scan                      # Scan current directory
+trustscope scan --github-org myorg   # Scan GitHub org
+trustscope scan --upload             # Upload results to cloud
 
-# Evidence & Compliance
-trustscope evidence export --framework aiuc-1 --format pdf
-trustscope zkp prove --circuit cost_bound --window 30d
+# Real-time Monitoring
+trustscope watch                     # LLM proxy on :8340
 
-# Simulate
-trustscope simulate --engine prompt_injection --trace tr_abc123
+# Setup & Config
+trustscope connect                   # Interactive setup wizard
+trustscope init                      # Create .trustscope.yaml
+trustscope doctor                    # Diagnostic checks
+
+# MCP Governance
+trustscope mcp wrap                  # Add governance proxy
+trustscope mcp list                  # Show wrapped servers
+trustscope mcp unwrap                # Remove governance proxy
 ```
 
 ---

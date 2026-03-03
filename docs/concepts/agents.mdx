@@ -1,24 +1,18 @@
 ---
 sidebar_position: 2
 title: Agents
-description: Understanding AI agents and identity in TrustScope
+description: Understanding AI agents, identity, and lifecycle in TrustScope
 ---
 
 # Agents
 
-In TrustScope, an **agent** represents a distinct AI entity that performs tasks.
+In TrustScope, an **agent** represents a distinct AI entity that performs tasks. Every trace is associated with an agent, forming the foundation of identity-based governance.
 
-## What is an Agent?
-
-An agent can be:
-- A chatbot handling customer support
-- An autonomous coding assistant
-- A multi-step workflow orchestrator
-- Any AI system that makes decisions
+---
 
 ## Agent Identity
 
-Every agent has a unique `agent_id` that identifies it across all traces:
+Every agent is identified by a string `agent_id` that you assign. This ID is consistent across all traces, sessions, and policies.
 
 ```python
 @ts.observe(agent_id="customer-support-bot")
@@ -26,46 +20,155 @@ def handle_customer_query(query: str):
     ...
 ```
 
+### Agent Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `agent_id` | string | Your chosen identifier (e.g., `"refund-bot"`) |
+| `name` | string | Human-readable display name |
+| `agent_type` | string | Category (e.g., `"chatbot"`, `"workflow"`, `"coding"`) |
+| `source` | enum | How the agent was discovered: `scan`, `runtime`, or `both` |
+| `status` | enum | Lifecycle state (see below) |
+| `tools` | list | Tools the agent has access to |
+| `models` | list | LLM models the agent uses |
+| `mcp_servers` | list | MCP servers the agent connects to |
+
+---
+
+## Agent Lifecycle
+
+Agents progress through three status states:
+
+```
+discovered → connected_test → connected_live
+```
+
+| Status | Meaning |
+|--------|---------|
+| `discovered` | Found via CLI scan or import — not yet sending live traces |
+| `connected_test` | Sending traces from a test/staging environment |
+| `connected_live` | Sending traces from production |
+
+### Discovery
+
+Agents can be discovered in several ways:
+
+- **CLI scan** — `trustscope scan` detects agents in your codebase
+- **Runtime** — First trace from an SDK or Gateway auto-registers the agent
+- **Import** — Upload agent inventory from GitHub, LangSmith, or LangFuse
+
+### Stats
+
+TrustScope tracks per-agent statistics automatically:
+
+| Stat | Description |
+|------|-------------|
+| `total_actions` | Total action count |
+| `trace_count` | Number of traces |
+| `session_count` | Number of sessions |
+| `first_seen` | Timestamp of first trace |
+| `last_seen` | Timestamp of most recent trace |
+
+---
+
 ## Agent DNA
 
-TrustScope automatically builds a behavioral "DNA" profile for each agent. This genetic fingerprint captures:
+TrustScope automatically builds a behavioral "DNA" profile for each agent. The DNA is computed from 8 strands across the agent's trace history:
 
 | Strand | What It Captures |
 |--------|------------------|
-| **Static** | Model, system prompt hash, tools enabled |
-| **Functional** | API access, file operations, cost limits |
-| **Dynamic** | Response patterns, tool usage, error rates |
+| `agent_origin` | Where the agent came from, how it was registered |
+| `tools_called` | Which tools the agent uses and how often |
+| `models_used` | Which LLM models and how they're used |
+| `patterns_observed` | Behavioral patterns (response length, timing, style) |
+| `error_patterns` | Error types, frequency, and recovery behavior |
+| `temporal_patterns` | Usage patterns by time of day, day of week |
+| `interaction_patterns` | How the agent interacts with users and other agents |
+| _(reserved)_ | Future strand for additional behavioral signals |
 
-Agent DNA enables:
-- **Trust Scoring** — Quantified reliability (0-100)
-- **Drift Detection** — Alerts when behavior deviates from baseline
-- **Freeze/Unfreeze** — Lock agent configuration (Enforce+)
-- **Verification** — Cryptographic attestation (Govern)
+### Agent Fingerprint
+
+Each agent gets a unique fingerprint in `fp_XXXX` format (24-character, 3-component hash). The fingerprint is derived from `capabilities_hash`, `pattern_hash`, and `pattern_shape`.
+
+### Agent Lock (Enforce+ tier)
+
+Lock an agent's DNA to prevent unauthorized changes:
 
 ```python
-# Get agent DNA profile
-agent = ts.agents.get("customer-support-bot")
-print(agent.trust_score)  # 87
-print(agent.drift_score)  # 0.12
-
-# Freeze agent to prevent changes
-ts.agents.freeze("customer-support-bot")
+# Freeze agent configuration
+ts.agents.freeze("customer-support-bot", reason="Production lock")
 ```
+
+When an agent is locked:
+- `is_locked` = true
+- `locked_fingerprint` records the frozen DNA state
+- Any deviation from the locked fingerprint triggers an alert
+
+### Intent Tracking
+
+Define what an agent is supposed to do, and detect when it drifts:
+
+| Field | Description |
+|-------|-------------|
+| `stated_purpose` | What the agent is designed to do |
+| `allowed_intents` | List of permitted intent categories |
+| `intent_drift_enabled` | Whether to monitor for intent drift |
+| `intent_drift_threshold` | Sensitivity (0.0 - 1.0) |
 
 For complete DNA documentation, see [Agent DNA](/docs/concepts/agent-dna).
 
+---
+
+## Agent Groups and Policy Assignment
+
+Agents can be targeted by policies individually or globally:
+
+- **Per-agent policies** — Assign a policy to a specific `agent_id`
+- **Global policies** — Apply to all agents (set `agent_id` to `null`)
+
+Group agents by type, environment, or team to apply consistent governance.
+
+---
+
 ## Multi-Agent Systems
 
-For systems with multiple agents, each should have a distinct ID:
+For systems with multiple agents, each should have a distinct `agent_id`. TrustScope tracks agent-to-agent (A2A) interactions within sessions:
 
 ```python
 @ts.observe(agent_id="researcher")
-def research_agent():
+def research_agent(query):
     ...
 
 @ts.observe(agent_id="writer")
-def writer_agent():
+def writer_agent(research_results):
     ...
 ```
 
-TrustScope tracks interactions between agents in the same session.
+A2A tracking captures:
+- `source_agent_id` — Agent that initiated the handoff
+- `target_agent_id` — Agent that received the handoff
+- `handoff_type` — Type of delegation
+- Chain depth — How deep the delegation chain goes
+
+Use the `chain_depth_limit` policy type to prevent runaway delegation chains.
+
+---
+
+## Tier Availability
+
+| Feature | Monitor | Protect | Enforce | Govern |
+|---------|---------|---------|---------|--------|
+| Agent inventory | Yes | Yes | Yes | Yes |
+| Per-agent stats | Yes | Yes | Yes | Yes |
+| Agent DNA profile | - | Yes | Yes | Yes |
+| Agent Lock (freeze) | - | - | Yes | Yes |
+| Intent drift detection | - | - | Yes | Yes |
+| Cryptographic attestation | - | - | - | Yes |
+
+---
+
+## Related
+
+- [Agent DNA](/docs/concepts/agent-dna) — Behavioral fingerprinting details
+- [Sessions](/docs/concepts/sessions) — Grouping agent interactions
+- [Policy Types](/docs/reference/policy-types) — Per-agent policy assignment

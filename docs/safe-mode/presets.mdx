@@ -1,0 +1,168 @@
+---
+sidebar_position: 3
+title: Presets
+description: 5 built-in configuration presets for Safe Mode
+---
+
+# Presets
+
+Safe Mode includes 5 built-in presets that configure detection engines, knobs, and budget limits for common use cases.
+
+## Available Presets
+
+### coding (Default)
+
+Balanced for software development. AI writes freely within project boundaries.
+
+```yaml
+version: "1.0"
+preset: coding
+approve_fallback: block
+
+budget:
+  max_session_cost: 20
+  alert_at: 16
+
+overrides:
+  terminal:
+    destructive_commands: block
+    package_installs: approve
+  filesystem:
+    file_delete: approve
+    directory_delete: approve
+  git:
+    git_force_push: approve
+```
+
+**Best for:** Day-to-day development, code assistants, refactoring tasks
+
+### personal
+
+For Claude Desktop personal assistant use. Budget alerts, path containment.
+
+```yaml
+version: "1.0"
+preset: personal
+approve_fallback: block
+
+budget:
+  max_session_cost: 10
+  alert_at: 8
+
+overrides:
+  terminal:
+    command_exec: block
+    destructive_commands: block
+    package_installs: block
+```
+
+**Best for:** Personal productivity, research, non-coding tasks
+
+### strict
+
+Maximum restrictions. Everything requires approval.
+
+```yaml
+version: "1.0"
+preset: strict
+approve_fallback: block
+
+budget:
+  max_session_cost: 5
+  alert_at: 4
+
+overrides:
+  terminal:
+    command_exec: block
+  filesystem:
+    file_write: block
+    file_delete: block
+    directory_delete: block
+  git:
+    git_push: block
+  database:
+    db_write: block
+    db_delete: block
+```
+
+**Best for:** Untrusted environments, sensitive data, security-focused workflows
+
+### trading
+
+Circuit breakers and hard caps for financial operations.
+
+```yaml
+version: "1.0"
+preset: trading
+approve_fallback: block
+
+budget:
+  max_session_cost: 50
+  max_daily_cost: 500
+  alert_at: 40
+
+overrides:
+  terminal:
+    command_exec: block
+  filesystem:
+    file_write: block
+    file_delete: block
+  financial:
+    payment_create: approve
+    transfer: approve
+```
+
+**Best for:** Trading bots, financial automation, API interactions
+
+### yolo
+
+Maximum autonomy. Catch catastrophes only.
+
+```yaml
+version: "1.0"
+preset: yolo
+approve_fallback: allow
+
+budget:
+  max_session_cost: 100
+  alert_at: 80
+
+overrides: {}
+```
+
+**Best for:** Trusted experimentation, development in sandboxed environments
+
+## Switching Presets
+
+```bash
+safemode preset coding
+safemode preset strict
+```
+
+## Custom Configuration
+
+Override any preset setting in `.safemode.yaml`:
+
+```yaml
+version: "1.0"
+preset: coding
+
+# Override specific settings
+overrides:
+  filesystem:
+    write_outside_project: block
+  terminal:
+    package_installs: approve
+```
+
+## Knob Values
+
+Override values follow a strictest-wins model. When multiple config sources set the same knob, the most restrictive value wins.
+
+| Value | Description |
+|-------|-------------|
+| `allow` | Operation proceeds without intervention |
+| `approve` | Operation pauses for human approval |
+| `block` | Operation is denied |
+
+See the [Knobs reference](./knobs) for the full list of configurable knobs across 19 categories.

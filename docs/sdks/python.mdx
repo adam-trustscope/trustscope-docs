@@ -6,6 +6,8 @@ description: Full-featured Python SDK for TrustScope with decorators, context ma
 
 # Python SDK
 
+**Version:** 0.3.0 · **Package:** `trustscope` · **Python:** 3.8+
+
 The TrustScope Python SDK provides decorators, context managers, and manual logging for complete control over AI agent monitoring.
 
 ## Installation
@@ -14,7 +16,22 @@ The TrustScope Python SDK provides decorators, context managers, and manual logg
 pip install trustscope
 ```
 
-**Requirements:** Python 3.8+
+### Configuration
+
+```python
+from trustscope import TrustScope
+
+ts = TrustScope(
+    api_key="ts_live_xxx",        # Required (or set TRUSTSCOPE_API_KEY env var)
+    base_url="https://api.trustscope.ai",  # Optional override
+    timeout=30.0,                  # Request timeout in seconds
+    fail_open=True,                # Default: if TrustScope is unavailable, allow actions
+)
+```
+
+:::info Fail-Open Default
+`fail_open=True` means your agent continues working even if TrustScope is unavailable. Set `fail_open=False` for strict enforcement where actions are blocked when TrustScope can't be reached.
+:::
 
 ## Quick Start
 

@@ -1,0 +1,133 @@
+---
+sidebar_position: 5
+title: Deployment Runbook
+description: Release order, deploy mechanics, smoke tests, and rollback guidance for TrustScope
+---
+
+# Deployment Runbook
+
+This runbook covers the code paths that are actually wired for deployment today.
+
+## Deployment targets
+
+| Surface | Repo | Deployment target | Evidence in repo |
+|---|---|---|---|
+| API | `trustscope-api` | Render | `.github/workflows/deploy.yml` triggers a Render deploy hook |
+| Dashboard | `trustscope-dashboard` | Vercel | `vercel.json` with `NEXT_PUBLIC_API_URL` and `iad1` region |
+| Website | `trustscope-website` | Vercel | `vercel.json` with Next.js framework |
+| Docs | `trustscope-docs` | Static site | Docusaurus build scripts, no repo-level deploy workflow found |
+| Admin | `trustscope-admin` | not codified in repo | No deployment config checked in |
+
+## Release order
+
+1. Ship backward-compatible API changes and apply database migrations.
+2. Verify API health and auth flows.
+3. Deploy dashboard against the new API.
+4. Deploy website and docs updates.
+5. Release SDK and CLI packages only after the API and dashboard contract is confirmed stable.
+
+## API deploy path
+
+The API repo already contains two gates plus a deploy workflow:
+
+- `Integration Coverage Gate`
+- `Security Gate`
+- `Deploy to Render`
+
+The deploy workflow triggers from successful `main` workflow runs or manual dispatch. It uses `RENDER_DEPLOY_HOOK`.
+
+### API pre-deploy steps
+
+1. Merge to `main`.
+2. Confirm migration safety and run `alembic upgrade head` in the target environment.
+3. Confirm Render secrets match the production matrix.
+4. Confirm Clerk, Stripe, R2, and GlitchTip values are present if those features are live.
+
+### API smoke tests
+
+- `GET https://api.trustscope.ai/health`
+- `GET https://api.trustscope.ai/docs`
+- Login flow from the dashboard
+- One trace ingestion path such as `observe`, `gateway`, or `traces`
+- Any billing or import flow you plan to expose on launch day
+
+### API rollback
+
+- Re-deploy the last known good Render release.
+- If a migration is not backward compatible, stop and use the database rollback plan before redeploying the older app.
+- Re-run `/health`, dashboard login, and one trace path after rollback.
+
+## Dashboard deploy path
+
+The dashboard repo has a `Security Gate` workflow that installs dependencies, verifies Next.js `16.1.6`, checks for exposed keys, builds, and runs `npm audit`.
+
+### Dashboard pre-deploy steps
+
+1. Confirm `NEXT_PUBLIC_API_URL` points at the live API.
+2. Confirm Clerk publishable and secret keys match the target environment.
+3. Confirm any server-side proxy env vars such as `TRUSTSCOPE_API_URL` and `ADMIN_API_KEY` are present if used.
+
+### Dashboard smoke tests
+
+- Landing redirect behavior on the intended domain
+- `/dashboard`
+- `/api-check`
+- onboarding flow
+- billing checkout entry point if billing is live
+- a page that exercises API proxy routes such as traces, policies, or gateway docs
+
+### Dashboard rollback
+
+- Promote the last good Vercel deployment.
+- Verify dashboard pages render and session auth still works.
+
+## Website deploy path
+
+The website repo has a similar `Security Gate` workflow: install, verify Next.js patch level, scan for exposed keys, build, and audit dependencies.
+
+### Website smoke tests
+
+- home page
+- pricing
+- framework landing pages
+- waitlist submission if enabled
+- footer and docs links
+
+## Docs deploy path
+
+The docs repo has build scripts but no checked-in deployment workflow. Treat docs deployment as a manual release until CI is added.
+
+### Docs release steps
+
+1. Run `npm install`.
+2. Run `npm run build`.
+3. Publish the generated static site through the hosting provider.
+4. Verify the API reference pages, developer section, and navbar links.
+
+### Docs smoke tests
+
+- docs home
+- API Reference
+- Developer Overview
+- search behavior if Algolia is enabled
+
+## Release evidence
+
+Capture this for every launch:
+
+- commit SHAs for API, dashboard, website, and docs
+- Render deploy ID or timestamp
+- Vercel deployment URLs for dashboard and website
+- result of API `/health`
+- result of a dashboard login and one trace path
+- any migration IDs applied
+
+## Operational references
+
+The API repo already contains security runbooks worth treating as source material for launch ops:
+
+- `docs/security/incident-response-runbook.md`
+- `docs/security/bcdr-runbook.md`
+- `docs/security/vendor-security-baseline.md`
+
+Keep those aligned with this runbook as the production process hardens.

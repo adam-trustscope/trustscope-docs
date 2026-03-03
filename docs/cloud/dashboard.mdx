@@ -1,0 +1,142 @@
+---
+sidebar_position: 3
+title: Dashboard
+description: Real-time visibility into agent activity
+---
+
+# Dashboard
+
+The TrustScope dashboard provides real-time visibility into all agent activity across your connected devices and team.
+
+## Overview
+
+Access your dashboard at [app.trustscope.ai](https://app.trustscope.ai).
+
+## Dashboard Sections
+
+The dashboard is organized into the following pages:
+
+| Section | Description |
+|---------|-------------|
+| **Dashboard** | Overview with activity feed, widgets, and summary stats |
+| **Traces** | Individual tool call traces with full context |
+| **Sessions** | Agent session history with duration, cost, and detection counts |
+| **Agents** | Registered agents and their behavioral profiles |
+| **Policies** | Active policies and their enforcement status |
+| **Configuration** | Detections, policies, alerts, content security, budget, and rules |
+| **Evidence** | Frameworks, proofs, certificates, and sharing |
+| **Compliance** | GDPR DSR requests and legal holds |
+| **Gateway** | Gateway proxy status and routing |
+| **MCP** | MCP servers and proxy configuration |
+| **Alerts** | Alert history and configuration |
+| **Import** | Import sessions and data from external sources |
+| **Team** | Team members, roles, and device management |
+| **Settings** | Billing, security, and account settings |
+| **Test Builder** | Policy simulation and testing (see below) |
+
+### Activity Feed
+
+Live stream of all agent actions across your connected devices. Filter by:
+- Client (Cursor, Claude Desktop, etc.)
+- Agent/session
+- Detection type
+- Time range
+
+### Session View
+
+Drill into specific agent sessions to see:
+- Complete tool call history
+- Detection events with context
+- Token/cost usage
+- Session duration
+
+### Detection Events
+
+All triggered detections grouped by severity:
+- **Critical:** Blocked actions requiring attention
+- **Warning:** Allowed actions flagged for review
+- **Info:** Informational events
+
+## Widgets
+
+### Active Sessions
+
+Real-time count of running agent sessions across all devices.
+
+### Detection Summary
+
+Rolling 24-hour summary of detection events by category:
+- Loop detection
+- Secrets/PII
+- Prompt injection
+- Cost limits
+
+### Cost Tracking
+
+Aggregate token usage and estimated cost across all sessions.
+
+### Engine Status
+
+Health status of local and cloud detection engines.
+
+## Filters
+
+### Time Range
+
+- Last hour
+- Last 24 hours
+- Last 7 days
+- Custom range
+
+### Device
+
+Filter by specific connected devices.
+
+### Agent
+
+Filter by agent identifier or session ID.
+
+### Detection Type
+
+Filter to specific engine types (counter, content scanner, security, rule).
+
+## Alerts
+
+Configure alerts from the dashboard:
+
+1. Navigate to **Settings > Alerts**
+2. Choose channel (Slack, email, webhook)
+3. Set conditions (detection type, severity, frequency)
+4. Save
+
+See the API Reference section for API-based alert setup.
+
+## Test Builder
+
+The test builder lets you simulate policy enforcement without affecting live traffic. Navigate to **Test Builder** to:
+
+- Create synthetic tool call scenarios
+- Test detection engine responses against your current policy set
+- Validate policy changes before deploying to production
+- Preview block/allow/approve decisions for specific inputs
+
+## Evidence
+
+The evidence section provides auditable proof of AI governance. Navigate to **Evidence** to access:
+
+- **Frameworks** -- compliance framework mappings (AIUC-1, SEC 17a-4, HIPAA, EU AI Act, GDPR, NIST AI RMF, ISO 42001)
+- **Proofs** -- cryptographic proofs of detection and enforcement decisions
+- **Certificates** -- signed attestation certificates for audit trails
+- **Sharing** -- share evidence packs with auditors or regulators via secure links
+
+Evidence packs are generated asynchronously via background jobs. You receive a notification when generation is complete.
+
+## Export
+
+Export activity data for analysis:
+
+- **CSV:** Basic export for spreadsheet analysis
+- **JSON:** Full structured data
+- **Audit Trail:** Cryptographically signed records (Enforce+)
+
+See [Exports](./exports) for detailed export options.

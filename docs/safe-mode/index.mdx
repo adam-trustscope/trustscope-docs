@@ -1,0 +1,104 @@
+---
+sidebar_position: 1
+title: Safe Mode Overview
+description: Local AI agent governance for MCP clients
+---
+
+# Safe Mode
+
+Safe Mode is a local governance layer for AI agents using the Model Context Protocol (MCP). It provides real-time detection, approval workflows, and rollback capabilities without requiring cloud connectivity.
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **15 Detection Engines** | Loop detection, secrets scanning, PII, prompt injection, and more |
+| **5 Presets** | coding, personal, strict, trading, yolo |
+| **100+ Knobs** | Granular control across 19 categories |
+| **Time Machine** | Automatic snapshots with instant rollback |
+| **Phone Approvals** | Telegram/Discord approval workflows |
+| **Rules Engine** | Custom YAML-based rules |
+
+## Quick Start
+
+```bash
+npx safemode init
+```
+
+This command:
+1. Detects installed MCP clients (Cursor, Claude Desktop, etc.)
+2. Prompts you to select a preset
+3. Patches MCP configurations to route through Safe Mode
+4. Runs a first-run security scan
+
+## Architecture
+
+Safe Mode acts as an MCP proxy between your AI client and MCP servers:
+
+```
+[Claude Desktop] → [Safe Mode Proxy] → [MCP Servers]
+                         ↓
+                  [Detection Engines]
+                  [Knobs + Rules]
+                  [Time Machine]
+```
+
+Safe Mode runs as a local Node.js process. The core components are:
+
+- **MCP Proxy** — Intercepts JSON-RPC messages between client and servers
+- **CET Classifier** — Classifies tool calls by effect type and risk level (low, medium, high, critical)
+- **ATSP Engine** — Rewrites tool schemas to constrain capabilities
+- **Engine Registry** — Runs 15 detection engines based on risk-based routing
+- **Knob Gate** — Enforces per-action policies (allow/approve/block) from presets, config files, and cloud policies
+- **Event Store** — SQLite-backed audit log of all tool calls and decisions
+- **Time Machine** — Automatic file snapshots with point-in-time rollback
+- **Rules Engine** — Custom YAML-based rules with conditions and actions
+
+### Configuration Hierarchy
+
+Configuration is loaded and merged from multiple sources (strictest wins):
+
+1. Preset defaults (base)
+2. `~/.safemode/config.yaml` (personal overrides)
+3. `.safemode.yaml` (project/repo overrides)
+4. Cloud policies (from TrustScope, if connected)
+5. Hardcoded invariants (always win, cannot be overridden)
+
+## Cloud Bridge (Optional)
+
+Safe Mode can optionally connect to TrustScope cloud for centralized visibility and team features. The bridge uses three background intervals:
+
+| Function | Interval | Description |
+|----------|----------|-------------|
+| **Event sync** | Every 30s | Batches and uploads tool call events to TrustScope API |
+| **Policy pull** | Every 5min | Fetches cloud policies and knob overrides |
+| **Heartbeat** | Every 60s | Reports device health, stats, and processes server commands |
+
+All intervals are configurable. Events are persisted to disk and retried on failure. When disconnected, Safe Mode continues to operate locally with no degradation.
+
+Connect with:
+```bash
+safemode connect --api-key smdev_your_key
+```
+
+## What Safe Mode Is NOT
+
+- **Not cloud-required** — Works entirely locally, no account needed
+- **Not telemetry** — No data leaves your machine unless you opt-in
+- **Not blocking by default** — Presets start with safe defaults, not aggressive blocking
+
+## Supported MCP Clients
+
+- Cursor
+- Claude Desktop
+- Claude Code
+- VS Code (with MCP extension)
+- Windsurf
+- Any MCP-compatible client
+
+## Next Steps
+
+- [Install Safe Mode](./install)
+- [Choose a Preset](./presets)
+- [Configure Detection Engines](./engines)
+- [CLI Reference](./cli)

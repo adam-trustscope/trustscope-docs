@@ -1,0 +1,60 @@
+---
+sidebar_position: 1
+title: Developer Overview
+description: Launch-ready map of the TrustScope platform, services, and deploy boundary
+---
+
+# Developer Overview
+
+This section is the operator-facing map of the TrustScope codebase. It is based on the repos, manifests, environment files, and deploy configs in the active workspace, not only the public product narrative.
+
+## What is on the production path
+
+| Surface | Primary repo | Runtime | Primary responsibility | Critical dependencies |
+|---|---|---|---|---|
+| API | `trustscope-api` | FastAPI / Python 3.11 | Gateway, observe, enforce, evidence, billing, admin APIs | PostgreSQL, Redis, Clerk, Stripe, optional R2 and AI providers |
+| Customer app | `trustscope-dashboard` | Next.js 16 | Authenticated product UI and API proxy routes | TrustScope API, Clerk |
+| Marketing site | `trustscope-website` | Next.js 16 | Public website, pricing, framework pages, waitlist bridge | TrustScope API waitlist endpoints |
+| Docs | `trustscope-docs` | Docusaurus 3 | Public product and developer docs | Static hosting |
+| Internal ops console | `trustscope-admin` | Next.js 16 | Revenue, org, alert, and system operations UI | TrustScope API admin endpoints |
+
+## Supporting release repos
+
+These repos are part of the product surface, but they are not required to boot the SaaS control plane:
+
+- `trustscope-cli`: npm CLI for scanning, watch mode, and CI workflows.
+- `trustscope-node`: Node/TypeScript SDK.
+- `trustscope-python`: Python SDK with framework integrations.
+- `trustscope-main`: package repo for the `trustscope` runtime CLI/MCP surface.
+- `trustscope-mcp-server`: another package repo shipping the same `trustscope` runtime surface.
+- `trustscope-dashboard-ui-lab`: experimental dashboard/UI branch, not the primary customer app.
+
+## Request and data flow
+
+1. Agents, SDKs, CLI workflows, or gateway clients send traffic to `trustscope-api`.
+2. The API applies middleware for CORS, CSRF, security gates, audit logging, kill switches, and request validation.
+3. Durable records land in PostgreSQL. Redis is used for rate limiting, feature switches, and runtime coordination.
+4. Optional services extend the control plane: Clerk for auth, Stripe for billing, R2 for import storage, and external AI providers for advanced analysis.
+5. `trustscope-dashboard` and `trustscope-admin` consume the API for customer and internal operations.
+6. `trustscope-website` and `trustscope-docs` handle top-of-funnel traffic, onboarding, and developer enablement.
+
+## Go-live boundary
+
+For launch, the minimum production boundary is:
+
+- `trustscope-api`
+- `trustscope-dashboard`
+- `trustscope-website`
+- `trustscope-docs`
+
+`trustscope-admin` is operationally useful, but it is an internal surface. SDKs and CLI packages should release after the API contract and dashboard flows are stable.
+
+## Workspace caveat
+
+There are also root-level repos in the workspace such as `trustscope`, `trustscope-cli-legacy`, `safemode`, `trustscope-hook-test`, `trustscope-pkg`, and `trustscope-v16-docs`. Treat those as legacy, experimental, or migration-era repos until a canonical owner is explicitly confirmed.
+
+## Next steps
+
+- Use [Repository Map](./repositories) to understand repo ownership and release scope.
+- Use [Local Development](./local-development) to run the stack on one machine.
+- Use [Deployment Runbook](./deployment-runbook) and [Go-Live Checklist](./go-live-checklist) for release execution.

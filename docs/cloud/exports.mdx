@@ -1,0 +1,208 @@
+---
+sidebar_position: 10
+title: Exports
+description: Export activity data and audit trails
+---
+
+# Exports
+
+Export activity data from TrustScope for analysis, compliance, and integration with other systems.
+
+## Export Types
+
+### Activity Export
+
+Export raw activity data including tool calls, sessions, and detection events.
+
+```bash
+# Via CLI
+trustscope export activity \
+  --start 2024-01-01 \
+  --end 2024-01-31 \
+  --format json \
+  --output january-activity.json
+```
+
+### Audit Trail Export
+
+Export cryptographically signed records (Protect+).
+
+```bash
+trustscope export audit-trail \
+  --start 2024-01-01 \
+  --end 2024-01-31 \
+  --include-signatures \
+  --output january-audit.json
+```
+
+### Compliance Export
+
+Pre-formatted exports for compliance frameworks (Govern).
+
+```bash
+trustscope export compliance \
+  --framework eu-ai-act \
+  --period 2024-Q1 \
+  --output q1-compliance.zip
+```
+
+## Export Formats
+
+### JSON
+
+Standard JSON format for programmatic processing:
+
+```json
+{
+  "export_id": "exp_abc123",
+  "generated_at": "2024-02-01T00:00:00Z",
+  "period": {
+    "start": "2024-01-01T00:00:00Z",
+    "end": "2024-01-31T23:59:59Z"
+  },
+  "records": [...]
+}
+```
+
+### CSV
+
+Flattened format for spreadsheet analysis:
+
+```csv
+timestamp,session_id,agent_id,tool,action,risk_level,detection
+2024-01-15T10:30:00Z,ses_abc,agt_xyz,file_write,allow,low,none
+2024-01-15T10:30:05Z,ses_abc,agt_xyz,bash,block,high,command_firewall
+```
+
+### JSONL (JSON Lines)
+
+Streaming format for large exports:
+
+```jsonl
+{"timestamp":"2024-01-15T10:30:00Z","type":"tool_call",...}
+{"timestamp":"2024-01-15T10:30:05Z","type":"detection",...}
+```
+
+### Signed JSON
+
+JSON with embedded cryptographic signatures:
+
+```json
+{
+  "records": [...],
+  "signatures": {
+    "ed25519": "base64...",
+    "dilithium": "base64..."
+  },
+  "certificate": "-----BEGIN CERTIFICATE-----..."
+}
+```
+
+## Via Dashboard
+
+1. Navigate to **Exports > Create Export**
+2. Select export type
+3. Choose date range
+4. Select format
+5. Apply filters (optional)
+6. Click **Generate Export**
+7. Download when ready
+
+## Via API
+
+```bash
+# Create export job
+curl -X POST https://api.trustscope.ai/v1/exports \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "activity",
+    "start": "2024-01-01T00:00:00Z",
+    "end": "2024-01-31T23:59:59Z",
+    "format": "json",
+    "filters": {
+      "agents": ["agt_abc123"],
+      "detection_types": ["prompt_injection", "secrets_scanner"]
+    }
+  }'
+
+# Response
+{
+  "export_id": "exp_abc123",
+  "status": "processing",
+  "estimated_completion": "2024-02-01T00:05:00Z"
+}
+
+# Check status / download
+curl https://api.trustscope.ai/v1/exports/exp_abc123 \
+  -H "Authorization: Bearer $TRUSTSCOPE_API_KEY"
+```
+
+## Scheduled Exports
+
+Set up recurring exports:
+
+1. Navigate to **Exports > Schedules**
+2. Click **Create Schedule**
+3. Configure:
+   - Frequency (daily, weekly, monthly)
+   - Export type and format
+   - Filters
+   - Destination (email, S3, webhook)
+
+### S3 Destination
+
+```json
+{
+  "destination": {
+    "type": "s3",
+    "bucket": "my-exports-bucket",
+    "prefix": "trustscope/",
+    "region": "us-west-2"
+  }
+}
+```
+
+### Webhook Destination
+
+```json
+{
+  "destination": {
+    "type": "webhook",
+    "url": "https://my-system.com/ingest",
+    "headers": {
+      "Authorization": "Bearer my-token"
+    }
+  }
+}
+```
+
+## Compliance Frameworks
+
+Pre-built export templates for compliance (Govern tier). Evidence packs are generated asynchronously via background jobs.
+
+| Framework | Includes |
+|-----------|----------|
+| **AIUC-1** | AI use case documentation, risk classification records |
+| **SEC 17a-4** | Immutable audit records, retention compliance logs |
+| **HIPAA** | PII access logs, encryption records, BAA evidence |
+| **EU AI Act** | Transparency records, human oversight logs |
+| **GDPR Article 22** | Automated decision-making records, DSR fulfillment logs |
+| **NIST AI RMF** | Risk assessments, mitigation records, governance evidence |
+| **ISO 42001** | AI management system records, control implementation evidence |
+
+Supported export formats: **JSON**, **CSV**, and **JSONL**.
+
+## Data Redaction
+
+Configure automatic redaction for exports:
+
+```yaml
+export_settings:
+  redact:
+    - pii          # Redact detected PII
+    - secrets      # Redact detected secrets
+    - file_contents # Redact file content previews
+```
+
+Redacted fields show `[REDACTED]` in exports.

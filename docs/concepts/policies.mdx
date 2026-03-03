@@ -6,47 +6,159 @@ description: Define and enforce rules for AI agent behavior
 
 # Policies
 
-Policies define rules that govern AI agent behavior. TrustScope enforces these in real-time.
+Policies are configurable rules that govern AI agent behavior. Unlike [detection engines](/docs/reference/detections) (which run automatically), policies are rules **you define** to enforce your specific business logic.
 
-## Policy Types
+---
 
-### Content Policies
-- `no-pii` - Block personally identifiable information
-- `no-profanity` - Filter inappropriate language
-- `content-filter` - General harmful content detection
+## How Policies Work
 
-### Cost Policies
-- `cost-limit-{amount}` - Max cost per request
-- `token-limit-{count}` - Max tokens per request
-- `daily-budget-{amount}` - Daily spending cap
+Every time an agent action is evaluated (via `POST /enforce` or SDK enforcement), TrustScope checks the action against all applicable policies. If any policy triggers, the configured action (alert, redact, or block) is applied.
 
-### Business Logic Policies
-- `business-hours` - Only allow during work hours
-- `approved-tools-only` - Restrict tool usage
-- `max-refund-{amount}` - Limit financial actions
-
-## Using Policies
-
-### SDK Enforcement
-
-```python
-@ts.enforce(
-    agent_id="refund-bot",
-    policies=["max-refund-1000", "no-pii"]
-)
-def process_refund(customer_id: str, amount: float):
-    # Only executes if policies pass
-    ...
+```
+Agent Action → Policy Evaluation → allow | alert | redact | block
 ```
 
-### Gateway Policies
+---
 
-Configure default policies in the dashboard that apply to all Gateway traffic.
+## Policy Model
 
-## Policy Violations
+Each policy has the following structure:
 
-When a policy is violated:
-1. Action is blocked (configurable)
-2. Violation is logged
-3. Alert is triggered (optional)
-4. Response includes violation details
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Auto-generated ID (`pol_XXXXX`) |
+| `org_id` | string | Organization that owns the policy |
+| `name` | string | Human-readable policy name |
+| `policy_type` | string | One of 24 policy types (see below) |
+| `config` | JSON | Type-specific configuration |
+| `agent_id` | string | Target agent (or `null` for global) |
+| `enabled` | boolean | Whether the policy is active |
+
+---
+
+## 24 Policy Types by Tier
+
+Each tier includes all types from lower tiers.
+
+| Tier | Types | Available |
+|------|-------|-----------|
+| **Monitor** (3) | max_value, min_value, allowed_values | All tiers |
+| **Protect** (+9 = 12) | blocked_values, rate_limit, time_window, require_field, recipient_allowlist, amount_limit, require_approval, block_action, cumulative_limit | Protect+ |
+| **Enforce** (+9 = 21) | human_approval, chain_depth_limit, external_check, per_entity_limit, custom_logic, semantic_rule, delegation_restriction, delegation_limits, exposure_threshold | Enforce+ |
+| **Govern** (+3 = 24) | custom_function, multi_approval, tool_provenance | Govern |
+
+For detailed configuration of each type, see [Policy Types Reference](/docs/reference/policy-types).
+
+---
+
+## Enforcement Modes
+
+Every policy supports five enforcement modes:
+
+| Mode | Behavior |
+|------|----------|
+| `off` | Policy not evaluated |
+| `simulate` | Evaluates and logs, does NOT enforce |
+| `alert` | Evaluates, logs, sends notification |
+| `redact` | Evaluates, redacts matching content (Protect+) |
+| `block` | Evaluates and blocks the action (Protect+) |
+
+### Recommended lifecycle
+
+```
+off → simulate → alert → block
+```
+
+1. Create in `off` mode — no impact
+2. Enable `simulate` — see what would trigger
+3. Review results — confirm no false positives
+4. Switch to `alert` — get notifications
+5. Activate `block` — enforce on live traffic
+
+---
+
+## Policy Limits by Tier
+
+| Tier | Max Policies |
+|------|-------------|
+| Monitor | 3 |
+| Protect | 16 |
+| Enforce | 50 |
+| Govern | Unlimited |
+
+---
+
+## Creating Policies
+
+### Dashboard
+
+Use the policy builder in the TrustScope dashboard to create, test, and activate policies visually.
+
+### API
+
+```bash
+curl -X POST https://api.trustscope.ai/v1/policies \
+  -H "Authorization: Bearer ts_live_xxx" \
+  -d '{
+    "name": "Max Cost Per Request",
+    "type": "max_value",
+    "config": {
+      "field": "cost_usd",
+      "max": 100.00,
+      "action": "block"
+    }
+  }'
+```
+
+### SDK Policy Builder
+
+**Python** (7 factory methods):
+
+```python
+from trustscope import Policy
+
+Policy.max_value("cost_usd", 100.0)
+Policy.min_value("confidence_score", 0.8)
+Policy.allowed_values("model", ["gpt-4", "claude-3-opus"])
+Policy.blocked_values("action_type", ["delete", "drop_table"])
+Policy.rate_limit(count=1000, window="1h")
+Policy.time_window(start_time="09:00", end_time="17:00", timezone="UTC")
+Policy.custom(rule_type="my_rule", threshold=0.5)
+```
+
+**Node.js** (11 factory methods, including Pro+ policies):
+
+```typescript
+import { Policy } from '@trustscope/sdk';
+
+Policy.maxValue('cost_usd', 100);
+Policy.minValue('confidence_score', 0.8);
+Policy.allowedValues('model', ['gpt-4', 'claude-3-opus']);
+Policy.blockedValues('action_type', ['delete']);
+Policy.rateLimit(1000, { window: '1h' });
+Policy.timeWindow('09:00', '17:00', { timezone: 'UTC' });
+Policy.blockedDomains(['example.com']);
+
+// Enforce+ policies
+Policy.cumulativeLimit('tokens_used', 1000000, { window: '30d' });
+Policy.humanApproval({ actionTypes: ['external_api'] });
+Policy.chainDepthLimit(3);
+Policy.externalCheck('https://approval.internal.com/check');
+```
+
+---
+
+## Policy Assignment
+
+- **Global** — `agent_id: null` applies to all agents
+- **Per-agent** — `agent_id: "my-agent"` applies to one agent only
+
+Evaluation order: security policies first, then cost, content, access, approval, compliance, advanced. First matching block/require wins.
+
+---
+
+## Related
+
+- [Policy Types Reference](/docs/reference/policy-types) — Full reference with config examples
+- [Detection Engines](/docs/reference/detections) — Automatic threat detection
+- [Cloud: Policies](/docs/cloud/policies) — Managing policies in the dashboard
