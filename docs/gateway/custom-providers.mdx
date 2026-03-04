@@ -1,0 +1,300 @@
+---
+sidebar_position: 4
+title: OpenAI-Compatible Providers
+description: Route any OpenAI-compatible LLM provider through the TrustScope Gateway - xAI, Perplexity, Groq, Together AI, and more
+---
+
+# OpenAI-Compatible Providers
+
+TrustScope's Gateway supports **any provider that implements the OpenAI chat completions format** — not just the providers with dedicated endpoints. If a provider accepts the same `messages[]` request shape and returns the same `choices[].message.content` response shape as OpenAI, you can route it through the Gateway.
+
+This covers providers like **xAI (Grok)**, **Perplexity**, **Groq**, **Together AI**, **Fireworks AI**, **Anyscale**, and any self-hosted OpenAI-compatible server (vLLM, Ollama, LiteLLM, etc.).
+
+---
+
+## How It Works
+
+The Gateway has two routing modes:
+
+| Mode | URL Pattern | Use Case |
+|------|-------------|----------|
+| **Named provider** | `gateway.trustscope.ai/{provider}` | Providers with dedicated endpoints (OpenAI, Anthropic, etc.) |
+| **Generic proxy** | `gateway.trustscope.ai/proxy` | Any OpenAI-compatible provider |
+
+The generic proxy forwards your request to an upstream URL you specify via the `X-Upstream-Base-URL` header, captures the full request/response for governance, and returns the provider's response unchanged.
+
+---
+
+## Quick Start
+
+### Python
+
+```python
+from openai import OpenAI
+
+# xAI (Grok)
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-xai-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.x.ai/v1",
+    }
+)
+
+response = client.chat.completions.create(
+    model="grok-3",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+### Node.js
+
+```typescript
+import OpenAI from 'openai';
+
+// Perplexity
+const client = new OpenAI({
+  baseURL: 'https://gateway.trustscope.ai/proxy',
+  apiKey: process.env.PERPLEXITY_API_KEY,
+  defaultHeaders: {
+    'X-TrustScope-Key': 'ts_live_xxx',
+    'X-Upstream-Base-URL': 'https://api.perplexity.ai',
+  }
+});
+
+const response = await client.chat.completions.create({
+  model: 'sonar-pro',
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+### cURL
+
+```bash
+curl https://gateway.trustscope.ai/proxy/chat/completions \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -H "X-TrustScope-Key: ts_live_xxx" \
+  -H "X-Upstream-Base-URL: https://api.x.ai/v1" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "grok-3",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+---
+
+## Provider Examples
+
+### xAI (Grok)
+
+| Detail | Value |
+|--------|-------|
+| Upstream URL | `https://api.x.ai/v1` |
+| Models | `grok-3`, `grok-3-mini` |
+| Format | OpenAI-compatible |
+| Notes | Supports streaming, function calling. Long timeout behavior (up to 300s) — configure `timeout` on your client accordingly. |
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-xai-key",
+    timeout=300.0,  # xAI can take longer on complex reasoning
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.x.ai/v1",
+    }
+)
+```
+
+### Perplexity
+
+| Detail | Value |
+|--------|-------|
+| Upstream URL | `https://api.perplexity.ai` |
+| Models | `sonar-pro`, `sonar`, `sonar-deep-research` |
+| Format | OpenAI-compatible |
+| Notes | Response includes `citations` array in the response object. The Gateway preserves this in the captured trace. |
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-perplexity-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.perplexity.ai",
+    }
+)
+```
+
+### Groq
+
+| Detail | Value |
+|--------|-------|
+| Upstream URL | `https://api.groq.com/openai/v1` |
+| Models | `llama-3.3-70b-versatile`, `mixtral-8x7b-32768` |
+| Format | OpenAI-compatible |
+| Notes | Extremely low latency. Also available via the dedicated `gateway.trustscope.ai/groq` endpoint. |
+
+```python
+# Option 1: Generic proxy
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-groq-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.groq.com/openai/v1",
+    }
+)
+
+# Option 2: Dedicated endpoint (equivalent)
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/groq",
+    api_key="your-groq-key",
+    default_headers={"X-TrustScope-Key": "ts_live_xxx"}
+)
+```
+
+### Together AI
+
+| Detail | Value |
+|--------|-------|
+| Upstream URL | `https://api.together.xyz/v1` |
+| Models | `meta-llama/Llama-3.3-70B-Instruct`, `mistralai/Mixtral-8x22B-Instruct-v0.1` |
+| Format | OpenAI-compatible |
+| Notes | Also available via the dedicated `gateway.trustscope.ai/together` endpoint. |
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-together-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.together.xyz/v1",
+    }
+)
+```
+
+### Fireworks AI
+
+| Detail | Value |
+|--------|-------|
+| Upstream URL | `https://api.fireworks.ai/inference/v1` |
+| Models | `accounts/fireworks/models/llama-v3p3-70b-instruct` |
+| Format | OpenAI-compatible |
+
+```python
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-fireworks-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.fireworks.ai/inference/v1",
+    }
+)
+```
+
+### Self-Hosted (vLLM, Ollama, LiteLLM)
+
+Any local or self-hosted server that exposes an OpenAI-compatible endpoint works:
+
+```python
+# vLLM server
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="not-used",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "http://your-vllm-server:8000/v1",
+    }
+)
+
+# Ollama
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="not-used",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "http://localhost:11434/v1",
+    }
+)
+```
+
+:::warning Network Accessibility
+For self-hosted servers, the upstream URL must be reachable from the TrustScope Gateway. If your server is behind a firewall or on a private network, use the [TrustScope SDK](/docs/sdks/overview) instead of the Gateway for governance.
+:::
+
+---
+
+## Required Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-TrustScope-Key` | Yes | Your TrustScope API key |
+| `Authorization` | Yes | Your provider API key (passed as `Bearer` token) |
+| `X-Upstream-Base-URL` | Yes | The provider's base URL to forward requests to |
+| `X-TrustScope-Agent-Id` | Optional | Custom agent identifier |
+| `X-TrustScope-Session-Id` | Optional | Group related requests |
+
+---
+
+## What Gets Captured
+
+The generic proxy captures the same data as dedicated provider endpoints:
+
+- Full request body (messages, tools, parameters)
+- Full response body (content, tool calls, usage)
+- Token counts and cost (when the provider returns usage data)
+- Latency (time to first token, total time)
+- All detection engines run on the content (PII, prompt injection, policy violations)
+
+:::tip Cost Tracking
+For named providers, TrustScope calculates cost automatically from known pricing. For generic proxy requests, cost is calculated if the provider returns `usage` data in the response and the model is in our pricing database. You can also set custom pricing per model in **Settings > Models**.
+:::
+
+---
+
+## Streaming
+
+Streaming works through the generic proxy. The Gateway buffers the stream for governance inspection while forwarding chunks to your client in real-time:
+
+```python
+for chunk in client.chat.completions.create(
+    model="grok-3",
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+    stream=True
+):
+    print(chunk.choices[0].delta.content or "", end="")
+```
+
+---
+
+## Limitations
+
+- **OpenAI-compatible format only.** The generic proxy does not translate between API formats. Providers with proprietary request schemas (e.g., Google's native `contents[].parts[]` format) must use a dedicated endpoint or OpenAI-compatible wrapper.
+- **Provider-specific response extensions** (like Perplexity's `citations` field) are preserved in the trace but not processed by detection engines that expect standard OpenAI fields.
+- **Authentication** is passed through as-is. The Gateway does not handle provider-specific auth flows (OAuth, STS tokens, etc.) — only `Bearer` token auth via the `Authorization` header.
+
+---
+
+## Named vs. Generic: Which to Use?
+
+If your provider has a dedicated endpoint (`gateway.trustscope.ai/{provider}`), prefer it — named endpoints have provider-specific optimizations for cost calculation, error mapping, and response normalization.
+
+Use the generic proxy when:
+- Your provider doesn't have a dedicated endpoint
+- You're using a self-hosted or custom LLM server
+- You want a single integration pattern across many providers
+
+---
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `502 Bad Gateway` | Upstream URL unreachable | Verify `X-Upstream-Base-URL` is correct and accessible |
+| `401 Unauthorized` | Invalid provider API key | Check the `Authorization` header value |
+| Missing cost data | Provider doesn't return `usage` | Set custom pricing in Settings > Models |
+| Timeout errors | Provider slow to respond | Increase client timeout; xAI can take up to 300s |
+| Unexpected response format | Provider not OpenAI-compatible | Use SDK integration instead of Gateway |

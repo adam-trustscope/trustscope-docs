@@ -22,6 +22,11 @@ TrustScope works with **all major LLM providers** through our Gateway proxy. You
 | Groq | `gateway.trustscope.ai/groq` | OpenAI-compat | GA |
 | Together AI | `gateway.trustscope.ai/together` | OpenAI-compat | GA |
 | Perplexity | `gateway.trustscope.ai/perplexity` | OpenAI-compat | GA |
+| [Any OpenAI-compatible](/docs/gateway/custom-providers) | `gateway.trustscope.ai/proxy` | OpenAI-compat | GA |
+
+:::tip Beyond the 10 named providers
+Any provider that uses the OpenAI chat completions format — xAI (Grok), Fireworks AI, self-hosted vLLM/Ollama, or anything else — works through the **generic proxy** endpoint. See [OpenAI-Compatible Providers](/docs/gateway/custom-providers) for setup.
+:::
 
 ---
 
@@ -190,14 +195,33 @@ All providers appear in the same dashboard:
 
 ---
 
-## Adding New Providers
+## Any OpenAI-Compatible Provider
 
-TrustScope adds new providers regularly. Request support:
+Don't see your provider above? If it uses the OpenAI chat completions format (`messages[]` in, `choices[].message.content` out), it already works via the **generic proxy**:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://gateway.trustscope.ai/proxy",
+    api_key="your-provider-key",
+    default_headers={
+        "X-TrustScope-Key": "ts_live_xxx",
+        "X-Upstream-Base-URL": "https://api.your-provider.com/v1",  # ← Provider's real URL
+    }
+)
+```
+
+This works for xAI (Grok), Fireworks AI, Anyscale, self-hosted vLLM/Ollama servers, and any other OpenAI-compatible endpoint. Full guide: [OpenAI-Compatible Providers](/docs/gateway/custom-providers).
+
+### Requesting Dedicated Provider Endpoints
+
+Want first-class support (auto-cost calculation, provider-specific error handling) for a provider?
 
 1. [Open an issue](https://github.com/trustscope-ai/feedback/issues) on GitHub
 2. Email [support@trustscope.ai](mailto:support@trustscope.ai)
 
-Current roadmap:
+Dedicated endpoint roadmap:
 - [ ] xAI (Grok) - Q1 2026
 - [ ] AI21 Labs - Q1 2026
 - [ ] Alibaba Qwen - Q2 2026
@@ -230,5 +254,9 @@ Current roadmap:
   <a href="/docs/get-started/quickstarts/gateway" className="card">
     <h3>AWS Bedrock</h3>
     <p>Claude 4.5, Titan, Llama 3.3 on AWS</p>
+  </a>
+  <a href="/docs/gateway/custom-providers" className="card">
+    <h3>Any Provider</h3>
+    <p>xAI, Perplexity, Fireworks, vLLM, Ollama</p>
   </a>
 </div>

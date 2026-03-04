@@ -31,6 +31,7 @@ const sidebars: SidebarsConfig = {
         'gateway/overview',
         'gateway/anthropic',
         'gateway/google-gemini',
+        'gateway/custom-providers',
       ],
     },
     {
